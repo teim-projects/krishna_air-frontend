@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleUser } from "@fortawesome/free-solid-svg-icons";
+import { width } from "@fortawesome/free-solid-svg-icons/fa0";
 
 
 const Navbar = () => {
@@ -71,7 +72,7 @@ const Navbar = () => {
 
   return (
     <nav style={styles.navbar}>
-      <div style={styles.logo}><Link to="/dashboard" >Krishna Air</Link></div>
+      <div style={styles.logo}><Link to="/dashboard" >Krisna AC</Link></div>
       <div style={styles.links}>
         {isAuthenticated ? (
           <>
@@ -83,7 +84,7 @@ const Navbar = () => {
         ) : (
           <>
             <Link to="/login" style={styles.link}>Login</Link>
-            <Link to="/register" style={styles.link}>Register</Link>
+            {/* <Link to="/register" style={styles.link}>Register</Link> */}
           </>
         )}
       </div>
@@ -97,9 +98,12 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "12px 20px",
-    backgroundColor: "#ffa100",
+    backgroundColor: "#34495E",
     color: "white",
-    position: "relative",
+    position: "fixed",
+    top:"0%",
+    width:"100%",
+    
     zIndex: 1000,
   },
   logo: { fontSize: "1.5em", fontWeight: "bold" },
