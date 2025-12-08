@@ -74,7 +74,7 @@ export default function Base({
       )}
 
       {/* Main content area (shifts right on md when drawer open) */}
-      <div className={"flex-1 flex flex-col transition-all duration-300 " + (filtersOpen ? "md:ml-80" : "")}>
+      <div className={"flex-1 flex flex-col transition-all duration-300 overflow-auto " + (filtersOpen ? "md:ml-80" : "")}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 bg-transparent">
           <div>

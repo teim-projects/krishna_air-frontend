@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
-import { MdOutlineNavigateNext, MdOutlineNavigateBefore , MdEdit , MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
+import TableView from "../components/TableView"; // <-- reusable table
 
 export default function Accounts() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
@@ -25,8 +26,6 @@ export default function Accounts() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-
-
 
   const token = useMemo(() => {
     return (
@@ -82,8 +81,7 @@ export default function Accounts() {
     } finally {
       setRolesLoading(false);
     }
-  }, [token]);
-
+  }, [token, BASE_API]);
 
   useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
@@ -144,7 +142,7 @@ export default function Accounts() {
     } finally {
       setLoading(false);
     }
-  }, [token, appliedFilters]);
+  }, [token, appliedFilters, BASE_API]);
 
   // initial load and reload whenever filters or page change
   useEffect(() => {
@@ -155,7 +153,6 @@ export default function Accounts() {
 
   // when currentPage changes (via pagination UI), fetch that page
   useEffect(() => {
-    // skip because filter-change handler already invoked fetch for page 1
     fetchData(currentPage);
   }, [currentPage, fetchData]);
 
@@ -181,6 +178,41 @@ export default function Accounts() {
     fetchData(currentPage);
   };
 
+  // table columns for TableView
+  const columns = useMemo(() => ([
+    {
+      key: "sr",
+      label: "Sr.No",
+      render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1)
+    },
+    { key: "email", label: "Email", render: r => r.email },
+    { key: "mobile", label: "Mobile", render: r => r.mobile_no },
+    { key: "first_name", label: "First Name", render: r => r.first_name },
+    { key: "last_name", label: "Last Name", render: r => r.last_name },
+    { key: "role", label: "Role", render: r => r.role?.name ?? "" },
+  ]), [currentPage]);
+
+  // actions renderer (centered by TableView)
+  const actionsRenderer = useCallback((row) => (
+    <>
+      <button
+        onClick={() => { setEditingStaff(row); setShowStaffForm(true); }}
+        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+        title="Edit"
+      >
+        <MdEdit />
+      </button>
+
+      <button
+        onClick={() => handleDeleteStaff(row.id)}
+        className="px-2 py-1 bg-red-200 text-red-800 rounded"
+        title="Delete"
+      >
+        <MdDelete />
+      </button>
+    </>
+  ), [handleDeleteStaff]);
+
   return (
     <Base
       title="Accounts Overview"
@@ -190,8 +222,6 @@ export default function Accounts() {
     >
       <div className="space-y-6">
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
-
-          {/* LEFT SIDE — TITLE & COUNT */}
           <div>
             <h2 className="text-lg font-semibold">Staff Accounts & Roles</h2>
             <div className="text-sm text-slate-600">
@@ -199,10 +229,7 @@ export default function Accounts() {
             </div>
           </div>
 
-          {/* RIGHT SIDE — ACTION BUTTONS + STATUS */}
           <div className="flex items-center gap-3">
-
-            {/* Add Role */}
             <button
               onClick={() => setShowAddRole(true)}
               className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
@@ -210,8 +237,6 @@ export default function Accounts() {
               Manage Roles
             </button>
 
-
-            {/* Add Staff */}
             <button
               onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
               className="px-4 py-2 rounded-md bg-sky-600 text-white"
@@ -219,104 +244,27 @@ export default function Accounts() {
               + Add Staff
             </button>
 
-
-            {/* Roles loading / error indicator */}
-            {rolesLoading ? (
-              <div className="text-sm text-slate-500">Loading roles…</div>
-            ) : rolesError ? (
-              <div className="text-sm text-red-500">Roles error</div>
-            ) : null}
+            {rolesLoading ? <div className="text-sm text-slate-500">Loading roles…</div> :
+             rolesError ? <div className="text-sm text-red-500">Roles error</div> : null}
           </div>
-
         </div>
 
-
-
-        <div className="bg-white p-4 rounded-md shadow overflow-x-auto">
-          {loading ? (
-            <div className="py-6 text-center text-slate-600">Loading...</div>
-          ) : error ? (
-            <div className="py-6 text-red-600">{error}</div>
-          ) : (
-            <>
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 px-3">Sr.No</th>
-                    <th className="py-2 px-3">Email</th>
-                    <th className="py-2 px-3">Mobile</th>
-                    <th className="py-2 px-3">First Name</th>
-                    <th className="py-2 px-3">Last Name</th>
-                    <th className="py-2 px-3">Role</th>
-                    <th className="py-2 px-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-6 text-center text-slate-500">No records</td>
-                    </tr>
-                  ) : rows.map((r, index) => (
-                    <tr key={r.id} className="odd:bg-slate-50">
-                      <td className="py-2 px-3">
-                        {(currentPage - 1) * PAGE_SIZE + (index + 1)}
-                      </td>
-                      <td className="py-2 px-3">{r.email}</td>
-                      <td className="py-2 px-3">{r.mobile_no}</td>
-                      <td className="py-2 px-3">{r.first_name}</td>
-                      <td className="py-2 px-3">{r.last_name}</td>
-                      <td className="py-2 px-3">{r.role?.name ?? ""}</td>
-                      <td className="py-2 px-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { setEditingStaff(r); setShowStaffForm(true); }}
-                            className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded">
-                            <MdEdit />
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteStaff(r.id)}
-                            className="px-2 py-1 bg-red-200 text-red-800 rounded">
-                            <MdDelete />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* pagination controls (simple Prev / Next only) */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-slate-600">
-                  Page {currentPage} of {totalPages}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 rounded border bg-white text-sm disabled:opacity-50"
-                  >
-                    <MdOutlineNavigateBefore />
-                  </button>
-
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 rounded border bg-white text-sm disabled:opacity-50"
-                  >
-                    <MdOutlineNavigateNext />
-                  </button>
-                </div>
-              </div>
-
-            </>
-          )}
-        </div>
-
+        {/* Reusable TableView */}
+        <TableView
+          columns={columns}
+          rows={rows}
+          loading={loading}
+          error={error}
+          page={currentPage}
+          totalPages={totalPages}
+          onPageChange={(p) => setCurrentPage(p)}
+          pageSize={PAGE_SIZE}
+          actions={actionsRenderer}
+          emptyMessage="No records"
+        />
       </div>
-      {/* Add Role Modal */}
+
+      {/* Manage Roles modal */}
       {showAddRole && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="w-full max-w-3xl p-4">
@@ -333,11 +281,6 @@ export default function Accounts() {
         roles={roles}
         staff={editingStaff}
       />
-
-
-
-
     </Base>
   );
-
 }
