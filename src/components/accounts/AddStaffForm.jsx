@@ -7,7 +7,7 @@ export default function AddStaffForm({
   onSuccess,
   baseApi,
   roles = [],
-  staff = null // if staff exists → EDIT mode
+  staff = null 
 }) {
   const [email, setEmail] = useState(staff?.email || "");
   const [mobile, setMobile] = useState(staff?.mobile_no || "");
@@ -31,7 +31,7 @@ export default function AddStaffForm({
     setRole(staff?.role?.id || "");
     setPassword("");
     setChangePassword(false);
-  }, [staff, open, AddStaffForm]);
+  }, [staff, open]);
 
   if (!open) return null;
 

@@ -160,6 +160,10 @@ export default function Accounts() {
     setAppliedFilters(prev => ({ ...prev, ...filters }));
   }, []);
 
+  const handleRolesUpdated = useCallback(() => {
+    fetchRoles(); 
+  }, [fetchRoles]);
+
   const handleDeleteStaff = async (id) => {
     const confirm = await Swal.fire({
       title: "Delete Staff?",
@@ -268,7 +272,8 @@ export default function Accounts() {
       {showAddRole && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="w-full max-w-3xl p-4">
-            <RolePage baseApi={BASE_API} onClose={() => setShowAddRole(false)} />
+            <RolePage baseApi={BASE_API} onClose={() => setShowAddRole(false)} 
+              onRolesUpdated={handleRolesUpdated}/>
           </div>
         </div>
       )}
