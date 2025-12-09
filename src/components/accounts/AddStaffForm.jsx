@@ -31,7 +31,7 @@ export default function AddStaffForm({
     setRole(staff?.role?.id || "");
     setPassword("");
     setChangePassword(false);
-  }, [staff, open]);
+  }, [staff, open, AddStaffForm]);
 
   if (!open) return null;
 
