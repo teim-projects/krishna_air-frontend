@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import AddRoleForm from "../components/accounts/AddRoleForm";
 import { MdEdit , MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
-export default function RolePage({ baseApi, onClose, open = true, onRolesUpdated  }) {
+export default function RolePage({ baseApi, onClose, open = true }) {
   const DEFAULT_API = "http://127.0.0.1:8000";
   const BASE_API = baseApi ?? import.meta.env.VITE_BASE_API_URL ?? DEFAULT_API;
 
@@ -91,13 +91,6 @@ export default function RolePage({ baseApi, onClose, open = true, onRolesUpdated
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, page]);
 
-
-  const notifyParentRolesUpdated = useCallback(() => {
-    if (typeof onRolesUpdated === "function") {
-      onRolesUpdated();
-    }
-  }, [onRolesUpdated]);
-  
   // delete role
   const handleDelete = async (id) => {
     const confirmDelete = await Swal.fire({
@@ -136,8 +129,6 @@ export default function RolePage({ baseApi, onClose, open = true, onRolesUpdated
       if (roles.length === 0 && page > 1) {
         setPage((p) => Math.max(1, p - 1));
       }
-
-      notifyParentRolesUpdated();
     } catch (err) {
       Swal.fire({
         title: "Error!",
@@ -214,10 +205,9 @@ export default function RolePage({ baseApi, onClose, open = true, onRolesUpdated
         open={showForm}
         onClose={() => setShowForm(false)}
         baseApi={BASE_API}
-        onSuccess={() => { fetchRoles(page); setShowForm(false); notifyParentRolesUpdated(); }}
+        onSuccess={() => { fetchRoles(page); setShowForm(false); }}
         roleId={editingRole?.id}
         initialName={editingRole?.name}
-        
       />
     </div>
   );
