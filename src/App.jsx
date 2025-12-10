@@ -16,6 +16,7 @@ import ResetPasswordConfirm from "./components/ResetPasswordConfirm";
 import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Customer from "./pages/Customer";
+import Lead from "./pages/Lead";
 
 function AppRoutes() {
   const location = useLocation();
@@ -85,6 +86,7 @@ function AppRoutes() {
               />
               <Route path="/accounts" element={<Accounts />} />
               <Route path="/customer" element={<Customer />} />
+              <Route path="/leads" element={<Lead />} />
             </Routes>
           </div>
         </main>
