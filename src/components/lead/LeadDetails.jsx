@@ -41,7 +41,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center mt-10 justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center mt-10 justify-center bg-black/40">
       <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
         {/* header */}
         <button
@@ -72,8 +72,13 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
                   <div>Name: {lead.customer_name}</div>
                   <div>Contact: {lead.customer_contact}</div>
                   <div>Email: {lead.customer_email}</div>
+
+         <br />
+                  <div>Project Name: {lead.project_name}</div> 
+                  <div>Address: {lead.project_adderess}</div>
                 </div>
 
+      
                 <div className="row grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Assigned To */}
                   <div>

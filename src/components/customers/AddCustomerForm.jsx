@@ -23,7 +23,10 @@ export default function AddCustomerForm({
 
   const [name, setName] = useState(customer?.name ?? "");
   const [contactNumber, setContactNumber] = useState(customer?.contact_number ?? "");
+  const [landLineNumber, setLandLineNumber] = useState(customer?.land_line_no ?? "");
   const [email, setEmail] = useState(customer?.email ?? "");
+  const [pocName, setPocName] = useState(customer?.poc_name ?? "");
+  const [pocContactNumber, setPocContactNumber] = useState(customer?.poc_contact_number ?? "");
   const [address, setAddress] = useState(customer?.address ?? "");
   const [city, setCity] = useState(customer?.city ?? "");
   const [stateVal, setStateVal] = useState(customer?.state ?? "");
@@ -48,7 +51,10 @@ export default function AddCustomerForm({
   useEffect(() => {
     setName(customer?.name ?? "");
     setContactNumber(customer?.contact_number ?? "");
+    setLandLineNumber(customer?.land_line_no ?? "");
     setEmail(customer?.email ?? "");
+    setPocName(customer?.poc_name ?? "");
+    setPocContactNumber(customer?.poc_contact_number ?? "");
     setAddress(customer?.address ?? "");
     setCity(customer?.city ?? "");
     setStateVal(customer?.state ?? "");
@@ -124,7 +130,10 @@ export default function AddCustomerForm({
       const payload = {
         name: name.trim(),
         contact_number: contactNumber.toString(),
+        land_line_no: landLineNumber.toString(),
         email: email ? String(email).trim() : "",
+        poc_name: pocName.trim(),
+        poc_contact_number: pocContactNumber.toString(),
         address: address.trim(),
         city: city.trim(),
         state: stateVal.trim(),
@@ -183,7 +192,7 @@ export default function AddCustomerForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50">
+    <div className="fixed inset-0 mt-8  bg-black/40 flex items-start sm:items-center justify-center z-50">
       <div className="bg-white rounded-md shadow-lg w-full max-w-lg relative max-h-[85vh] flex flex-col">
   
         {/* ---- FIXED HEADER ---- */}
@@ -217,12 +226,33 @@ export default function AddCustomerForm({
               <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                 value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
             </div>
+
+            {/* company landLine no */}
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
+              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
+            </div>
   
             {/* Email */}
             <div>
               <label className="text-sm text-slate-700 mb-1 block">Email</label>
               <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                 value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+
+            {/* POC name */}
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">POC Name</label>
+              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={pocName} onChange={e => setPocName(e.target.value)} />
+            </div>
+
+            {/* POC contact number */}
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
+              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
             </div>
   
             {/* Billing Address */}

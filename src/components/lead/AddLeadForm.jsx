@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FaUser } from "react-icons/fa";
 import { RxCross2 } from "react-icons/rx";
 import Swal from "sweetalert2";
+import { fetchCustomerByPhone } from "../customers/customerLookup";
+import { useUserRole } from '../../hooks/useAuth';
+import AddCustomerForm from "../customers/AddCustomerForm";
 
 /**
  * AddLeadForm
@@ -22,13 +25,15 @@ export default function AddLeadForm({
   token = "",
   lead = null,
 }) {
-  const API_URL = `${baseApi}/api/lead/lead/`;
-
+  const API_URL = `${baseApi.replace(/\/$/, "")}/api/lead/lead/`;
+  const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [formData, setFormData] = useState({
     date: "",
     clientName: "",
     contactNumber: "",
     email: "",
+    projectName:"",
+    projectAddress:"",
     requirementDetails: "",
     hvacApplication: "",
     tonCapacity: "",
@@ -40,7 +45,17 @@ export default function AddLeadForm({
     remarks: "",
   });
 
+  // NEW: keep matched customer id
+  const [customerId, setCustomerId] = useState(null);
+  const [assignOptions, setAssignOptions] = useState([]);
+  const [loadingAssign, setLoadingAssign] = useState(false);
+  const [assignId, setAssignId] = useState(null);
+  // const [userRole, setUserRole] = useState("");
+
   const [loading, setLoading] = useState(false);
+  const [loadingLookup, setLoadingLookup] = useState(false);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+
 
   const authToken = useMemo(
     () =>
@@ -53,6 +68,61 @@ export default function AddLeadForm({
     [token]
   );
 
+
+  // for debounce + abort
+  const lookupTimerRef = useRef(null);
+  const lookupAbortRef = useRef(null);
+
+  
+
+  // Fetch sales staff when modal opens
+  useEffect(() => {
+    if (!open) return;
+
+    const controller = new AbortController();
+    setLoadingAssign(true);
+
+    const url = `${baseApi.replace(/\/$/, "")}/api/auth/staff/?search=sales`;
+
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`${res.status} ${res.statusText} ${txt}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        // expects paginated { results: [...] } or an array directly
+        const items = Array.isArray(data) ? data : data.results ?? [];
+        const mapped = items.map((u) => ({
+          id: u.id,
+          name: u.first_name,
+          last_name: u.last_name,
+        }));
+        setAssignOptions(mapped);
+      })
+      .catch((err) => {
+        if (err?.name === "AbortError") {
+          // aborted — fine
+        } else {
+          console.error("Failed to fetch staff:", err);
+          setAssignOptions([]);
+        }
+      })
+      .finally(() => setLoadingAssign(false));
+
+    return () => controller.abort();
+    // Only refetch when modal opens, baseApi or authToken change
+  }, [open, baseApi, authToken]);
+
   // Populate on open / when editing
   useEffect(() => {
     if (!open) return;
@@ -63,6 +133,8 @@ export default function AddLeadForm({
         clientName: lead.customer_name || "",
         contactNumber: lead.customer_contact || "",
         email: lead.customer_email || "",
+        projectName:lead.project_name || "",
+        projectAddress:lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
         hvacApplication: lead.hvac_application || "",
         tonCapacity: lead.capacity_required || "",
@@ -73,6 +145,7 @@ export default function AddLeadForm({
         followupDate: lead.followup_date || "",
         remarks: lead.remarks || "",
       });
+      setCustomerId(lead.customer ?? null);
     } else {
       // reset for new lead
       setFormData({
@@ -80,6 +153,8 @@ export default function AddLeadForm({
         clientName: "",
         contactNumber: "",
         email: "",
+        projectName:"",
+        project_adderess:"",
         requirementDetails: "",
         hvacApplication: "",
         tonCapacity: "",
@@ -90,17 +165,27 @@ export default function AddLeadForm({
         followupDate: "",
         remarks: "",
       });
+      setCustomerId(null);
     }
     setLoading(false);
+    // cancel any pending lookup
+    if (lookupTimerRef.current) {
+      clearTimeout(lookupTimerRef.current);
+      lookupTimerRef.current = null;
+    }
+    if (lookupAbortRef.current) {
+      try {
+        lookupAbortRef.current.abort();
+      } catch { }
+      lookupAbortRef.current = null;
+    }
   }, [open, lead]);
 
   if (!open) return null;
 
-  const assignOptions = [
-    { id: 1, name: "name1" },
-    { id: 2, name: "name2" },
-    { id: 3, name: "name3" },
-  ];
+
+
+
 
   // These should match your Django TextChoices values
   const leadSourceOptions = [
@@ -112,7 +197,83 @@ export default function AddLeadForm({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "assignTo") {
+      setAssignId(value === "" ? null : Number(value));
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // NEW: debounced contact handler that calls the simple fetch function
+  const handleContactChange = (e) => {
+    const phone = e.target.value;
+    // update UI instantly
+    setFormData((prev) => ({ ...prev, contactNumber: phone }));
+
+    // clear previous timer
+    if (lookupTimerRef.current) {
+      clearTimeout(lookupTimerRef.current);
+      lookupTimerRef.current = null;
+    }
+    // abort previous fetch
+    if (lookupAbortRef.current) {
+      try {
+        lookupAbortRef.current.abort();
+      } catch { }
+      lookupAbortRef.current = null;
+    }
+
+    // If empty, clear customer info
+    if (!phone || phone.trim() === "") {
+      setCustomerId(null);
+      setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+      setLoadingLookup(false);
+      return;
+    }
+
+    // wait 500ms after typing stops
+    lookupTimerRef.current = setTimeout(async () => {
+      lookupTimerRef.current = null;
+      setLoadingLookup(true);
+
+      // use AbortController so we can cancel fetch if user types again
+      const controller = new AbortController();
+      lookupAbortRef.current = controller;
+
+      try {
+        // fetchCustomerByPhone is your headless single-file util; pass baseApi & token
+        const customer = await fetchCustomerByPhone(baseApi, authToken, phone, {
+          signal: controller.signal,
+        });
+
+        // NOTE: fetchCustomerByPhone, as provided earlier, doesn't accept signal.
+        // If your version doesn't accept signal, the abort won't work — that's OK but recommended to add support.
+        // Treat the result:
+        if (customer) {
+          setCustomerId(customer.id ?? null);
+          setFormData((prev) => ({
+            ...prev,
+            clientName: customer.full_name ?? customer.name ?? "",
+            email: customer.email ?? "",
+          }));
+        } else {
+          setCustomerId(null);
+          setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+        }
+      } catch (err) {
+        // if aborted, ignore; otherwise log
+        if (err?.name === "AbortError") {
+          // aborted by typing — ignore
+        } else {
+          console.error("Customer lookup error:", err);
+          // keep UX quiet; do not clear name/email here unless you want to
+          setCustomerId(null);
+          setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+        }
+      } finally {
+        lookupAbortRef.current = null;
+        setLoadingLookup(false);
+      }
+    }, 500);
   };
 
   const validate = () => {
@@ -160,11 +321,13 @@ export default function AddLeadForm({
     try {
       // Map front-end state → backend payload
       const payload = {
+        project_name: formData.projectName || "",
+        project_adderess: formData.projectAddress || "",
         requirements_details: formData.requirementDetails || "",
         hvac_application: formData.hvacApplication || "",
         capacity_required: formData.tonCapacity || "",
-        lead_source: formData.leadSource || null,   
-        status: formData.status || null,           
+        lead_source: formData.leadSource || null,
+        status: formData.status || null,
         date: formData.date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
@@ -172,14 +335,13 @@ export default function AddLeadForm({
 
       // When editing, preserve existing FKs unless you provide UI
       if (lead) {
-        payload.customer = lead.customer ?? null;
-        payload.assign_to = lead.assign_to ?? null;
-        payload.creatd_by = lead.creatd_by ?? null;
+        // if we resolved a new customerId from lookup, prefer it; otherwise preserve lead.customer
+        payload.customer = customerId ?? lead.customer ?? null;
+        payload.assign_to = assignId;
       } else {
-        // For now these stay null – you can later wire a proper customer / user select.
-        payload.customer = null;
-        payload.assign_to = null;
-        payload.creatd_by = null;
+        payload.customer = customerId ?? null;
+        payload.assign_to = assignId;
+
       }
 
       const url = lead ? `${API_URL}${lead.id}/` : API_URL;
@@ -254,10 +416,21 @@ export default function AddLeadForm({
                   name="contactNumber"
                   placeholder="Enter Contact Number"
                   value={formData.contactNumber}
-                  onChange={handleChange}
+                  onChange={handleContactChange}
                   className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                 />
-                <FaUser className="text-gray-500 text-xl" />
+
+                <button
+                  type="button" // Important to prevent form submission
+                  onClick={() => setShowCustomerForm(true)}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors" // Add hover style for visual cue
+                  title="Add/Edit Customer Details"
+                >
+                  <FaUser className="text-gray-500 text-xl" />
+                </button>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
               </div>
             </div>
 
@@ -288,6 +461,32 @@ export default function AddLeadForm({
                 readOnly
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
               />
+            </div> 
+
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Project Name
+              </label>
+              <input
+                name="projectName"
+                placeholder="Project Name"
+                value={formData.projectName}
+                onChange={handleChange}
+                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Project Address
+              </label>
+              <input
+                name="projectAddress"
+                placeholder="Project address"
+                value={formData.projectAddress}
+                onChange={handleChange}
+                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+              />
             </div>
 
             {/* Date */}
@@ -303,6 +502,7 @@ export default function AddLeadForm({
             </div>
           </div>
 
+          {/* ... rest unchanged ... */}
           {/* LEAD DETAILS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Lead Source */}
@@ -344,38 +544,29 @@ export default function AddLeadForm({
             </div>
 
             {/* Assign To (dummy options for now) */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Assign To
-              </label>
-              <select
-                name="assignTo"
-                value={formData.assignTo}
-                onChange={handleChange}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              >
-                <option value="">Assign To</option>
-                {assignOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {userRole.name !== "sales" && (
 
-            {/* Credited By (display only for now) */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Credited By
-              </label>
-              <input
-                name="creditedBy"
-                placeholder="Enter name"
-                value={formData.creditedBy}
-                onChange={handleChange}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-              />
-            </div>
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Assign To
+                </label>
+                <select
+                  name="assignTo"
+                  value={formData.assignTo} // <--- The value is here
+                  onChange={handleChange}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                >
+                  <option value="">Assign To</option>
+                  {assignOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name} {o.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+           
 
             {/* Follow-up Date */}
             <div>
@@ -446,7 +637,6 @@ export default function AddLeadForm({
               className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
             />
           </div>
-
           {/* BUTTONS */}
           <div className="flex justify-end gap-4 mt-4">
             <button
@@ -467,6 +657,34 @@ export default function AddLeadForm({
           </div>
         </form>
       </div>
+      {/* 👇 NEW: Render the Customer Form conditionally */}
+      <AddCustomerForm
+        open={showCustomerForm}
+        onClose={() => setShowCustomerForm(false)}
+        baseApi={baseApi}
+        token={authToken} // use the memoized token
+        // Optional: Pass initial data if adding a new customer
+        initialData={{
+          contact: formData.contactNumber,
+          email: formData.email,
+          name: formData.clientName
+        }}
+        // Optional: Handle success (e.g., if a new customer is created,
+        // you might want to automatically update customerId here)
+        onSuccess={(newCustomer) => {
+          setShowCustomerForm(false);
+          // If successful, update the Lead Form state with the new customer info
+          if (newCustomer?.id) {
+            setCustomerId(newCustomer.id);
+            setFormData(prev => ({
+              ...prev,
+              clientName:  newCustomer.name,
+              contactNumber: newCustomer.contact_number,
+              email: newCustomer.email
+            }));
+          }
+        }}
+      />
     </div>
   );
 }

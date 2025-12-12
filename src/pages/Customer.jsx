@@ -131,13 +131,16 @@ export default function Customer() {
 
   const columns = [
     { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE_FALLBACK + (idx + 1) },
-    { key: "name", label: "Name", render: (r) => r.name },
+    { key: "name", label: "Company Name", render: (r) => r.name },
     { key: "contact", label: "Contact", render: (r) => r.contact_number },
     { key: "email", label: "Email", render: (r) => r.email },
+    { key: "land_line_no", label: "Landline No", render: (r) => r.land_line_no },
+    { key: "poc_name", label: "POC Name", render: (r) => r.poc_name },
+    { key: "poc_contact_number", label: "POC Contact", render: (r) => r.poc_contact_number },
     { key: "city", label: "City", render: (r) => r.city },
     { key: "state", label: "State", render: (r) => r.state },
-    { key: "pin", label: "Pin", render: (r) => r.pin_code },
-    { key: "addr", label: "Address", render: (r) => r.address },
+    // { key: "pin", label: "Pin", render: (r) => r.pin_code },
+    // { key: "addr", label: "Address", render: (r) => r.address },
     // { key: "site_addr", label: "Site Address", render: (r) => r.site_address },
   ];
 

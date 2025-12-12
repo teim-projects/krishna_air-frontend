@@ -6,12 +6,18 @@ import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
 import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument } from "react-icons/md";
 import Swal from "sweetalert2";
+import { useUserRole } from '../hooks/useAuth'; // ✅ Imported hook
 
 
 export default function Lead() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
   const API_URL = `${BASE_API}/api/lead/lead/`;
-  const initialFilters = useMemo(() => ({ search: "" }), []);
+
+  // ✅ Called hook to get user role
+  const { userRole, isLoading: loadingUser } = useUserRole(BASE_API);
+
+  // Initialize assign_to filter as empty string as well
+  const initialFilters = useMemo(() => ({ search: "", status: "", assign_to: "", lead_source: "", }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
   const [rows, setRows] = useState([]);
@@ -34,6 +40,8 @@ export default function Lead() {
   const [showLeadFollowUp, setShowLeadFollowUp] = useState(false);
   const [followUpLeadId, setFollowUpLeadId] = useState(null);
 
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [assignToOptions, setAssignToOptions] = useState([]);
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -43,24 +51,139 @@ export default function Lead() {
     ""
   ), []);
 
-  const leadFilters = useMemo(() => [
-    { key: "search", type: "search", label: "Search", placeholder: "Search name, email, contact..." },
+  const status_choice = useMemo(() => [
+    { value: "open", label: "Open" },
+    { value: "in_process", label: "In Process" },
+    { value: "closed", label: "Closed" },
   ], []);
 
+  const leadSourceOptions = useMemo(() => [
+    { value: "google_ads", label: "Google Ads" }, // Using 'label' for consistency
+    { value: "indiamart", label: "IndiaMART" }, // Using 'label'
+    { value: "bni", label: "BNI" }, // Using 'label'
+    { value: "other", label: "Other" }, // Using 'label'
+  ], []);
+
+
+  // =========================================================
+  //  useEffect: Fetch Staff Data for Filters (Conditional Fetch)
+  // =========================================================
+  useEffect(() => {
+    // ✅ Only fetch if token exists AND user role is NOT sales
+    if (!token || userRole?.name === "sales" || loadingUser) {
+      setAssignToOptions([]);
+      setLoadingStaff(false);
+      return;
+    }
+
+    setLoadingStaff(true);
+    const controller = new AbortController();
+
+    const staffUrl = `${BASE_API.replace(/\/$/, "")}/api/auth/staff/?search=sales`;
+
+    fetch(staffUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`Failed to fetch staff: ${res.status} ${res.statusText} ${txt}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data.results ?? [];
+        const mappedStaff = items.map((u) => ({
+          id: u.id,
+          name: `${u.first_name || ''} ${u.last_name || ''}`.trim(),
+        }));
+        setAssignToOptions(mappedStaff);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        console.error("Failed to fetch assignable staff:", err);
+        setAssignToOptions([]);
+      })
+      .finally(() => setLoadingStaff(false));
+
+    return () => controller.abort();
+
+  }, [BASE_API, token, userRole, loadingUser]); // Added userRole, loadingUser to deps
+  // =========================================================
+
+
+  const baseFilters = useMemo(() => [
+    { key: "search", type: "search", label: "Search", placeholder: "Search name, email, contact..." },
+    {
+      key: "status",
+      type: "select",
+      label: "Status",
+      placeholder: "Status",
+      options: [...status_choice.map(r => ({ value: r.value, label: r.label }))]
+    },
+    // Assign To filter definition
+    {
+      key: "assign_to",
+      type: "select",
+      label: loadingStaff ? "Assign to (Loading...)" : "Assign to",
+      placeholder: "Assign to",
+      options: assignToOptions.map(at => ({ value: String(at.id), label: at.name }))
+    },
+    {
+      key: "lead_source",
+      type: "select",
+      label: "Source",
+      placeholder: "Source",
+      options: [...leadSourceOptions.map(ls => ({ value: ls.value, label: ls.label }))]
+    },
+  ], [status_choice, assignToOptions, loadingStaff, leadSourceOptions]);
+
+  // ✅ CONDITIONAL FILTERING LOGIC: Hide Assign To filter for sales users
+  const leadFilters = useMemo(() => {
+    // If user role is still loading, show no filters to prevent flicker
+    if (loadingUser) return [];
+
+    return baseFilters.filter(filter => {
+      // If user is sales, hide the 'assign_to' filter
+      if (userRole?.name === 'sales' && filter.key === 'assign_to') {
+        return false;
+      }
+      return true;
+    });
+  }, [baseFilters, userRole, loadingUser]);
+
+  const PAGE_SIZE = 10;
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
     setError(null);
-
     try {
+      if (!token) throw new Error("No bearer token found in localStorage.");
+
       const params = new URLSearchParams();
       params.set("page", String(page));
-      if (appliedFilters?.search) params.set("search", appliedFilters.search);
+
+      // attach filters
+      if (appliedFilters.search) params.set("search", appliedFilters.search);
+      if (appliedFilters.status) params.set("status", appliedFilters.status);
+      if (appliedFilters.lead_source) params.set("lead_source", appliedFilters.lead_source);
+
+      // ✅ Final check for assign_to: Only include filter if user is NOT sales
+      // The backend handles the restriction for sales users automatically.
+      if (userRole?.name !== 'sales' && appliedFilters.assign_to) {
+        params.set("assign_to", appliedFilters.assign_to);
+      }
 
       const url = `${API_URL}?${params.toString()}`;
+
       const res = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -71,25 +194,26 @@ export default function Lead() {
 
       const data = await res.json();
 
+      // ... (rest of data handling remains the same) ...
+
+      // If DRF pagination is enabled, response will contain `results`
       if (data && Array.isArray(data.results)) {
-        const items = data.results;
-        const count = Number.isFinite(data.count) ? data.count : items.length;
-        const pageSize = items.length || PAGE_SIZE_FALLBACK;
-        setRows(items);
+        setRows(data.results);
+        const count = Number.isFinite(data.count) ? data.count : (data.results.length || 0);
         setTotalCount(count);
-        setTotalPages(Math.max(1, Math.ceil(count / pageSize)));
+        // compute total pages (PAGE_SIZE must match backend page size)
+        const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+        setTotalPages(pages);
         setCurrentPage(page);
       } else if (Array.isArray(data)) {
+        // not paginated: backend returned raw array
         setRows(data);
         setTotalCount(data.length);
-        setTotalPages(Math.max(1, Math.ceil(data.length / PAGE_SIZE_FALLBACK)));
+        setTotalPages(Math.max(1, Math.ceil(data.length / PAGE_SIZE)));
         setCurrentPage(1);
       } else {
-        const items = Array.isArray(data?.results) ? data.results : Array.isArray(data?.data) ? data.data : [];
-        setRows(items);
-        setTotalCount(items.length);
-        setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE_FALLBACK)));
-        setCurrentPage(1);
+        // unexpected shape
+        throw new Error("Unexpected staff response shape");
       }
     } catch (err) {
       setError(err.message || String(err));
@@ -99,7 +223,7 @@ export default function Lead() {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, token, appliedFilters]);
+  }, [token, appliedFilters, API_URL, userRole]); // Added userRole to deps
 
   useEffect(() => { fetchData(currentPage); }, [fetchData, currentPage]);
 
@@ -140,7 +264,7 @@ export default function Lead() {
   };
 
   const columns = [
-    { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE_FALLBACK + (idx + 1) },
+    { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1) },
     { key: "date", label: "Date", render: (r) => r.date },
     { key: "followup_date", label: "Followup Date", render: (r) => r.followup_date },
     { key: "name", label: "Name", render: (r) => r.customer_name },
@@ -149,7 +273,7 @@ export default function Lead() {
     { key: "hvac_application", label: "HVAC Application", render: (r) => r.hvac_application },
     { key: "lead_source", label: "Source", render: (r) => r.lead_source },
     { key: "status", label: "Status", render: (r) => r.status },
-    { key: "assign_to", label: "Assign to", render: (r) => r.assign_to_details.full_name }
+    { key: "assign_to", label: "Assign to", render: (r) => r.assign_to_details?.full_name }
 
 
   ];
@@ -232,7 +356,7 @@ export default function Lead() {
           page={currentPage}
           totalPages={totalPages}
           onPageChange={(p) => setCurrentPage(p)}
-          pageSize={PAGE_SIZE_FALLBACK}
+          pageSize={PAGE_SIZE} // Using the actual PAGE_SIZE here
           actions={actionsRenderer}
           emptyMessage="No leads found"
         />
@@ -242,7 +366,7 @@ export default function Lead() {
         onClose={() => setShowLeadForm(false)}
         baseApi={BASE_API}
         token={token}
-        lead={editingLead}   // null = add | object = edit
+        lead={editingLead}  // null = add | object = edit
         onSuccess={() => {
           fetchData(currentPage);
           setShowLeadForm(false);
@@ -265,9 +389,9 @@ export default function Lead() {
         onClose={() => setShowLeadFollowUp(false)}
         baseApi={BASE_API}
         token={token}
-        leadId={followUpLeadId}          // <-- IMPORTANT
+        leadId={followUpLeadId}        // <-- IMPORTANT
         onSuccess={() => {
-          fetchData(currentPage);        // refresh list after saving followup
+          fetchData(currentPage);     // refresh list after saving followup
           setShowLeadFollowUp(false);
           setFollowUpLeadId(null);
         }}
