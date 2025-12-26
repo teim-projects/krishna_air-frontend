@@ -1,16 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Swal from "sweetalert2";
+import { CitySelect, CountrySelect, StateSelect, } from "react-country-state-city";
+import "react-country-state-city/dist/react-country-state-city.css";
+import { GetCountries, GetState, GetCity } from "react-country-state-city";
 
-/**
- * AddCustomerForm
- *
- * Props:
- * - open: boolean
- * - onClose: fn()
- * - onSuccess: fn()  // called after successful create/update
- * - baseApi: optional base url string
- * - customer: optional object (when provided → edit mode)
- */
+
 export default function AddCustomerForm({
   open,
   onClose,
@@ -38,6 +32,13 @@ export default function AddCustomerForm({
   const [sitePinCode, setSitePinCode] = useState(customer?.site_pin_code ?? "");
 
   const [loading, setLoading] = useState(false);
+  // const [stateid, setstateid] = useState(null);
+  const INDIA_ID = 101;
+  const [cityid, setcityid] = useState(null);
+  const [countryid, setCountryid] = useState(INDIA_ID);
+  const [stateid, setstateid] = useState(0);
+  const [siteStateid, setSiteStateid] = useState(0);
+  const [siteCityid, setSiteCityid] = useState(0);
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -48,23 +49,83 @@ export default function AddCustomerForm({
   ), []);
 
   // sync when customer or modal open changes
+  // useEffect(() => {
+  //   setName(customer?.name ?? "");
+  //   setContactNumber(customer?.contact_number ?? "");
+  //   setLandLineNumber(customer?.land_line_no ?? "");
+  //   setEmail(customer?.email ?? "");
+  //   setPocName(customer?.poc_name ?? "");
+  //   setPocContactNumber(customer?.poc_contact_number ?? "");
+  //   setAddress(customer?.address ?? "");
+  //   // setCity(customer?.city ?? "");
+  //   // setStateVal(customer?.state ?? "");
+  //   setPinCode(customer?.pin_code ?? "");
+  //   setBothAddressSame(Boolean(customer?.both_address_is_same));
+  //   setSiteAddress(customer?.site_address ?? "");
+  //   // setSiteCity(customer?.site_city ?? "");
+  //   // setSiteState(customer?.site_state ?? "");
+  //   setSitePinCode(customer?.site_pin_code ?? "");
+  //   setLoading(false);
+  // }, [customer, open]);
+
   useEffect(() => {
-    setName(customer?.name ?? "");
-    setContactNumber(customer?.contact_number ?? "");
-    setLandLineNumber(customer?.land_line_no ?? "");
-    setEmail(customer?.email ?? "");
-    setPocName(customer?.poc_name ?? "");
-    setPocContactNumber(customer?.poc_contact_number ?? "");
-    setAddress(customer?.address ?? "");
-    setCity(customer?.city ?? "");
-    setStateVal(customer?.state ?? "");
-    setPinCode(customer?.pin_code ?? "");
-    setBothAddressSame(Boolean(customer?.both_address_is_same));
-    setSiteAddress(customer?.site_address ?? "");
-    setSiteCity(customer?.site_city ?? "");
-    setSiteState(customer?.site_state ?? "");
-    setSitePinCode(customer?.site_pin_code ?? "");
-    setLoading(false);
+    if (!customer || !open) return;
+
+    setName(customer.name || "");
+    setContactNumber(customer.contact_number || "");
+    setLandLineNumber(customer.land_line_no || "");
+    setEmail(customer.email || "");
+    setPocName(customer.poc_name || "");
+    setPocContactNumber(customer.poc_contact_number || "");
+    setAddress(customer.address || "");
+    setPinCode(customer.pin_code || "");
+    setBothAddressSame(Boolean(customer.both_address_is_same));
+    setSiteAddress(customer.site_address || "");
+    setSitePinCode(customer.site_pin_code || "");
+
+    // 🔥 LOAD ALL STATES ONCE
+    GetState(INDIA_ID).then((states) => {
+
+      // 1. Logic for Billing State/City
+      const matchedState = states.find(
+        s => s.name.toLowerCase() === customer.state?.toLowerCase()
+      );
+
+      if (matchedState) {
+        setstateid(matchedState.id);
+        setStateVal(matchedState.name);
+
+        GetCity(INDIA_ID, matchedState.id).then((cities) => {
+          const matchedCity = cities.find(
+            c => c.name.toLowerCase() === customer.city?.toLowerCase()
+          );
+          if (matchedCity) {
+            setcityid(matchedCity.id);
+            setCity(matchedCity.name);
+          }
+        });
+      }
+
+      // 2. Logic for Site State/City (Now inside the same 'states' block)
+      const matchedSiteState = states.find(
+        s => s.name.toLowerCase() === customer.site_state?.toLowerCase()
+      );
+
+      if (matchedSiteState) {
+        setSiteStateid(matchedSiteState.id);
+        setSiteState(matchedSiteState.name);
+
+        GetCity(INDIA_ID, matchedSiteState.id).then((cities) => {
+          const matchedSiteCity = cities.find(
+            c => c.name.toLowerCase() === customer.site_city?.toLowerCase()
+          );
+          if (matchedSiteCity) {
+            setSiteCityid(matchedSiteCity.id);
+            setSiteCity(matchedSiteCity.name);
+          }
+        });
+      }
+    });
   }, [customer, open]);
 
   if (!open) return null;
@@ -189,151 +250,291 @@ export default function AddCustomerForm({
     } finally {
       setLoading(false);
     }
+
+
+
+
   };
 
   return (
-    <div className="fixed inset-0 mt-8  bg-black/40 flex items-start sm:items-center justify-center z-50">
-      <div className="bg-white rounded-md shadow-lg w-full max-w-lg relative max-h-[85vh] flex flex-col">
-  
-        {/* ---- FIXED HEADER ---- */}
-        <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">
-            {customer ? "Edit Customer" : "Add Customer"}
-          </h2>
-          <button 
-            onClick={onClose} 
-            className="text-xl font-bold hover:text-red-500"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-  
-        {/* ---- SCROLLABLE FORM BODY ---- */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">
-          <form className="space-y-4" onSubmit={handleSubmit}>
-  
-            {/* Name */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">Name</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={name} onChange={e => setName(e.target.value)} />
-            </div>
-  
-            {/* Contact Number */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">Contact Number</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
-            </div>
+    <>
 
-            {/* company landLine no */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
-            </div>
-  
-            {/* Email */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">Email</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
+      <div className="fixed inset-0 mt-8  bg-black/40 flex items-start sm:items-center justify-center z-50">
+        <div className="bg-white rounded-md shadow-lg w-full max-w-lg relative max-h-[85vh] flex flex-col">
 
-            {/* POC name */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">POC Name</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={pocName} onChange={e => setPocName(e.target.value)} />
-            </div>
+          {/* ---- FIXED HEADER ---- */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
+            <h2 className="text-lg font-semibold">
+              {customer ? "Edit Customer" : "Add Customer"}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-xl font-bold hover:text-red-500"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
 
-            {/* POC contact number */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
-            </div>
-  
-            {/* Billing Address */}
-            <div>
-              <label className="text-sm text-slate-700 mb-1 block">Address</label>
-              <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
-                value={address} onChange={e => setAddress(e.target.value)} />
-            </div>
-  
-            {/* City / State / Pin */}
-            <div className="grid grid-cols-3 gap-3">
+          {/* ---- SCROLLABLE FORM BODY ---- */}
+          <div className="px-6 py-4 overflow-y-auto flex-1">
+            <form className="space-y-4" onSubmit={handleSubmit}>
+
+              {/* Name */}
               <div>
-                <label className="text-sm text-slate-700 mb-1 block">City</label>
+                <label className="text-sm text-slate-700 mb-1 block">Name</label>
                 <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={city} onChange={e => setCity(e.target.value)} />
+                  value={name} onChange={e => setName(e.target.value)} />
               </div>
+
+              {/* Contact Number */}
               <div>
-                <label className="text-sm text-slate-700 mb-1 block">State</label>
+                <label className="text-sm text-slate-700 mb-1 block">Contact Number</label>
                 <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={stateVal} onChange={e => setStateVal(e.target.value)} />
+                  value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
               </div>
+
+              {/* company landLine no */}
               <div>
-                <label className="text-sm text-slate-700 mb-1 block">Pin Code</label>
+                <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
                 <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={pinCode} onChange={e => setPinCode(e.target.value)} />
+                  value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
               </div>
-            </div>
-  
-            {/* Checkbox */}
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox"
-                checked={bothAddressSame}
-                onChange={(e) => setBothAddressSame(e.target.checked)} />
-              Both address is same
-            </label>
-  
-            {/* Site Address (Conditional Fields) */}
-            {!bothAddressSame && (
-              <>
+
+              {/* Email */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">Email</label>
+                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+
+              {/* POC name */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">POC Name</label>
+                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={pocName} onChange={e => setPocName(e.target.value)} />
+              </div>
+
+              {/* POC contact number */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
+                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
+              </div>
+
+              {/* Billing Address */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">Address</label>
+                <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={address} onChange={e => setAddress(e.target.value)} />
+              </div>
+
+
+
+
+              {/* City / State / Pin */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* Billing State */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Site Address</label>
-                  <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
-                    value={siteAddress} onChange={e => setSiteAddress(e.target.value)} />
-                </div>
-  
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-sm text-slate-700 mb-1 block">Site City</label>
-                    <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                      value={siteCity} onChange={e => setSiteCity(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-700 mb-1 block">Site State</label>
-                    <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                      value={siteState} onChange={e => setSiteState(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-700 mb-1 block">Site Pin</label>
-                    <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                      value={sitePinCode} onChange={e => setSitePinCode(e.target.value)} />
+                  <label className="text-sm text-slate-700 mb-1 block">State</label>
+                  <div className="input-like-select">
+                    <StateSelect
+                      countryid={INDIA_ID}
+                      defaultValue={customer && stateid ? { id: stateid, name: stateVal } : null}
+                      onChange={(e) => {
+                        setstateid(e.id);
+                        setStateVal(e.name);
+                        // Reset city values to prevent crashes
+                        setcityid(0);
+                        setCity("");
+                      }}
+                      placeHolder="Select State"
+                    />
                   </div>
                 </div>
-              </>
-            )}
-  
-            {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-4">
-              <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
-                Cancel
-              </button>
-              <button type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded"
-                disabled={loading}>
-                {loading ? (customer ? "Updating..." : "Saving...") : (customer ? "Update" : "Save")}
-              </button>
-            </div>
-  
-          </form>
+
+                {/* Billing City */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">City</label>
+                  <div className="input-like-select">
+                    <CitySelect
+                      key={`city-billing-${stateid}`}
+                      countryid={INDIA_ID}
+                      stateid={stateid}
+                      defaultValue={customer && cityid ? { id: cityid, name: city } : null}
+                      onChange={(e) => {
+                        setcityid(e.id);
+                        setCity(e.name);
+                      }}
+                      placeHolder="Select City"
+                    />
+                  </div>
+                </div>
+
+                {/* Pin Code */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Pin Code</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    pattern="\d{6}"
+                    className="w-full px-3 py-2 rounded-md border border-slate-200
+             focus:outline-none focus:ring-1 focus:ring-indigo-500
+             invalid:border-red-500"
+                    value={pinCode}
+                    onChange={(e) => {
+                      // allow only numbers
+                      const value = e.target.value.replace(/\D/g, "");
+                      setPinCode(value);
+                    }}
+                    placeholder="6-digit PIN"
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Checkbox */}
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox"
+                  checked={bothAddressSame}
+                  onChange={(e) => setBothAddressSame(e.target.checked)} />
+                Both address is same
+              </label>
+
+              {/* Site Address (Conditional Fields) */}
+              {/* Site Address (Conditional Fields) */}
+              {!bothAddressSame && (
+                <>
+                  <div>
+                    <label className="text-sm text-slate-700 mb-1 block">Site Address</label>
+                    <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
+                      value={siteAddress} onChange={e => setSiteAddress(e.target.value)} />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Site State */}
+                    <div>
+                      <label className="text-sm text-slate-700 mb-1 block">Site State</label>
+                      <div className="input-like-select">
+                        <StateSelect
+                          countryid={INDIA_ID}
+                          // Use siteStateid for the default value
+                          defaultValue={customer && siteStateid ? { id: siteStateid, name: siteState } : null}
+                          onChange={(e) => {
+                            setSiteStateid(e.id); // 🔥 Updated to site-specific ID
+                            setSiteState(e.name);
+                            setSiteCityid(0);     // Reset site city
+                            setSiteCity("");
+                          }}
+                          placeHolder="Select State"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Site City */}
+                    <div>
+                      <label className="text-sm text-slate-700 mb-1 block">Site City</label>
+                      <div className="input-like-select">
+                        <CitySelect
+                          // 🔥 Use siteStateid in the key to prevent blank page crash
+                          key={`city-site-${siteStateid}`}
+                          countryid={INDIA_ID}
+                          stateid={siteStateid} // 🔥 Use site-specific State ID
+                          defaultValue={customer && siteCityid ? { id: siteCityid, name: siteCity } : null}
+                          onChange={(e) => {
+                            setSiteCityid(e.id); // 🔥 Updated to site-specific ID
+                            setSiteCity(e.name);
+                          }}
+                          placeHolder="Select City"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Site Pin */}
+                    <div>
+                      <label className="text-sm text-slate-700 mb-1 block">Site Pin</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        value={sitePinCode}
+                        onChange={(e) => setSitePinCode(e.target.value.replace(/\D/g, ""))}
+                        placeholder="6-digit PIN"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
+                  Cancel
+                </button>
+                <button type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded"
+                  disabled={loading}>
+                  {loading ? (customer ? "Updating..." : "Saving...") : (customer ? "Update" : "Save")}
+                </button>
+              </div>
+
+            </form>
+          </div>
         </div>
+
+
       </div>
-    </div>
+
+
+
+      <style>
+        {`
+            
+            /* 🔥 react-country-state-city → make it look like normal input */
+
+            /* Container */
+            .input-like-select .rsc-select-container {
+              width: 100%;
+            }
+            
+            /* Input field */
+            .input-like-select input {
+              width: 100%;
+              padding: 0.5rem 0.75rem;
+              border: 0px solid #e2e8f0; /* slate-200 */
+              border-radius: 0.375rem;  /* rounded-md */
+              font-size: 0.875rem;
+              background-color: #fff;
+            }
+            
+            /* Focus like normal input */
+            .input-like-select input:focus {
+              outline: none;
+              border-color: #6366f1; /* indigo-500 */
+              box-shadow: 0 0 0 1px #6366f1;
+            }
+            
+            /* 🔥 REMOVE DROPDOWN ARROW (SVG ICON) */
+            .input-like-select svg {
+              display: none !important;
+            }
+            
+            /* Remove extra right padding reserved for arrow */
+            .input-like-select .rsc-select-input {
+              padding-right: 0.75rem !important;
+            }
+            
+
+
+
+            `
+        }</style>
+    </>
   );
-  
+
 }
+
+
