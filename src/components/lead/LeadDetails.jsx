@@ -64,40 +64,44 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
             {/* 1️⃣ Customer + Assigned To */}
             <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Customer & Assignment</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-sm">
+                {/* Customer */}
                 <div>
-                  <div className="font-medium text-slate-600 mb-1">
-                    Customer
-                  </div>
-                  <div>Name: {lead.customer_name}</div>
-                  <div>Contact: {lead.customer_contact}</div>
-                  <div>Email: {lead.customer_email}</div>
+                  <div className="font-medium text-slate-600 mb-1">Customer</div>
+                  <div>Name: {lead.customer_name || "—"}</div>
+                  <div>Contact: {lead.customer_contact || "—"}</div>
+                  <div>Email: {lead.customer_email || "—"}</div>
 
-         <br />
-                  <div>Project Name: {lead.project_name}</div> 
-                  <div>Address: {lead.project_adderess}</div>
+                  <br />
+                  <div>Project Name: {lead.project_name || "—"}</div>
+                  <div>Address: {lead.project_adderess || "—"}</div>
                 </div>
 
-      
-                <div className="row grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Assigned To */}
-                  <div>
-                    <div className="font-medium text-slate-600 mb-1">Assigned To</div>
-                    <div>Name: {lead.assign_to_details?.full_name || "—"}</div>
-                    <div>Mobile: {lead.assign_to_details?.mobile_no || "—"}</div>
-                    <div>Email: {lead.assign_to_details?.email || "—"}</div>
-                  </div>
-
-                  {/* Created By */}
-                  <div>
-                    <div className="font-medium text-slate-600 mb-1">Created By</div>
-                    <div>Name: {lead.creatd_by_details?.full_name || "—"}</div>
-                    <div>Mobile: {lead.creatd_by_details?.mobile_no || "—"}</div>
-                    <div>Email: {lead.creatd_by_details?.email || "—"}</div>
-                  </div>
+                {/* Assigned To */}
+                <div>
+                  <div className="font-medium text-slate-600 mb-1">Assigned To</div>
+                  <div>Name: {lead.assign_to_details?.full_name || "—"}</div>
+                  <div>Mobile: {lead.assign_to_details?.mobile_no || "—"}</div>
+                  <div>Email: {lead.assign_to_details?.email || "—"}</div>
                 </div>
 
+                {/* Created By */}
+                <div>
+                  <div className="font-medium text-slate-600 mb-1">Created By</div>
+                  <div>Name: {lead.creatd_by_details?.full_name || "—"}</div>
+                  <div>Mobile: {lead.creatd_by_details?.mobile_no || "—"}</div>
+                  <div>Email: {lead.creatd_by_details?.email || "—"}</div>
+                </div>
+
+                {/* Reference By */}
+                <div>
+                  <div className="font-medium text-slate-600 mb-1">Reference By</div>
+                  <div>Name: {lead.referance_by_details?.full_name || "—"}</div>
+                  <div>Mobile: {lead.referance_by_details?.mobile_no || "—"}</div>
+                  <div>Email: {lead.referance_by_details?.email || "—"}</div>
+                </div>
               </div>
+
             </div>
 
             {/* 2️⃣ Enquiry / Application / Source */}

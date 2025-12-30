@@ -32,8 +32,9 @@ export default function AddLeadForm({
     clientName: "",
     contactNumber: "",
     email: "",
-    projectName:"",
-    projectAddress:"",
+    secondary_email: "",
+    projectName: "",
+    projectAddress: "",
     requirementDetails: "",
     hvacApplication: "",
     tonCapacity: "",
@@ -41,6 +42,7 @@ export default function AddLeadForm({
     status: "",
     assignTo: "",
     creditedBy: "",
+    referance_by: "",
     followupDate: "",
     remarks: "",
   });
@@ -55,6 +57,10 @@ export default function AddLeadForm({
   const [loading, setLoading] = useState(false);
   const [loadingLookup, setLoadingLookup] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [isOtherMode, setIsOtherMode] = useState(false);
+
+  const [referenceOptions, setReferenceOptions] = useState([]);
+  const [loadingReference, setLoadingReference] = useState(false);
 
 
   const authToken = useMemo(
@@ -73,7 +79,51 @@ export default function AddLeadForm({
   const lookupTimerRef = useRef(null);
   const lookupAbortRef = useRef(null);
 
-  
+  // featch all staff records
+  useEffect(() => {
+    if (!open) return;
+
+    const controller = new AbortController();
+    setLoadingReference(true);
+
+    const url = `${baseApi.replace(/\/$/, "")}/api/auth/staff/all`;
+
+    fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`${res.status} ${res.statusText} ${txt}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data.results ?? [];
+        setReferenceOptions(
+          items.map((u) => ({
+            id: u.id,
+            name: `${u.first_name} ${u.last_name}`,
+          }))
+        );
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.error("Failed to fetch reference staff:", err);
+          setReferenceOptions([]);
+        }
+      })
+      .finally(() => setLoadingReference(false));
+
+    return () => controller.abort();
+  }, [open, baseApi, authToken]);
+
+
 
   // Fetch sales staff when modal opens
   useEffect(() => {
@@ -133,8 +183,9 @@ export default function AddLeadForm({
         clientName: lead.customer_name || "",
         contactNumber: lead.customer_contact || "",
         email: lead.customer_email || "",
-        projectName:lead.project_name || "",
-        projectAddress:lead.project_adderess || "",
+        secondary_email: lead.customer_secondary_email || "",
+        projectName: lead.project_name || "",
+        projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
         hvacApplication: lead.hvac_application || "",
         tonCapacity: lead.capacity_required || "",
@@ -142,6 +193,7 @@ export default function AddLeadForm({
         status: lead.status || "",
         assignTo: lead.assign_to || "",
         creditedBy: lead.creatd_by_details?.full_name || "",
+        referance_by: lead.referance_by || "",
         followupDate: lead.followup_date || "",
         remarks: lead.remarks || "",
       });
@@ -153,8 +205,9 @@ export default function AddLeadForm({
         clientName: "",
         contactNumber: "",
         email: "",
-        projectName:"",
-        project_adderess:"",
+        secondary_email: "",
+        projectName: "",
+        project_adderess: "",
         requirementDetails: "",
         hvacApplication: "",
         tonCapacity: "",
@@ -162,6 +215,7 @@ export default function AddLeadForm({
         status: "",
         assignTo: "",
         creditedBy: "",
+        referance_by:"",
         followupDate: "",
         remarks: "",
       });
@@ -192,7 +246,7 @@ export default function AddLeadForm({
     { id: "google_ads", name: "Google Ads" },
     { id: "indiamart", name: "IndiaMART" },
     { id: "bni", name: "BNI" },
-    { id: "other", name: "Other" },
+    { id: "__OTHER__", name: "Other" },
   ];
 
   const handleChange = (e) => {
@@ -254,10 +308,11 @@ export default function AddLeadForm({
             ...prev,
             clientName: customer.full_name ?? customer.name ?? "",
             email: customer.email ?? "",
+            secondary_email: customer.secondary_email ?? "",
           }));
         } else {
           setCustomerId(null);
-          setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+          setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "" }));
         }
       } catch (err) {
         // if aborted, ignore; otherwise log
@@ -267,7 +322,7 @@ export default function AddLeadForm({
           console.error("Customer lookup error:", err);
           // keep UX quiet; do not clear name/email here unless you want to
           setCustomerId(null);
-          setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+          setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "" }));
         }
       } finally {
         lookupAbortRef.current = null;
@@ -302,6 +357,8 @@ export default function AddLeadForm({
       });
       return false;
     }
+
+
     if (!formData.status) {
       Swal.fire({
         icon: "error",
@@ -328,6 +385,7 @@ export default function AddLeadForm({
         capacity_required: formData.tonCapacity || "",
         lead_source: formData.leadSource || null,
         status: formData.status || null,
+        referance_by: formData.referance_by || null,
         date: formData.date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
@@ -461,7 +519,22 @@ export default function AddLeadForm({
                 readOnly
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
               />
-            </div> 
+            </div>
+
+            {/* Secondary Email (readonly) */}
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Customer Secondary Email
+              </label>
+              <input
+                type="email"
+                name="secondary_email"
+                placeholder="Email Address"
+                value={formData.secondary_email}
+                readOnly
+                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
+              />
+            </div>
 
             <div>
               <label className="text-sm font-normal text-gray-600">
@@ -506,7 +579,7 @@ export default function AddLeadForm({
           {/* LEAD DETAILS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Lead Source */}
-            <div>
+            {/* <div>
               <label className="text-sm font-normal text-gray-600">
                 Lead Source
               </label>
@@ -521,9 +594,57 @@ export default function AddLeadForm({
                   <option key={opt.id} value={opt.id}>
                     {opt.name}
                   </option>
+
+                  if (opt.name == "Other") {
+                    show input for add name of source
+                  }
                 ))}
               </select>
+            </div> */}
+
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Lead Source
+              </label>
+
+              <select
+                value={isOtherMode ? "__OTHER__" : formData.leadSource}
+                onChange={(e) => {
+                  if (e.target.value === "__OTHER__") {
+                    setIsOtherMode(true);
+                    setFormData(prev => ({ ...prev, leadSource: "" }));
+                  } else {
+                    setIsOtherMode(false);
+                    setFormData(prev => ({ ...prev, leadSource: e.target.value }));
+                  }
+                }}
+                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+              >
+                <option value="">Select Lead Source</option>
+                {leadSourceOptions.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* 👇 SAME FIELD STORED */}
+              {isOtherMode && (
+                <input
+                  type="text"
+                  placeholder="Enter Lead Source"
+                  value={formData.leadSource}
+                  onChange={(e) =>
+                    setFormData(prev => ({ ...prev, leadSource: e.target.value }))
+                  }
+                  className="w-full mt-2 px-3 py-2 rounded-md border border-slate-300"
+                  autoFocus
+                  required
+                />
+              )}
             </div>
+
+
 
             {/* Status */}
             <div>
@@ -566,7 +687,34 @@ export default function AddLeadForm({
               </div>
             )}
 
-           
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Reference By
+              </label>
+
+              <select
+                name="referance_by"
+                value={formData.referance_by}
+                onChange={handleChange}
+                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+              >
+                <option value="">Select Reference</option>
+
+                {referenceOptions.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+
+              {loadingReference && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Loading references...
+                </div>
+              )}
+            </div>
+
+
 
             {/* Follow-up Date */}
             <div>
@@ -678,7 +826,7 @@ export default function AddLeadForm({
             setCustomerId(newCustomer.id);
             setFormData(prev => ({
               ...prev,
-              clientName:  newCustomer.name,
+              clientName: newCustomer.name,
               contactNumber: newCustomer.contact_number,
               email: newCustomer.email
             }));

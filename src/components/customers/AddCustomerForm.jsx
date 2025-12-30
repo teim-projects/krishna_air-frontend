@@ -19,6 +19,7 @@ export default function AddCustomerForm({
   const [contactNumber, setContactNumber] = useState(customer?.contact_number ?? "");
   const [landLineNumber, setLandLineNumber] = useState(customer?.land_line_no ?? "");
   const [email, setEmail] = useState(customer?.email ?? "");
+  const [secondary_email , setSecondary_email] = useState(customer?.secondary_email ?? "");
   const [pocName, setPocName] = useState(customer?.poc_name ?? "");
   const [pocContactNumber, setPocContactNumber] = useState(customer?.poc_contact_number ?? "");
   const [address, setAddress] = useState(customer?.address ?? "");
@@ -48,25 +49,7 @@ export default function AddCustomerForm({
     ""
   ), []);
 
-  // sync when customer or modal open changes
-  // useEffect(() => {
-  //   setName(customer?.name ?? "");
-  //   setContactNumber(customer?.contact_number ?? "");
-  //   setLandLineNumber(customer?.land_line_no ?? "");
-  //   setEmail(customer?.email ?? "");
-  //   setPocName(customer?.poc_name ?? "");
-  //   setPocContactNumber(customer?.poc_contact_number ?? "");
-  //   setAddress(customer?.address ?? "");
-  //   // setCity(customer?.city ?? "");
-  //   // setStateVal(customer?.state ?? "");
-  //   setPinCode(customer?.pin_code ?? "");
-  //   setBothAddressSame(Boolean(customer?.both_address_is_same));
-  //   setSiteAddress(customer?.site_address ?? "");
-  //   // setSiteCity(customer?.site_city ?? "");
-  //   // setSiteState(customer?.site_state ?? "");
-  //   setSitePinCode(customer?.site_pin_code ?? "");
-  //   setLoading(false);
-  // }, [customer, open]);
+
 
   useEffect(() => {
     if (!customer || !open) return;
@@ -75,6 +58,7 @@ export default function AddCustomerForm({
     setContactNumber(customer.contact_number || "");
     setLandLineNumber(customer.land_line_no || "");
     setEmail(customer.email || "");
+    setSecondary_email(customer.secondary_email || "");
     setPocName(customer.poc_name || "");
     setPocContactNumber(customer.poc_contact_number || "");
     setAddress(customer.address || "");
@@ -144,6 +128,11 @@ export default function AddCustomerForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Email is invalid" });
       return false;
     }
+
+    if (secondary_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(secondary_email)) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Email is invalid" });
+      return false;
+    }
     if (!address.trim()) {
       Swal.fire({ icon: "error", title: "Validation", text: "Address is required" });
       return false;
@@ -193,6 +182,7 @@ export default function AddCustomerForm({
         contact_number: contactNumber.toString(),
         land_line_no: landLineNumber.toString(),
         email: email ? String(email).trim() : "",
+        secondary_email: secondary_email ? String(secondary_email).trim() : "",
         poc_name: pocName.trim(),
         poc_contact_number: pocContactNumber.toString(),
         address: address.trim(),
@@ -306,6 +296,13 @@ export default function AddCustomerForm({
                 <label className="text-sm text-slate-700 mb-1 block">Email</label>
                 <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                   value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+
+              {/* Secondary Email */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">Secondary Email <small>(optional)</small></label>
+                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={secondary_email} onChange={e => setSecondary_email(e.target.value)} />
               </div>
 
               {/* POC name */}
