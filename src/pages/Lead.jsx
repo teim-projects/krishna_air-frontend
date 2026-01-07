@@ -17,7 +17,18 @@ export default function Lead() {
   const { userRole, isLoading: loadingUser } = useUserRole(BASE_API);
 
   // Initialize assign_to filter as empty string as well
-  const initialFilters = useMemo(() => ({ search: "", status: "", assign_to: "", lead_source: "", }), []);
+  // const initialFilters = useMemo(() => ({ search: "", status: "", assign_to: "", lead_source: "", }), []);
+  const initialFilters = useMemo(() => ({
+    search: "",
+    status: "",
+    assign_to: "",
+    lead_source: "",
+    date: { from: "", to: "" },
+    followup_date: { from: "", to: "" },
+    overdue: [], 
+  }), []);
+  
+  
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
   const [rows, setRows] = useState([]);
@@ -141,6 +152,30 @@ export default function Lead() {
       placeholder: "Source",
       options: [...leadSourceOptions.map(ls => ({ value: ls.value, label: ls.label }))]
     },
+    {
+      key: "overdue",
+      type: "checkbox",
+      label: "Overdue Follow-ups",
+      options: [
+        { value: "true", label: "Show only overdue" }
+      ]
+    },
+    {
+      key: "date",
+      type: "daterange",
+      label: "Lead Date",
+    },
+    {
+      key: "followup_date",
+      type: "daterange",
+      label: "Follow-up Date",
+    },
+
+    
+
+
+
+    
   ], [status_choice, assignToOptions, loadingStaff, leadSourceOptions]);
 
   // ✅ CONDITIONAL FILTERING LOGIC: Hide Assign To filter for sales users
@@ -172,6 +207,28 @@ export default function Lead() {
       if (appliedFilters.status) params.set("status", appliedFilters.status);
       if (appliedFilters.lead_source) params.set("lead_source", appliedFilters.lead_source);
 
+      // 🔹 LEAD DATE RANGE
+      if (appliedFilters.date?.from) {
+        params.set("date_from", appliedFilters.date.from);
+      }
+      if (appliedFilters.date?.to) {
+        params.set("date_to", appliedFilters.date.to);
+      }
+      
+      // 🔹 FOLLOWUP DATE RANGE
+      if (appliedFilters.followup_date?.from) {
+        params.set("followup_date_from", appliedFilters.followup_date.from);
+      }
+      if (appliedFilters.followup_date?.to) {
+        params.set("followup_date_to", appliedFilters.followup_date.to);
+      }
+      
+      // 🔴 OVERDUE FILTER
+      if (appliedFilters.overdue?.includes("true")) {
+        params.set("overdue", "true");
+      }
+
+      
       // ✅ Final check for assign_to: Only include filter if user is NOT sales
       // The backend handles the restriction for sales users automatically.
       if (userRole?.name !== 'sales' && appliedFilters.assign_to) {
@@ -262,19 +319,25 @@ export default function Lead() {
       Swal.fire({ icon: "error", title: "Delete failed", text: err.message || String(err) });
     }
   };
-
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
   const columns = [
     { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1) },
-    { key: "date", label: "Date", render: (r) => r.date },
-    { key: "followup_date", label: "Followup Date", render: (r) => r.followup_date },
+    { key: "date", label: "Date", render: (r) => formatDate(r.date) },
+    { key: "followup_date", label: "Followup Date", render: (r) => formatDate(r.followup_date)},
     { key: "name", label: "Name", render: (r) => r.customer_name },
     { key: "contact", label: "Contact", render: (r) => r.customer_contact },
-    { key: "email", label: "Email", render: (r) => r.customer_email },
-    { key: "hvac_application", label: "HVAC Application", render: (r) => r.hvac_application },
+    // { key: "email", label: "Email", render: (r) => r.customer_email },
+    // { key: "hvac_application", label: "HVAC Application", render: (r) => r.hvac_application },
     { key: "lead_source", label: "Source", render: (r) => r.lead_source },
     { key: "status", label: "Status", render: (r) => r.status },
     { key: "assign_to", label: "Assign to", render: (r) => r.assign_to_details?.full_name }
-
 
   ];
 

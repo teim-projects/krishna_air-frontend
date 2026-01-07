@@ -1,91 +1,82 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleUser } from "@fortawesome/free-solid-svg-icons";
-import { width } from "@fortawesome/free-solid-svg-icons/fa0";
+import { faCircleUser, faBars } from "@fortawesome/free-solid-svg-icons";
 
-
-const Navbar = () => {
+const Navbar = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ✅ Logout function
   const handleLogout = useCallback(() => {
-    
     window.dispatchEvent(new Event("authChange"));
     setIsAuthenticated(false);
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
-    navigate("/login", { replace: true }); // redirect to login
+    navigate("/login", { replace: true });
   }, [navigate]);
 
-  // ✅ Auth check (validates token)
   const checkAuth = useCallback(async () => {
     const token = localStorage.getItem("access");
-
-    if (!token) {
-     
-      setIsAuthenticated(false);
-      return;
-    }
+    if (!token) return setIsAuthenticated(false);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/user/`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        setIsAuthenticated(true); // token valid ✅
-      } else {
-        console.warn("❌ Token invalid or expired.");
-        handleLogout(); // token invalid → logout
-      }
-    } catch (err) {
-      console.error("⚠️ Error verifying token:", err);
+      const res = await fetch(
+        `${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/user/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      res.ok ? setIsAuthenticated(true) : handleLogout();
+    } catch {
       handleLogout();
     }
   }, [handleLogout]);
 
   useEffect(() => {
     const publicPaths = ["/login", "/register"];
-    const isPublicPage = publicPaths.includes(location.pathname);
-
-    // ✅ Check token only for protected pages
-    if (!isPublicPage) {
+    if (!publicPaths.includes(location.pathname)) {
       checkAuth();
     } else {
-      setIsAuthenticated(false); // public page → hide logout button
+      setIsAuthenticated(false);
     }
-
-    const handleAuthChange = () => checkAuth();
-    window.addEventListener("authChange", handleAuthChange);
-
-    return () => {
-      window.removeEventListener("authChange", handleAuthChange);
-    };
   }, [location, checkAuth]);
 
   return (
     <nav style={styles.navbar}>
-      <div style={styles.logo}><Link to="/dashboard" >Krisna AC</Link></div>
+      {/* LEFT: Menu Icon */}
+      <div style={styles.left}>
+        {/* Mobile / Tablet → Menu Icon */}
+        <button
+          onClick={onMenuClick}
+          style={styles.menuBtn}
+          className="md:hidden"
+          title="Menu"
+        >
+          <FontAwesomeIcon icon={faBars} size="lg" />
+        </button>
+
+        {/* Desktop → App Name */}
+        <Link
+          to="/dashboard"
+          style={styles.logo}
+          className="hidden md:block text-2xl font-bold"
+        >
+          Krisna AC
+        </Link>
+      </div>
+      {/* RIGHT: Profile / Login */}
       <div style={styles.links}>
         {isAuthenticated ? (
-          <>
-            <Link to="/profile" style={styles.iconLink}>
-              <FontAwesomeIcon icon={faCircleUser} size="lg" title="Profile" />
-            </Link>
-
-          </>
+          <Link to="/profile">
+            <FontAwesomeIcon icon={faCircleUser} size="lg" title="Profile" />
+          </Link>
         ) : (
-          <>
-            <Link to="/login" style={styles.link}>Login</Link>
-            {/* <Link to="/register" style={styles.link}>Register</Link> */}
-          </>
+          <Link to="/login" style={styles.link}>
+            Login
+          </Link>
         )}
       </div>
     </nav>
@@ -101,13 +92,20 @@ const styles = {
     backgroundColor: "#34495E",
     color: "white",
     position: "fixed",
-    top:"0%",
-    width:"100%",
-    
+    top: "0",
+    width: "100%",
     zIndex: 1000,
   },
-  logo: { fontSize: "1.5em", fontWeight: "bold" },
-  links: { display: "flex", gap: "12px" },
+  menuBtn: {
+    background: "none",
+    border: "none",
+    color: "white",
+    cursor: "pointer",
+  },
+  links: {
+    display: "flex",
+    gap: "12px",
+  },
   link: {
     color: "white",
     textDecoration: "none",
@@ -115,15 +113,6 @@ const styles = {
     padding: "8px 14px",
     borderRadius: "6px",
     backgroundColor: "#388E3C",
-  },
-  logoutBtn: {
-    backgroundColor: "white",
-    color: "#4CAF50",
-    border: "none",
-    borderRadius: "6px",
-    padding: "8px 14px",
-    cursor: "pointer",
-    fontWeight: "bold",
   },
 };
 

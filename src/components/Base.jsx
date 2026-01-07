@@ -1,19 +1,8 @@
-import React, { useState,  useCallback  } from "react";
+import React, { useState, useCallback } from "react";
 import FiltersPanel from "./FiltersPanel";
 import { FaFilter } from "react-icons/fa";
 
-/**
- * Base layout wrapper
- *
- * Props:
- * - title: string (page title)
- * - filtersConfig: array (passed to FiltersPanel). If null/undefined, filter button hidden.
- * - initialFilterValues: object forwarded to FiltersPanel
- * - onFiltersChange: function(filters) callback
- * - sidebarWidth: number (px) default 256 (w-64)
- * - drawerWidth: number (px) default 320 (~w-80)
- * - children: page content
- */
+
 export default function Base({
   title = "Page",
   filtersConfig = null,
@@ -38,24 +27,25 @@ export default function Base({
       {/* Render drawer only if page supplies a filtersConfig */}
       {filtersConfig && filtersOpen && (
         <>
+    // Inside Base.js
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-y-0 top-15 bg-white  shadow-lg z-50 transform transition-transform duration-200"
+            className="fixed inset-y-0 top-15 bg-white shadow-lg z-50 transform transition-transform duration-200 flex flex-col" // Added flex flex-col
             style={leftStyle}
           >
-            <div className="p-6  flex items-center justify-between">
+            <div className="p-6 flex items-center justify-between border-b border-slate-50"> {/* Added border-b */}
               <h3 className="text-lg font-semibold text-slate-700">Filters</h3>
               <button
                 onClick={() => setFiltersOpen(false)}
-                aria-label="Close filters"
                 className="text-slate-600 hover:text-slate-800 p-1 rounded"
               >
                 ✕
               </button>
             </div>
 
-            <div className="h-full overflow-auto">
+            {/* This wrapper must be flex-1 and h-full to pass height to FiltersPanel */}
+            <div className="flex-1 h-full overflow-hidden">
               <FiltersPanel
                 config={filtersConfig}
                 initialValues={initialFilterValues}
@@ -74,7 +64,7 @@ export default function Base({
       )}
 
       {/* Main content area (shifts right on md when drawer open) */}
-      <div className={"flex-1 flex flex-col transition-all duration-300 overflow-auto " + (filtersOpen ? "md:ml-80" : "")}>
+      <div className={"flex-1 flex flex-col transition-all duration-300 overflow-auto " + (filtersOpen ? "md:ml-45" : "")}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 bg-transparent">
           <div>

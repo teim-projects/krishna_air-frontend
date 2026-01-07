@@ -6,6 +6,8 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
+import { useEffect, useState } from "react";
+
 import Navbar from "./components/Navbar";
 import Login from "./components/Login";
 import Dashboard from "./pages/Dashboard";
@@ -20,37 +22,43 @@ import Lead from "./pages/Lead";
 
 function AppRoutes() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const noNavPaths = ["/login", "/register", "/forgot-password"];
-
-  
-  const isLoggedIn = !!localStorage.getItem("access"); 
+  const isLoggedIn = !!localStorage.getItem("access");
 
   const hideNavbar =
     !isLoggedIn ||
     noNavPaths.includes(location.pathname) ||
     location.pathname.startsWith("/password-reset-confirm/");
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden ">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      {/* Navbar */}
       {!hideNavbar && (
         <header className="w-full flex-shrink-0">
-          <Navbar />
+          <Navbar onMenuClick={() => setSidebarOpen(true)} />
         </header>
       )}
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Desktop Sidebar */}
         {!hideNavbar && (
-          <aside className="w-55 flex-shrink-0 overflow-hidden pt-15">
+          <aside className="hidden md:block w-55 flex-shrink-0 pt-15">
             <Sidebar />
           </aside>
         )}
 
+        {/* Main */}
         <main
           className={
             hideNavbar
-              ? "flex-1 flex items-center justify-center overflow-hidden "
-              : "flex-1 p-6 overflow-hidden pt-15"
+              ? "flex-1 flex items-center justify-center"
+              : "flex-1 p-6 pt-15 overflow-hidden"
           }
         >
           <div className="w-full h-full overflow-auto">
@@ -65,7 +73,6 @@ function AppRoutes() {
                   )
                 }
               />
-
               <Route
                 path="/login"
                 element={
@@ -91,6 +98,19 @@ function AppRoutes() {
           </div>
         </main>
       </div>
+
+      {/* Mobile Sidebar */}
+      {sidebarOpen && !hideNavbar && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside className="relative w-64 bg-white h-full shadow-lg pt-15">
+            <Sidebar />
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
