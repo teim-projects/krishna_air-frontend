@@ -6,17 +6,8 @@ import { fetchCustomerByPhone } from "../customers/customerLookup";
 import { useUserRole } from '../../hooks/useAuth';
 import AddCustomerForm from "../customers/AddCustomerForm";
 
-/**
- * AddLeadForm
- *
- * Props:
- * - open: boolean
- * - onClose: fn()
- * - onSuccess: fn(data)
- * - baseApi: string (e.g. http://127.0.0.1:8000)
- * - token: string (JWT)
- * - lead: existing lead object (null = add, object = edit)
- */
+
+
 export default function AddLeadForm({
   open,
   onClose,
@@ -215,7 +206,7 @@ export default function AddLeadForm({
         status: "",
         assignTo: "",
         creditedBy: "",
-        referance_by:"",
+        referance_by: "",
         followupDate: "",
         remarks: "",
       });
@@ -376,6 +367,43 @@ export default function AddLeadForm({
 
     setLoading(true);
     try {
+
+      let finalCustomerId = customerId;
+
+      // ✅ Create customer ONLY if not exists
+      if (!finalCustomerId) {
+        if (!formData.clientName.trim()) {
+          throw new Error("Customer name is required");
+        }
+
+        const customerRes = await fetch(
+          `${baseApi.replace(/\/$/, "")}/api/lead/customer/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+            body: JSON.stringify({
+              contact_number: formData.contactNumber,
+              name: formData.clientName,
+              email: formData.email,
+              secondary_email: formData.secondary_email,
+            }),
+          }
+        );
+
+        if (!customerRes.ok) {
+          const txt = await customerRes.text();
+          throw new Error(txt || "Failed to create customer");
+        }
+
+        const newCustomer = await customerRes.json();
+        finalCustomerId = newCustomer.id;
+      }
+
+
+
       // Map front-end state → backend payload
       const payload = {
         project_name: formData.projectName || "",
@@ -394,10 +422,10 @@ export default function AddLeadForm({
       // When editing, preserve existing FKs unless you provide UI
       if (lead) {
         // if we resolved a new customerId from lookup, prefer it; otherwise preserve lead.customer
-        payload.customer = customerId ?? lead.customer ?? null;
+        payload.customer = finalCustomerId;
         payload.assign_to = assignId;
       } else {
-        payload.customer = customerId ?? null;
+        payload.customer = finalCustomerId;
         payload.assign_to = assignId;
 
       }
@@ -501,9 +529,12 @@ export default function AddLeadForm({
                 name="clientName"
                 placeholder="Customer Name"
                 value={formData.clientName}
-                readOnly
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
+                onChange={handleChange}
+                readOnly={!!customerId}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                  }`}
               />
+
             </div>
 
             {/* Email (readonly) */}
@@ -516,9 +547,12 @@ export default function AddLeadForm({
                 name="email"
                 placeholder="Email Address"
                 value={formData.email}
-                readOnly
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
+                onChange={handleChange}
+                readOnly={!!customerId}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                  }`}
               />
+
             </div>
 
             {/* Secondary Email (readonly) */}
@@ -531,9 +565,12 @@ export default function AddLeadForm({
                 name="secondary_email"
                 placeholder="Email Address"
                 value={formData.secondary_email}
-                readOnly
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-gray-100 placeholder-slate-400"
+                onChange={handleChange}
+                readOnly={!!customerId}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                  }`}
               />
+
             </div>
 
             <div>
@@ -578,29 +615,7 @@ export default function AddLeadForm({
           {/* ... rest unchanged ... */}
           {/* LEAD DETAILS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Lead Source */}
-            {/* <div>
-              <label className="text-sm font-normal text-gray-600">
-                Lead Source
-              </label>
-              <select
-                name="leadSource"
-                value={formData.leadSource}
-                onChange={handleChange}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              >
-                <option value="">Select Lead Source</option>
-                {leadSourceOptions.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.name}
-                  </option>
 
-                  if (opt.name == "Other") {
-                    show input for add name of source
-                  }
-                ))}
-              </select>
-            </div> */}
 
             <div>
               <label className="text-sm font-normal text-gray-600">

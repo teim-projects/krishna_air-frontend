@@ -170,12 +170,6 @@ export default function Lead() {
       type: "daterange",
       label: "Follow-up Date",
     },
-
-    
-
-
-
-    
   ], [status_choice, assignToOptions, loadingStaff, leadSourceOptions]);
 
   // ✅ CONDITIONAL FILTERING LOGIC: Hide Assign To filter for sales users
