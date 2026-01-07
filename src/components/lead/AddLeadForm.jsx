@@ -24,6 +24,7 @@ export default function AddLeadForm({
     contactNumber: "",
     email: "",
     secondary_email: "",
+    address: "",
     projectName: "",
     projectAddress: "",
     requirementDetails: "",
@@ -300,10 +301,11 @@ export default function AddLeadForm({
             clientName: customer.full_name ?? customer.name ?? "",
             email: customer.email ?? "",
             secondary_email: customer.secondary_email ?? "",
+            address: customer.address ?? "",
           }));
         } else {
           setCustomerId(null);
-          setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "" }));
+          setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "", address: "" }));
         }
       } catch (err) {
         // if aborted, ignore; otherwise log
@@ -389,6 +391,7 @@ export default function AddLeadForm({
               name: formData.clientName,
               email: formData.email,
               secondary_email: formData.secondary_email,
+              address: formData.address,
             }),
           }
         );
@@ -506,14 +509,14 @@ export default function AddLeadForm({
                   className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                 />
 
-                <button
+                {/* <button
                   type="button" // Important to prevent form submission
                   onClick={() => setShowCustomerForm(true)}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors" // Add hover style for visual cue
                   title="Add/Edit Customer Details"
                 >
                   <FaUser className="text-gray-500 text-xl" />
-                </button>
+                </button> */}
               </div>
               <div className="text-xs text-slate-500 mt-1">
                 {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
@@ -570,6 +573,25 @@ export default function AddLeadForm({
                 className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
                   }`}
               />
+
+            </div>
+
+
+            <div>
+              <label className="text-sm font-normal text-gray-600">
+                Address
+              </label>
+              <textarea
+                name="address"
+                placeholder="Address"
+                value={formData.address}
+                onChange={handleChange}
+                readOnly={!!customerId}
+                rows={2}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                  }`}
+              />
+
 
             </div>
 
