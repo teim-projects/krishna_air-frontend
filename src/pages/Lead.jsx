@@ -6,7 +6,7 @@ import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
 import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument } from "react-icons/md";
 import Swal from "sweetalert2";
-import { useUserRole } from '../hooks/useAuth'; // ✅ Imported hook
+import { useUserRole } from '../hooks/useAuth'; 
 
 
 export default function Lead() {
@@ -331,8 +331,14 @@ export default function Lead() {
     // { key: "hvac_application", label: "HVAC Application", render: (r) => r.hvac_application },
     { key: "lead_source", label: "Source", render: (r) => r.lead_source },
     { key: "status", label: "Status", render: (r) => r.status },
-    { key: "assign_to", label: "Assign to", render: (r) => r.assign_to_details?.full_name }
-
+    // ✅ SHOW ONLY IF USER IS NOT SALES
+    ...(userRole?.name !== "sales"
+    ? [{
+        key: "assign_to",
+        label: "Assign To",
+        render: (r) => r.assign_to_details?.full_name || "-"
+      }]
+    : [])
   ];
 
   // actions renderer (centered by TableView)
@@ -446,9 +452,9 @@ export default function Lead() {
         onClose={() => setShowLeadFollowUp(false)}
         baseApi={BASE_API}
         token={token}
-        leadId={followUpLeadId}        // <-- IMPORTANT
+        leadId={followUpLeadId} 
         onSuccess={() => {
-          fetchData(currentPage);     // refresh list after saving followup
+          fetchData(currentPage);
           setShowLeadFollowUp(false);
           setFollowUpLeadId(null);
         }}

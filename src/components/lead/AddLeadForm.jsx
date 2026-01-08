@@ -19,7 +19,7 @@ export default function AddLeadForm({
   const API_URL = `${baseApi.replace(/\/$/, "")}/api/lead/lead/`;
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [formData, setFormData] = useState({
-    date: "",
+    enquiry_date: "",
     clientName: "",
     contactNumber: "",
     email: "",
@@ -44,7 +44,7 @@ export default function AddLeadForm({
   const [assignOptions, setAssignOptions] = useState([]);
   const [loadingAssign, setLoadingAssign] = useState(false);
   const [assignId, setAssignId] = useState(null);
-  // const [userRole, setUserRole] = useState("");
+
 
   const [loading, setLoading] = useState(false);
   const [loadingLookup, setLoadingLookup] = useState(false);
@@ -171,11 +171,12 @@ export default function AddLeadForm({
 
     if (lead) {
       setFormData({
-        date: lead.date || "",
+        enquiry_date: lead.enquiry_date || "",
         clientName: lead.customer_name || "",
         contactNumber: lead.customer_contact || "",
         email: lead.customer_email || "",
         secondary_email: lead.customer_secondary_email || "",
+        address: lead.customer_address ||"",
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
@@ -190,14 +191,16 @@ export default function AddLeadForm({
         remarks: lead.remarks || "",
       });
       setCustomerId(lead.customer ?? null);
+      setAssignId(lead.assign_to ?? null);
     } else {
       // reset for new lead
       setFormData({
-        date: "",
+        enquiry_date: "",
         clientName: "",
         contactNumber: "",
         email: "",
         secondary_email: "",
+        address:"",
         projectName: "",
         project_adderess: "",
         requirementDetails: "",
@@ -247,6 +250,10 @@ export default function AddLeadForm({
       setAssignId(value === "" ? null : Number(value));
     }
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const clearError = (e) => {
+    e.target.classList.remove("input-error");
   };
 
   // NEW: debounced contact handler that calls the simple fetch function
@@ -324,44 +331,73 @@ export default function AddLeadForm({
     }, 500);
   };
 
+
+  // Input validations and errors
+
+  const showError = (field, message) => {
+    Swal.fire({
+      icon: "error",
+      title: "Validation",
+      text: message,
+    });
+  
+    const el = document.querySelector(`[name="${field}"]`);
+    if (el) {
+      el.classList.add("input-error");
+      el.focus();
+    }
+  };
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const validate = () => {
-    // minimal validation – you can extend
     if (!formData.contactNumber.trim()) {
-      Swal.fire({
-        icon: "error",
-        title: "Validation",
-        text: "Contact Number is required",
-      });
+      showError("contactNumber", "Contact Number is required");
       return false;
     }
-    if (!formData.date) {
-      Swal.fire({
-        icon: "error",
-        title: "Validation",
-        text: "Date is required",
-      });
+  
+    if (!formData.clientName) {
+      showError("clientName", "Client Name is required");
       return false;
     }
+  
+    if (!formData.email) {
+      showError("email", "Email is required");
+      return false;
+    }
+  
+    if (!emailRegex.test(formData.email)) {
+      showError("email", "Please enter a valid email address");
+      return false;
+    }
+    
+    if (!formData.address) {
+      showError("address", "Address is required");
+      return false;
+    }
+
+    if (!formData.enquiry_date) {
+      showError("enquiry_date", "Enquiry Date is required");
+      return false;
+    }
+
     if (!formData.leadSource) {
-      Swal.fire({
-        icon: "error",
-        title: "Validation",
-        text: "Lead source is required",
-      });
+      showError("leadSource", "Lead source is required");
       return false;
     }
-
-
+  
     if (!formData.status) {
-      Swal.fire({
-        icon: "error",
-        title: "Validation",
-        text: "Status is required",
-      });
+      showError("status", "Status is required");
       return false;
     }
+
+    if (!formData.referance_by) {
+      showError("referance_by", "Referance By is required");
+      return false;
+    }
+  
     return true;
   };
+  
 
   const handleSubmit = async (e) => {
     e && e.preventDefault();
@@ -417,7 +453,7 @@ export default function AddLeadForm({
         lead_source: formData.leadSource || null,
         status: formData.status || null,
         referance_by: formData.referance_by || null,
-        date: formData.date || null,
+        enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
       };
@@ -477,7 +513,16 @@ export default function AddLeadForm({
     }
   };
 
+  
   return (
+    <>
+    <style>
+    {`
+      .input-error {
+        border: 2px solid red !important;
+      }
+    `}
+  </style>
     <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
       <div className="relative w-full max-w-2xl p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto">
         {/* Close */}
@@ -505,7 +550,10 @@ export default function AddLeadForm({
                   name="contactNumber"
                   placeholder="Enter Contact Number"
                   value={formData.contactNumber}
-                  onChange={handleContactChange}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleContactChange(e);   
+                  }}
                   className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                 />
 
@@ -532,7 +580,10 @@ export default function AddLeadForm({
                 name="clientName"
                 placeholder="Customer Name"
                 value={formData.clientName}
-                onChange={handleChange}
+                onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 readOnly={!!customerId}
                 className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
                   }`}
@@ -550,7 +601,10 @@ export default function AddLeadForm({
                 name="email"
                 placeholder="Email Address"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 readOnly={!!customerId}
                 className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
                   }`}
@@ -568,7 +622,10 @@ export default function AddLeadForm({
                 name="secondary_email"
                 placeholder="Email Address"
                 value={formData.secondary_email}
-                onChange={handleChange}
+                onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 readOnly={!!customerId}
                 className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
                   }`}
@@ -585,11 +642,14 @@ export default function AddLeadForm({
                 name="address"
                 placeholder="Address"
                 value={formData.address}
-                onChange={handleChange}
+                onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 readOnly={!!customerId}
                 rows={2}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                  }`}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
+                  ${customerId ? "bg-gray-100" : "" }`}
               />
 
 
@@ -603,7 +663,10 @@ export default function AddLeadForm({
                 name="projectName"
                 placeholder="Project Name"
                 value={formData.projectName}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
@@ -616,20 +679,28 @@ export default function AddLeadForm({
                 name="projectAddress"
                 placeholder="Project address"
                 value={formData.projectAddress}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
 
             {/* Date */}
             <div>
-              <label className="text-sm font-normal text-gray-600">Date</label>
+              <label className="text-sm font-normal text-gray-600">Enquiry Date</label>
               <input
                 type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                name="enquiry_date"
+                value={formData.enquiry_date}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
+                readOnly={!!lead}
+                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
+                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
               />
             </div>
           </div>
@@ -650,11 +721,14 @@ export default function AddLeadForm({
                   if (e.target.value === "__OTHER__") {
                     setIsOtherMode(true);
                     setFormData(prev => ({ ...prev, leadSource: "" }));
+                    clearError(e);
                   } else {
                     setIsOtherMode(false);
                     setFormData(prev => ({ ...prev, leadSource: e.target.value }));
+                    clearError(e);
                   }
                 }}
+                name="leadSource"
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
               >
                 <option value="">Select Lead Source</option>
@@ -691,7 +765,10 @@ export default function AddLeadForm({
               <select
                 name="status"
                 value={formData.status}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
               >
                 <option value="">Select Status</option>
@@ -710,8 +787,11 @@ export default function AddLeadForm({
                 </label>
                 <select
                   name="assignTo"
-                  value={formData.assignTo} // <--- The value is here
-                  onChange={handleChange}
+                  value={formData.assignTo} 
+                   onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                 >
                   <option value="">Assign To</option>
@@ -732,7 +812,10 @@ export default function AddLeadForm({
               <select
                 name="referance_by"
                 value={formData.referance_by}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
               >
                 <option value="">Select Reference</option>
@@ -762,7 +845,10 @@ export default function AddLeadForm({
                 type="date"
                 name="followupDate"
                 value={formData.followupDate}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
               />
             </div>
@@ -778,7 +864,10 @@ export default function AddLeadForm({
                 name="hvacApplication"
                 placeholder="Enter HVAC Application"
                 value={formData.hvacApplication}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
@@ -791,7 +880,10 @@ export default function AddLeadForm({
                 name="tonCapacity"
                 placeholder="Enter Ton / Capacity"
                 value={formData.tonCapacity}
-                onChange={handleChange}
+                 onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
@@ -805,7 +897,10 @@ export default function AddLeadForm({
               name="requirementDetails"
               placeholder="Enter requirement"
               value={formData.requirementDetails}
-              onChange={handleChange}
+               onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
               className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
             />
           </div>
@@ -818,7 +913,10 @@ export default function AddLeadForm({
               name="remarks"
               placeholder="Enter remarks"
               value={formData.remarks}
-              onChange={handleChange}
+               onChange={(e) => {
+                  clearError(e);
+                  handleChange(e);   
+                }}
               className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
             />
           </div>
@@ -871,5 +969,6 @@ export default function AddLeadForm({
         }}
       />
     </div>
+    </>
   );
 }

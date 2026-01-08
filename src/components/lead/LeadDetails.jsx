@@ -156,7 +156,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                 <div>
                   <span className="font-medium text-slate-600">Lead date:</span>{" "}
-                  {lead.date || "—"}
+                  {lead.enquiry_date || "—"}
                 </div>
                 <div>
                   <span className="font-medium text-slate-600">
