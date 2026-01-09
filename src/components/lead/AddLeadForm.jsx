@@ -31,6 +31,7 @@ export default function AddLeadForm({
     hvacApplication: "",
     tonCapacity: "",
     leadSource: "",
+    leadSourceInput: "",
     status: "",
     assignTo: "",
     creditedBy: "",
@@ -38,6 +39,8 @@ export default function AddLeadForm({
     followupDate: "",
     remarks: "",
   });
+
+
 
   // NEW: keep matched customer id
   const [customerId, setCustomerId] = useState(null);
@@ -49,10 +52,26 @@ export default function AddLeadForm({
   const [loading, setLoading] = useState(false);
   const [loadingLookup, setLoadingLookup] = useState(false);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [isOtherMode, setIsOtherMode] = useState(false);
-
   const [referenceOptions, setReferenceOptions] = useState([]);
   const [loadingReference, setLoadingReference] = useState(false);
+  const [showLeadSourceInput, setShowLeadSourceInput] = useState(false);
+  const [latestLead, setLatestLead] = useState(null);
+  const [loadingLatestLead, setLoadingLatestLead] = useState(false);
+
+
+  const leadSourceOptions = [
+    { id: "google_ads", name: "Google Ads", needsInput: false },
+    { id: "indiamart", name: "IndiaMART", needsInput: false },
+    { id: "bni", name: "BNI", needsInput: true },
+    { id: "justdial", name: "Justdial", needsInput: false },
+    { id: "reference", name: "Reference", needsInput: true },
+    { id: "architect/interior_designer", name: "Architect Interior Designer", needsInput: true },
+    { id: "builder", name: "Builder", needsInput: true },
+    { id: "existing_customer", name: "Existing Customer", needsInput: true },
+    { id: "ka_staff", name: "KA Staff", needsInput: true },
+    { id: "other", name: "Other", needsInput: true },
+  ];
+
 
 
   const authToken = useMemo(
@@ -170,19 +189,25 @@ export default function AddLeadForm({
     if (!open) return;
 
     if (lead) {
+
+      const selected = leadSourceOptions.find(
+        opt => opt.id === lead.lead_source
+      );
+
       setFormData({
         enquiry_date: lead.enquiry_date || "",
         clientName: lead.customer_name || "",
         contactNumber: lead.customer_contact || "",
         email: lead.customer_email || "",
         secondary_email: lead.customer_secondary_email || "",
-        address: lead.customer_address ||"",
+        address: lead.customer_address || "",
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
         hvacApplication: lead.hvac_application || "",
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
+        leadSourceInput: lead.lead_source_input || "",
         status: lead.status || "",
         assignTo: lead.assign_to || "",
         creditedBy: lead.creatd_by_details?.full_name || "",
@@ -192,6 +217,7 @@ export default function AddLeadForm({
       });
       setCustomerId(lead.customer ?? null);
       setAssignId(lead.assign_to ?? null);
+      setShowLeadSourceInput(!!selected?.needsInput);
     } else {
       // reset for new lead
       setFormData({
@@ -200,13 +226,14 @@ export default function AddLeadForm({
         contactNumber: "",
         email: "",
         secondary_email: "",
-        address:"",
+        address: "",
         projectName: "",
         project_adderess: "",
         requirementDetails: "",
         hvacApplication: "",
         tonCapacity: "",
         leadSource: "",
+        leadSourceInput: "",
         status: "",
         assignTo: "",
         creditedBy: "",
@@ -215,6 +242,7 @@ export default function AddLeadForm({
         remarks: "",
       });
       setCustomerId(null);
+
     }
     setLoading(false);
     // cancel any pending lookup
@@ -234,15 +262,49 @@ export default function AddLeadForm({
 
 
 
+  const fetchLatestLeadByMobile = async (mobile) => {
+    if (!mobile) return;
+
+    setLoadingLatestLead(true);
+    try {
+      const res = await fetch(
+        `${baseApi.replace(/\/$/, "")}/api/lead/lead/latest-lead-by-mobile/?mobile=${mobile}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+        }
+      );
+
+      if (!res.ok) {
+        setLatestLead(null);
+        return;
+      }
+
+      const data = await res.json();
+      setLatestLead(data);
+
+      // 🔹 OPTIONAL: Auto-fill some fields from latest lead
+      setFormData((prev) => ({
+        projectName: data.project_name || prev.projectName,
+        projectAddress: data.project_adderess || prev.projectAddress,
+      }));
+
+    } catch (err) {
+      console.error("Latest lead fetch error:", err);
+      setLatestLead(null);
+    } finally {
+      setLoadingLatestLead(false);
+    }
+  };
+
+
 
 
   // These should match your Django TextChoices values
-  const leadSourceOptions = [
-    { id: "google_ads", name: "Google Ads" },
-    { id: "indiamart", name: "IndiaMART" },
-    { id: "bni", name: "BNI" },
-    { id: "__OTHER__", name: "Other" },
-  ];
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -310,6 +372,8 @@ export default function AddLeadForm({
             secondary_email: customer.secondary_email ?? "",
             address: customer.address ?? "",
           }));
+
+          fetchLatestLeadByMobile(phone);
         } else {
           setCustomerId(null);
           setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "", address: "" }));
@@ -340,36 +404,36 @@ export default function AddLeadForm({
       title: "Validation",
       text: message,
     });
-  
+
     const el = document.querySelector(`[name="${field}"]`);
     if (el) {
       el.classList.add("input-error");
       el.focus();
     }
   };
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const validate = () => {
     if (!formData.contactNumber.trim()) {
       showError("contactNumber", "Contact Number is required");
       return false;
     }
-  
+
     if (!formData.clientName) {
       showError("clientName", "Client Name is required");
       return false;
     }
-  
+
     if (!formData.email) {
       showError("email", "Email is required");
       return false;
     }
-  
+
     if (!emailRegex.test(formData.email)) {
       showError("email", "Please enter a valid email address");
       return false;
     }
-    
+
     if (!formData.address) {
       showError("address", "Address is required");
       return false;
@@ -384,7 +448,16 @@ export default function AddLeadForm({
       showError("leadSource", "Lead source is required");
       return false;
     }
-  
+
+    const selectedSource = leadSourceOptions.find(
+      opt => opt.id === formData.leadSource
+    );
+
+    if (selectedSource?.needsInput && !formData.leadSourceInput.trim()) {
+      showError("leadSource", "Please enter lead source details");
+      return false;
+    }
+
     if (!formData.status) {
       showError("status", "Status is required");
       return false;
@@ -394,10 +467,10 @@ export default function AddLeadForm({
       showError("referance_by", "Referance By is required");
       return false;
     }
-  
+
     return true;
   };
-  
+
 
   const handleSubmit = async (e) => {
     e && e.preventDefault();
@@ -451,6 +524,9 @@ export default function AddLeadForm({
         hvac_application: formData.hvacApplication || "",
         capacity_required: formData.tonCapacity || "",
         lead_source: formData.leadSource || null,
+        lead_source_input: showLeadSourceInput
+          ? formData.leadSourceInput
+          : null,
         status: formData.status || null,
         referance_by: formData.referance_by || null,
         enquiry_date: formData.enquiry_date || null,
@@ -513,51 +589,63 @@ export default function AddLeadForm({
     }
   };
 
-  
+
   return (
     <>
-    <style>
-    {`
+      <style>
+        {`
       .input-error {
         border: 2px solid red !important;
       }
     `}
-  </style>
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
-      <div className="relative w-full max-w-2xl p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto">
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-xl text-gray-500 hover:text-black"
-        >
-          <RxCross2 />
-        </button>
+      </style>
+      <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
+        <div className="relative w-full max-w-2xl p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto">
+          {/* Close */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-xl text-gray-500 hover:text-black"
+          >
+            <RxCross2 />
+          </button>
 
-        <h1 className="text-2xl font-bold text-center mb-4">
-          {lead ? "Edit Lead" : "Add Lead"}
-        </h1>
+          <h1 className="text-2xl font-bold text-center mb-4">
+            {lead ? "Edit Lead" : "Add Lead"}
+          </h1>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* CUSTOMER DETAILS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Contact Number */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Contact Number
-              </label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  name="contactNumber"
-                  placeholder="Enter Contact Number"
-                  value={formData.contactNumber}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleContactChange(e);   
-                  }}
-                  className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                />
+          {loadingLatestLead && (
+            <div className="text-xs text-blue-500 mt-1">
+              Fetching latest lead...
+            </div>
+          )}
 
-                {/* <button
+          {latestLead && (
+            <div className="text-xs text-green-600 mt-1">
+              Last Project: {latestLead.project_name} | {latestLead.address}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* CUSTOMER DETAILS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Contact Number */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Contact Number
+                </label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    name="contactNumber"
+                    placeholder="Enter Contact Number"
+                    value={formData.contactNumber}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleContactChange(e);
+                    }}
+                    className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                  />
+
+                  {/* <button
                   type="button" // Important to prevent form submission
                   onClick={() => setShowCustomerForm(true)}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors" // Add hover style for visual cue
@@ -565,308 +653,350 @@ export default function AddLeadForm({
                 >
                   <FaUser className="text-gray-500 text-xl" />
                 </button> */}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
+                </div>
               </div>
-              <div className="text-xs text-slate-500 mt-1">
-                {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
-              </div>
-            </div>
 
-            {/* Customer Name (readonly for now) */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Customer Name
-              </label>
-              <input
-                name="clientName"
-                placeholder="Customer Name"
-                value={formData.clientName}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                readOnly={!!customerId}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                  }`}
-              />
-
-            </div>
-
-            {/* Email (readonly) */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Customer Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                value={formData.email}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                readOnly={!!customerId}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                  }`}
-              />
-
-            </div>
-
-            {/* Secondary Email (readonly) */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Customer Secondary Email
-              </label>
-              <input
-                type="email"
-                name="secondary_email"
-                placeholder="Email Address"
-                value={formData.secondary_email}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                readOnly={!!customerId}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                  }`}
-              />
-
-            </div>
-
-
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Address
-              </label>
-              <textarea
-                name="address"
-                placeholder="Address"
-                value={formData.address}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                readOnly={!!customerId}
-                rows={2}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
-                  ${customerId ? "bg-gray-100" : "" }`}
-              />
-
-
-            </div>
-
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Project Name
-              </label>
-              <input
-                name="projectName"
-                placeholder="Project Name"
-                value={formData.projectName}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Project Address
-              </label>
-              <input
-                name="projectAddress"
-                placeholder="Project address"
-                value={formData.projectAddress}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-              />
-            </div>
-
-            {/* Date */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">Enquiry Date</label>
-              <input
-                type="date"
-                name="enquiry_date"
-                value={formData.enquiry_date}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                readOnly={!!lead}
-                className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
-                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
-              />
-            </div>
-          </div>
-
-          {/* ... rest unchanged ... */}
-          {/* LEAD DETAILS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Lead Source
-              </label>
-
-              <select
-                value={isOtherMode ? "__OTHER__" : formData.leadSource}
-                onChange={(e) => {
-                  if (e.target.value === "__OTHER__") {
-                    setIsOtherMode(true);
-                    setFormData(prev => ({ ...prev, leadSource: "" }));
-                    clearError(e);
-                  } else {
-                    setIsOtherMode(false);
-                    setFormData(prev => ({ ...prev, leadSource: e.target.value }));
-                    clearError(e);
-                  }
-                }}
-                name="leadSource"
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              >
-                <option value="">Select Lead Source</option>
-                {leadSourceOptions.map(opt => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* 👇 SAME FIELD STORED */}
-              {isOtherMode && (
+              {/* Customer Name (readonly for now) */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Customer Name
+                </label>
                 <input
-                  type="text"
-                  placeholder="Enter Lead Source"
-                  value={formData.leadSource}
-                  onChange={(e) =>
-                    setFormData(prev => ({ ...prev, leadSource: e.target.value }))
-                  }
-                  className="w-full mt-2 px-3 py-2 rounded-md border border-slate-300"
-                  autoFocus
-                  required
+                  name="clientName"
+                  placeholder="Customer Name"
+                  value={formData.clientName}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  readOnly={!!customerId}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                    }`}
                 />
-              )}
-            </div>
 
+              </div>
 
+              {/* Email (readonly) */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Customer Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email Address"
+                  value={formData.email}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  readOnly={!!customerId}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                    }`}
+                />
 
-            {/* Status */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              >
-                <option value="">Select Status</option>
-                <option value="open">Open</option>
-                <option value="in_process">In Process</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
+              </div>
 
-            {/* Assign To (dummy options for now) */}
-            {userRole.name !== "sales" && (
+              {/* Secondary Email (readonly) */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Customer Secondary Email
+                </label>
+                <input
+                  type="email"
+                  name="secondary_email"
+                  placeholder="Email Address"
+                  value={formData.secondary_email}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  readOnly={!!customerId}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                    }`}
+                />
+
+              </div>
+
 
               <div>
                 <label className="text-sm font-normal text-gray-600">
-                  Assign To
+                  Address
                 </label>
+                <textarea
+                  name="address"
+                  placeholder="Address"
+                  value={formData.address}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  readOnly={!!customerId}
+                  rows={2}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
+                  ${customerId ? "bg-gray-100" : ""}`}
+                />
+
+
+              </div>
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Project Name
+                </label>
+                <input
+                  name="projectName"
+                  placeholder="Project Name"
+                  value={formData.projectName}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Project Address
+                </label>
+                <input
+                  name="projectAddress"
+                  placeholder="Project address"
+                  value={formData.projectAddress}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">Enquiry Date</label>
+                <input
+                  type="date"
+                  name="enquiry_date"
+                  value={formData.enquiry_date}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  readOnly={!!lead}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
+                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                />
+              </div>
+            </div>
+
+            {/* ... rest unchanged ... */}
+            {/* LEAD DETAILS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Lead Source
+                </label>
+
                 <select
-                  name="assignTo"
-                  value={formData.assignTo} 
-                   onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
+                  name="leadSource"
+                  value={formData.leadSource}
+                  onChange={(e) => {
+                    clearError(e);
+
+                    const selected = leadSourceOptions.find(
+                      opt => opt.id === e.target.value
+                    );
+
+                    setFormData(prev => ({
+                      ...prev,
+                      leadSource: e.target.value,
+                      leadSourceInput: ""   // reset on change
+                    }));
+
+                    setShowLeadSourceInput(!!selected?.needsInput);
+                  }}
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                 >
-                  <option value="">Assign To</option>
-                  {assignOptions.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name} {o.last_name}
+                  <option value="">Select Lead Source</option>
+                  {leadSourceOptions.map(opt => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
                     </option>
                   ))}
                 </select>
+
+
+                {/* 👇 SAME FIELD STORED */}
+                {showLeadSourceInput && (
+                  <input
+                    type="text"
+                    name="leadSourceInput"
+                    placeholder="Enter details"
+                    value={formData.leadSourceInput}
+                    onChange={(e) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        leadSourceInput: e.target.value
+                      }))
+                    }
+                    className="w-full mt-2 px-3 py-2 rounded-md border border-slate-300"
+                    required
+                  />
+                )}
+
               </div>
-            )}
 
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Reference By
-              </label>
 
-              <select
-                name="referance_by"
-                value={formData.referance_by}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              >
-                <option value="">Select Reference</option>
 
-                {referenceOptions.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+              {/* Status */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                >
+                  <option value="">Select Status</option>
+                  <option value="open">Open</option>
+                  <option value="in_process">In Process</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
 
-              {loadingReference && (
-                <div className="text-xs text-gray-500 mt-1">
-                  Loading references...
+              {/* Assign To (dummy options for now) */}
+              {userRole.name !== "sales" && (
+
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Assign To
+                  </label>
+                  <select
+                    name="assignTo"
+                    value={formData.assignTo}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  >
+                    <option value="">Assign To</option>
+                    {assignOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name} {o.last_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Enquiry Generate By
+                </label>
+
+                <select
+                  name="referance_by"
+                  value={formData.referance_by}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                >
+                  <option value="">Select</option>
+
+                  {referenceOptions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+
+                {loadingReference && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Loading references...
+                  </div>
+                )}
+              </div>
+
+
+
+              {/* Follow-up Date */}
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Follow-up Date
+                </label>
+                <input
+                  type="date"
+                  name="followupDate"
+                  value={formData.followupDate}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                />
+              </div>
             </div>
 
+            {/* PRODUCT / REQUIREMENTS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  HVAC Application
+                </label>
+                <input
+                  name="hvacApplication"
+                  placeholder="Enter HVAC Application"
+                  value={formData.hvacApplication}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                />
+              </div>
 
-
-            {/* Follow-up Date */}
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Follow-up Date
-              </label>
-              <input
-                type="date"
-                name="followupDate"
-                value={formData.followupDate}
-                 onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-              />
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  TON / Capacity
+                </label>
+                <input
+                  name="tonCapacity"
+                  placeholder="Enter Ton / Capacity"
+                  value={formData.tonCapacity}
+                  onChange={(e) => {
+                    clearError(e);
+                    handleChange(e);
+                  }}
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* PRODUCT / REQUIREMENTS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-normal text-gray-600">
-                HVAC Application
+                Requirement Details
               </label>
-              <input
-                name="hvacApplication"
-                placeholder="Enter HVAC Application"
-                value={formData.hvacApplication}
-                 onChange={(e) => {
+              <textarea
+                name="requirementDetails"
+                placeholder="Enter requirement"
+                value={formData.requirementDetails}
+                onChange={(e) => {
                   clearError(e);
-                  handleChange(e);   
+                  handleChange(e);
                 }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
@@ -874,101 +1004,68 @@ export default function AddLeadForm({
 
             <div>
               <label className="text-sm font-normal text-gray-600">
-                TON / Capacity
+                Remarks
               </label>
-              <input
-                name="tonCapacity"
-                placeholder="Enter Ton / Capacity"
-                value={formData.tonCapacity}
-                 onChange={(e) => {
+              <textarea
+                name="remarks"
+                placeholder="Enter remarks"
+                value={formData.remarks}
+                onChange={(e) => {
                   clearError(e);
-                  handleChange(e);   
+                  handleChange(e);
                 }}
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
-          </div>
+            {/* BUTTONS */}
+            <div className="flex justify-end gap-4 mt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-gray-400 rounded-md"
+              >
+                Cancel
+              </button>
 
-          <div>
-            <label className="text-sm font-normal text-gray-600">
-              Requirement Details
-            </label>
-            <textarea
-              name="requirementDetails"
-              placeholder="Enter requirement"
-              value={formData.requirementDetails}
-               onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-              className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-normal text-gray-600">
-              Remarks
-            </label>
-            <textarea
-              name="remarks"
-              placeholder="Enter remarks"
-              value={formData.remarks}
-               onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);   
-                }}
-              className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-            />
-          </div>
-          {/* BUTTONS */}
-          <div className="flex justify-end gap-4 mt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-400 rounded-md"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="px-5 py-2 bg-blue-600 text-white rounded-md"
-              disabled={loading}
-            >
-              {loading ? (lead ? "Updating..." : "Saving...") : lead ? "Update" : "Submit"}
-            </button>
-          </div>
-        </form>
+              <button
+                type="submit"
+                className="px-5 py-2 bg-blue-600 text-white rounded-md"
+                disabled={loading}
+              >
+                {loading ? (lead ? "Updating..." : "Saving...") : lead ? "Update" : "Submit"}
+              </button>
+            </div>
+          </form>
+        </div>
+        {/* 👇 NEW: Render the Customer Form conditionally */}
+        <AddCustomerForm
+          open={showCustomerForm}
+          onClose={() => setShowCustomerForm(false)}
+          baseApi={baseApi}
+          token={authToken} // use the memoized token
+          // Optional: Pass initial data if adding a new customer
+          initialData={{
+            contact: formData.contactNumber,
+            email: formData.email,
+            name: formData.clientName
+          }}
+          // Optional: Handle success (e.g., if a new customer is created,
+          // you might want to automatically update customerId here)
+          onSuccess={(newCustomer) => {
+            setShowCustomerForm(false);
+            // If successful, update the Lead Form state with the new customer info
+            if (newCustomer?.id) {
+              setCustomerId(newCustomer.id);
+              setFormData(prev => ({
+                ...prev,
+                clientName: newCustomer.name,
+                contactNumber: newCustomer.contact_number,
+                email: newCustomer.email
+              }));
+            }
+          }}
+        />
       </div>
-      {/* 👇 NEW: Render the Customer Form conditionally */}
-      <AddCustomerForm
-        open={showCustomerForm}
-        onClose={() => setShowCustomerForm(false)}
-        baseApi={baseApi}
-        token={authToken} // use the memoized token
-        // Optional: Pass initial data if adding a new customer
-        initialData={{
-          contact: formData.contactNumber,
-          email: formData.email,
-          name: formData.clientName
-        }}
-        // Optional: Handle success (e.g., if a new customer is created,
-        // you might want to automatically update customerId here)
-        onSuccess={(newCustomer) => {
-          setShowCustomerForm(false);
-          // If successful, update the Lead Form state with the new customer info
-          if (newCustomer?.id) {
-            setCustomerId(newCustomer.id);
-            setFormData(prev => ({
-              ...prev,
-              clientName: newCustomer.name,
-              contactNumber: newCustomer.contact_number,
-              email: newCustomer.email
-            }));
-          }
-        }}
-      />
-    </div>
     </>
   );
 }

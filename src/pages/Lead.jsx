@@ -69,10 +69,16 @@ export default function Lead() {
   ], []);
 
   const leadSourceOptions = useMemo(() => [
-    { value: "google_ads", label: "Google Ads" }, // Using 'label' for consistency
-    { value: "indiamart", label: "IndiaMART" }, // Using 'label'
-    { value: "bni", label: "BNI" }, // Using 'label'
-    { value: "other", label: "Other" }, // Using 'label'
+    { value: "google_ads", label: "Google Ads" }, 
+    { value: "indiamart", label: "IndiaMART" }, 
+    { value: "bni", label: "BNI" }, 
+    { value: "justdial", label: "Justdial" }, 
+    { value: "reference", label: "Reference" }, 
+    { value: "architect/interior_designer", label: "Architect Interior Designer" }, 
+    { value: "builder", label: "Builder" },
+    { value: "existing_customer", label: "Existing Customer" },
+    { value: "ka_staff", label: "KA Staff" }, 
+    { value: "other", label: "Other" }, 
   ], []);
 
 
