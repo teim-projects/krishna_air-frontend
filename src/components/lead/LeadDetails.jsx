@@ -51,7 +51,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
           <MdClose size={22} />
         </button>
 
-        <h2 className="text-xl font-semibold mb-4">Lead Details</h2>
+        <h2 className="text-xl font-semibold mb-4">Enquiry Details</h2>
 
         {loading && <div className="text-sm text-slate-500">Loading…</div>}
         {error && <div className="text-sm text-red-600 mb-2">{error}</div>}
@@ -106,7 +106,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
 
             {/* 2️⃣ Enquiry / Application / Source */}
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Lead Enquiry Details</h3>
+              <h3 className="font-semibold mb-3">Enquiry Details</h3>
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-medium text-slate-600">
@@ -129,7 +129,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <span className="font-medium text-slate-600">
-                      Lead source:
+                    Enquiry source:
                     </span>{" "}
                     {lead.lead_source || "—"}
                   </div>
@@ -155,7 +155,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
                 <div>
-                  <span className="font-medium text-slate-600">Lead date:</span>{" "}
+                  <span className="font-medium text-slate-600">Enquiry date:</span>{" "}
                   {lead.enquiry_date || "—"}
                 </div>
                 <div>
