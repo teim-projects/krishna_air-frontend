@@ -610,12 +610,12 @@ export default function AddLeadForm({
           </button>
 
           <h1 className="text-2xl font-bold text-center mb-4">
-            {lead ? "Edit Lead" : "Add Lead"}
+            {lead ? "Edit Enquiry" : "Add Enquiry"}
           </h1>
 
           {loadingLatestLead && (
             <div className="text-xs text-blue-500 mt-1">
-              Fetching latest lead...
+              Fetching latest enquiry...
             </div>
           )}
 
@@ -800,7 +800,7 @@ export default function AddLeadForm({
 
               <div>
                 <label className="text-sm font-normal text-gray-600">
-                  Lead Source
+                Enquiry Source
                 </label>
 
                 <select
@@ -823,7 +823,7 @@ export default function AddLeadForm({
                   }}
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                 >
-                  <option value="">Select Lead Source</option>
+                  <option value="">Select Enquiry Source</option>
                   {leadSourceOptions.map(opt => (
                     <option key={opt.id} value={opt.id}>
                       {opt.name}

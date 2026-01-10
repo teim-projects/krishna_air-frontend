@@ -393,7 +393,7 @@ export default function Lead() {
 
   return (
     <Base
-      title="Leads"
+      title="Enquiries"
       filtersConfig={leadFilters}
       initialFilterValues={initialFilters}
       onFiltersChange={handleFilterChange}
@@ -401,7 +401,7 @@ export default function Lead() {
       <div className="space-y-6 ">
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Lead Management</h2>
+            <h2 className="text-lg font-semibold">Enquiry Management</h2>
             <div className="text-sm text-slate-600">
               {loading ? "Loading…" : `${totalCount} total • ${rows.length} shown`}
             </div>

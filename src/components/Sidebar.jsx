@@ -8,7 +8,7 @@ import { useUserRole } from "../hooks/useAuth";
    ---------------------- */
 const allItems = [
   { key: "home", label: "Home", icon: HomeIcon, path: "/dashboard" },
-  { key: "leads", label: "Leads", icon: TargetIcon, path: "/leads" },
+  { key: "leads", label: "Enquiries", icon: TargetIcon, path: "/leads" },
   { key: "contacts", label: "Contacts", icon: UserIcon, path: "/customer" },
   { key: "accounts", label: "Accounts", icon: BuildingIcon, path: "/accounts" }, // <-- Item to hide
   { key: "products", label: "Products", icon: BoxIcon, path: "/products" },
