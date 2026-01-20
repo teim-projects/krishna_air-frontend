@@ -19,6 +19,11 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Customer from "./pages/Customer";
 import Lead from "./pages/Lead";
+import AcTypeList from "./components/products/AcTypeList";
+import ProductsPage from "./components/products/ProductsPage";
+
+ 
+
 
 function AppRoutes() {
   const location = useLocation();
@@ -94,7 +99,13 @@ function AppRoutes() {
               <Route path="/accounts" element={<Accounts />} />
               <Route path="/customer" element={<Customer />} />
               <Route path="/leads" element={<Lead />} />
+
+                {/* ✅ Product Module Routes (Inside Routes Now) */}
+              <Route path="/products/ac-type" element={<AcTypeList />} />
+              <Route path="/products" element={<ProductsPage />} />
+
             </Routes>
+            
           </div>
         </main>
       </div>

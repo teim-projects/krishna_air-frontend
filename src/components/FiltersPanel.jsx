@@ -146,6 +146,22 @@ export default function FiltersPanel({ config = [], initialValues = {}, onChange
                   onChange={(v) => handleChange(c.key, v)}
                 />
               )}
+
+              {/* ⭐ NEW SINGLE DATE INPUT */}
+{c.type === "date" && (
+  <div>
+    <label className="text-sm font-medium text-slate-700 mb-2 block">
+      {c.label}
+    </label>
+    <input
+      type="date"
+      value={values[c.key] ?? ""}
+      onChange={(e) => handleChange(c.key, e.target.value)}
+      className="w-full rounded-md border border-slate-200 px-3 py-2 focus:ring-2 focus:ring-sky-300"
+    />
+  </div>
+)}
+
             </div>
           ))}
         </div>

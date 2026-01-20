@@ -40,9 +40,9 @@ export default function TableView({
             <thead>
               <tr className="text-left border-b">
                 {columns.map(col => (
-                  <th key={col.key} className="py-2 px-3">{col.label}</th>
+                  <th key={col.key} className="py-2 px-3 text-center">{col.label}</th>
                 ))}
-                {actions && <th className="py-2 px-3">Actions</th>}
+                {actions && <th className="py-2 px-3 text-center">Actions</th>}
               </tr>
             </thead>
 
@@ -56,14 +56,14 @@ export default function TableView({
               ) : rows.map((row, idx) => (
                 <tr key={row.id ?? idx} className="odd:bg-slate-50">
                   {columns.map(col => (
-                    <td key={col.key} className="py-2 px-3">
+                    <td key={col.key} className="py-2 px-3 text-center">
                       {col.render ? col.render(row, idx) : (row[col.key] ?? "")}
                     </td>
                   ))}
 
                   {actions && (
                     <td className="py-2 px-3">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center text-center gap-2">
                         {actions(row)}
                       </div>
                     </td>

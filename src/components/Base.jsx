@@ -5,6 +5,7 @@ import { FaFilter } from "react-icons/fa";
 
 export default function Base({
   title = "Page",
+  filterTitle,
   filtersConfig = null,
   initialFilterValues = {},
   onFiltersChange = () => {},
@@ -35,7 +36,9 @@ export default function Base({
             style={leftStyle}
           >
             <div className="p-6 flex items-center justify-between border-b border-slate-50"> {/* Added border-b */}
-              <h3 className="text-lg font-semibold text-slate-700">Filters</h3>
+<h3 className="text-lg font-semibold text-slate-700">
+  {filterTitle || "Filters"}
+</h3>
               <button
                 onClick={() => setFiltersOpen(false)}
                 className="text-slate-600 hover:text-slate-800 p-1 rounded"
@@ -66,9 +69,9 @@ export default function Base({
       {/* Main content area (shifts right on md when drawer open) */}
       <div className={"flex-1 flex flex-col transition-all duration-300 overflow-auto " + (filtersOpen ? "md:ml-45" : "")}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 bg-transparent">
+        <div className="flex items-center justify-between p-2 bg-transparent">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-800">{title}</h1>
+            <h2 className="text-2xl font-semibold text-slate-800 ml-5">{title}</h2>
           </div>
 
           <div className="flex items-center gap-3">
