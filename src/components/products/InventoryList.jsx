@@ -38,7 +38,7 @@ export default function InventoryList({ appliedFilters }) {
   const [formData, setFormData] = useState(initialForm);
   const isEdit = formData.id !== null;
 
-  /* LOAD VARIANTS */
+  // LOAD VARIANTS
   const loadVariants = async () => {
     const v = await fetch(VARIANT_API, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -47,30 +47,28 @@ export default function InventoryList({ appliedFilters }) {
     setVariants(variantData.results || variantData);
   };
 
-  /* LOAD INVENTORY WITH ALL FILTERS */
+  // LOAD INVENTORY (Search + Brand + Filters)
   const loadData = async () => {
     const params = new URLSearchParams();
 
-    // ⭐ MULTI-SEARCH FIELDS
-    if (appliedFilters?.serial) params.append("search", appliedFilters.serial);
-    if (appliedFilters?.sku) params.append("search", appliedFilters.sku);
-    if (appliedFilters?.capacity) params.append("search", appliedFilters.capacity);
-    if (appliedFilters?.brand) params.append("search", appliedFilters.brand);
+    // ⭐ Global search
+    if (appliedFilters?.search)
+      params.append("search", appliedFilters.search);
 
-    // ⭐ PURCHASE DATE (DIRECT FILTER)
+    // ⭐ Brand Dropdown filter
+    if (appliedFilters?.brand)
+      params.set("brand", appliedFilters.brand);
+
+    // ⭐ Purchase Date
     if (appliedFilters?.purchase_date)
       params.set("purchase_date", appliedFilters.purchase_date);
 
-    // ⭐ STATUS
+    // ⭐ Status
     if (appliedFilters?.status)
       params.set("status", appliedFilters.status);
 
-    // ⭐ WAREHOUSE
-    if (appliedFilters?.warehouse)
-      params.set("warehouse", appliedFilters.warehouse);
-
     const finalURL = `${API_URL}?${params.toString()}`;
-    console.log("Inventory API Call =>", finalURL);
+    console.log("Inventory API =>", finalURL);
 
     const res = await fetch(finalURL, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -80,9 +78,7 @@ export default function InventoryList({ appliedFilters }) {
     const list = data.results || data;
 
     setRows(list);
-
-    const uniqueWarehouses = [...new Set(list.map((x) => x.warehouse))];
-    setWarehouses(uniqueWarehouses);
+    setWarehouses([...new Set(list.map((x) => x.warehouse))]);
   };
 
   useEffect(() => {
