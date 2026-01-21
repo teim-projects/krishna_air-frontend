@@ -61,16 +61,81 @@ export default function ProductsPage() {
     products: "Dashboard Filters",
   };
 
-  // FILTER CONFIG
+  // FILTER CONFIG BASED ON ACTIVE TAB
   const filtersConfig = useMemo(() => {
     switch (activeSection) {
-      case "inventory":
+      // PRODUCT MODEL FILTERS
+      case "productModel":
+        return [
+          { key: "search", type: "search", label: "Search Model" },
+          {
+            key: "phase",
+            type: "select",
+            label: "Phase",
+            options: [
+              { value: "", label: "All" },
+              { value: "1P", label: "1 Phase" },
+              { value: "3P", label: "3 Phase" },
+            ],
+          },
+          {
+            key: "inverter",
+            type: "select",
+            label: "Inverter",
+            options: [
+              { value: "", label: "All" },
+              { value: "true", label: "Inverter" },
+              { value: "false", label: "Non-Inverter" },
+            ],
+          },
+          {
+            key: "is_active",
+            type: "select",
+            label: "Active Status",
+            options: [
+              { value: "", label: "All" },
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
+            ],
+          },
+          { key: "brand_name", type: "search", label: "Brand Name" },
+        ];
+
+      // PRODUCT VARIANT FILTERS
+      case "productVariant":
+        return [
+          { key: "search", type: "search", label: "Search Variant" },
+          {
+            key: "star_rating",
+            type: "select",
+            label: "Star Rating",
+            options: [
+              { value: "", label: "All" },
+              { value: "1", label: "1 Star" },
+              { value: "2", label: "2 Star" },
+              { value: "3", label: "3 Star" },
+              { value: "4", label: "4 Star" },
+              { value: "5", label: "5 Star" },
+            ],
+          },
+          {
+            key: "is_active",
+            type: "select",
+            label: "Active Status",
+            options: [
+              { value: "", label: "All" },
+              { value: "true", label: "Active" },
+              { value: "false", label: "Inactive" },
+            ],
+          },
+        ];
+        case "inventory":
         return [
           {
             key: "search",
             type: "search",
             label: "Search",
-            placeholder: "Search Serial, SKU, Capacity, Warehouse...",
+            placeholder: "Search Serial, SKU, Capacity...",
           },
 
           {
