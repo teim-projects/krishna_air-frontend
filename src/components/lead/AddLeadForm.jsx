@@ -1,10 +1,13 @@
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FaUser } from "react-icons/fa";
+
+import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
 import Swal from "sweetalert2";
 import { fetchCustomerByPhone } from "../customers/customerLookup";
 import { useUserRole } from '../../hooks/useAuth';
 import AddCustomerForm from "../customers/AddCustomerForm";
+import AddLeadProductForm from "./AddLeadProductForm";
 
 
 
@@ -16,6 +19,7 @@ export default function AddLeadForm({
   token = "",
   lead = null,
 }) {
+  const contactRef = useRef("");
   const API_URL = `${baseApi.replace(/\/$/, "")}/api/lead/lead/`;
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [formData, setFormData] = useState({
@@ -28,7 +32,7 @@ export default function AddLeadForm({
     projectName: "",
     projectAddress: "",
     requirementDetails: "",
-    hvacApplication: "",
+
     tonCapacity: "",
     leadSource: "",
     leadSourceInput: "",
@@ -59,6 +63,26 @@ export default function AddLeadForm({
   const [loadingLatestLead, setLoadingLatestLead] = useState(false);
 
 
+
+  const [products, setProducts] = useState([
+    {
+      ac_type: "",
+      ac_type_name: "",
+      ac_sub_type: "",
+      ac_sub_type_name: "",
+      brand: "",
+      brand_name: "",
+      product_model: "",
+      product_model_name: "",
+      variant: "",
+      variant_name: "",
+      quantity: 1,
+      expected_price: "",
+      remarks: ""
+    }
+  ]);
+
+
   const leadSourceOptions = [
     { id: "google_ads", name: "Google Ads", needsInput: false },
     { id: "indiamart", name: "IndiaMART", needsInput: false },
@@ -84,6 +108,12 @@ export default function AddLeadForm({
       "",
     [token]
   );
+
+
+  // console product in development
+  // useEffect(() => {
+  //   console.log("Products updated:", products);
+  // }, [products]);
 
 
   // for debounce + abort
@@ -204,7 +234,7 @@ export default function AddLeadForm({
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
-        hvacApplication: lead.hvac_application || "",
+
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
         leadSourceInput: lead.lead_source_input || "",
@@ -230,7 +260,7 @@ export default function AddLeadForm({
         projectName: "",
         project_adderess: "",
         requirementDetails: "",
-        hvacApplication: "",
+
         tonCapacity: "",
         leadSource: "",
         leadSourceInput: "",
@@ -321,6 +351,8 @@ export default function AddLeadForm({
   // NEW: debounced contact handler that calls the simple fetch function
   const handleContactChange = (e) => {
     const phone = e.target.value;
+
+    contactRef.current = phone; 
     // update UI instantly
     setFormData((prev) => ({ ...prev, contactNumber: phone }));
 
@@ -338,7 +370,7 @@ export default function AddLeadForm({
     }
 
     // If empty, clear customer info
-    if (!phone || phone.trim() === "") {
+    if (!phone || phone === "") {
       setCustomerId(null);
       setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
       setLoadingLookup(false);
@@ -414,27 +446,29 @@ export default function AddLeadForm({
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const validate = () => {
-    if (!formData.contactNumber.trim()) {
+    if (!contactRef.current.trim()) {
       showError("contactNumber", "Contact Number is required");
       return false;
     }
+    
 
-    if (!formData.clientName) {
+    if (!formData.clientName && !customerId) {
       showError("clientName", "Client Name is required");
       return false;
     }
 
-    if (!formData.email) {
+    if (!formData.email && !customerId) {
       showError("email", "Email is required");
       return false;
     }
-
-    if (!emailRegex.test(formData.email)) {
+    
+    // 📧 validate format ONLY if email exists
+    if (formData.email && !emailRegex.test(formData.email)) {
       showError("email", "Please enter a valid email address");
       return false;
     }
 
-    if (!formData.address) {
+    if (!formData.address  && !customerId) {
       showError("address", "Address is required");
       return false;
     }
@@ -453,7 +487,7 @@ export default function AddLeadForm({
       opt => opt.id === formData.leadSource
     );
 
-    if (selectedSource?.needsInput && !formData.leadSourceInput.trim()) {
+    if (selectedSource?.needsInput && !formData.leadSourceInput) {
       showError("leadSource", "Please enter lead source details");
       return false;
     }
@@ -483,7 +517,7 @@ export default function AddLeadForm({
 
       // ✅ Create customer ONLY if not exists
       if (!finalCustomerId) {
-        if (!formData.clientName.trim()) {
+        if (!formData.clientName) {
           throw new Error("Customer name is required");
         }
 
@@ -515,13 +549,34 @@ export default function AddLeadForm({
       }
 
 
+      const productPayload = products
+        .filter(p =>
+          p.ac_type &&
+          p.ac_sub_type &&
+          p.brand &&
+          p.product_model &&
+          p.variant &&
+          Number(p.quantity) > 0
+        )
+        .map(p => ({
+          ac_type: Number(p.ac_type),
+          ac_sub_type: Number(p.ac_sub_type),
+          brand: Number(p.brand),
+          product_model: Number(p.product_model),
+          variant: Number(p.variant),
+          quantity: Number(p.quantity),
+          expected_price: Number(p.expected_price) || 0,
+          remarks: p.remarks || ""
+        }));
+      
+
 
       // Map front-end state → backend payload
       const payload = {
         project_name: formData.projectName || "",
         project_adderess: formData.projectAddress || "",
         requirements_details: formData.requirementDetails || "",
-        hvac_application: formData.hvacApplication || "",
+
         capacity_required: formData.tonCapacity || "",
         lead_source: formData.leadSource || null,
         lead_source_input: showLeadSourceInput
@@ -532,6 +587,7 @@ export default function AddLeadForm({
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
+        products: productPayload
       };
 
       // When editing, preserve existing FKs unless you provide UI
@@ -587,7 +643,39 @@ export default function AddLeadForm({
     } finally {
       setLoading(false);
     }
+
   };
+
+
+
+  // const addProductRow = () => {
+  //   setProducts(prev => [
+  //     ...prev,
+  //     {
+  //       ac_type: "",
+  //       ac_sub_type: "",
+  //       brand: "",
+  //       product_model: "",
+  //       variant: "",
+  //       quantity: 1,
+  //       expected_price: "",
+  //       remarks: ""
+  //     }
+  //   ]);
+  // };
+
+  // const removeProductRow = (index) => {
+  //   setProducts(prev => prev.filter((_, i) => i !== index));
+  // };
+
+  // const updateProduct = (index, field, value) => {
+  //   setProducts(prev =>
+  //     prev.map((item, i) =>
+  //       i === index ? { ...item, [field]: value } : item
+  //     )
+  //   );
+  // };
+
 
 
   return (
@@ -800,7 +888,7 @@ export default function AddLeadForm({
 
               <div>
                 <label className="text-sm font-normal text-gray-600">
-                Enquiry Source
+                  Enquiry Source
                 </label>
 
                 <select
@@ -952,39 +1040,7 @@ export default function AddLeadForm({
             </div>
 
             {/* PRODUCT / REQUIREMENTS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  HVAC Application
-                </label>
-                <input
-                  name="hvacApplication"
-                  placeholder="Enter HVAC Application"
-                  value={formData.hvacApplication}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                />
-              </div>
 
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  TON / Capacity
-                </label>
-                <input
-                  name="tonCapacity"
-                  placeholder="Enter Ton / Capacity"
-                  value={formData.tonCapacity}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="text-sm font-normal text-gray-600">
@@ -1001,6 +1057,16 @@ export default function AddLeadForm({
                 className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
               />
             </div>
+
+            <AddLeadProductForm
+              products={products}
+              setProducts={setProducts}
+              baseApi={baseApi}
+              authToken={authToken}
+            />
+
+
+            {/* </div> */}
 
             <div>
               <label className="text-sm font-normal text-gray-600">

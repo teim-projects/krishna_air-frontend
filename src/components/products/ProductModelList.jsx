@@ -203,7 +203,7 @@ export default function ProductModelList({ appliedFilters }) {
             setFormData(initialForm);
             setShowModal(true);
           }}
-          className="px-3 py-1 bg-sky-600 text-white rounded-md text-sm shadow hover:bg-sky-700"
+          className="px-3 py-2 bg-sky-600 text-white rounded-md text-sm shadow hover:bg-sky-700"
         >
           + Add Model
         </button>

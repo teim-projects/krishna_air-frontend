@@ -101,7 +101,7 @@ function AppRoutes() {
               <Route path="/leads" element={<Lead />} />
 
                 {/* ✅ Product Module Routes (Inside Routes Now) */}
-              <Route path="/products/ac-type" element={<AcTypeList />} />
+            
               <Route path="/products" element={<ProductsPage />} />
 
             </Routes>
