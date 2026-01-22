@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Swal from "sweetalert2";
+import AddLeadProductForm from "./AddLeadProductForm";
+
 
 /**
  * AddLeadFollowUpForm
@@ -47,6 +49,26 @@ export default function AddLeadFollowUpForm({
       "",
     []
   );
+
+
+
+    const [products, setProducts] = useState([
+      {
+        ac_type: "",
+        ac_type_name: "",
+        ac_sub_type: "",
+        ac_sub_type_name: "",
+        brand: "",
+        brand_name: "",
+        product_model: "",
+        product_model_name: "",
+        variant: "",
+        variant_name: "",
+        quantity: 1,
+        expected_price: "",
+        remarks: ""
+      }
+    ]);
 
   // sync when followup or modal open changes
   useEffect(() => {
@@ -292,6 +314,14 @@ export default function AddLeadFollowUpForm({
                 onChange={(e) => setRemarks(e.target.value)}
               />
             </div>
+
+            
+            <AddLeadProductForm
+              products={products}
+              setProducts={setProducts}
+              baseApi={baseApi}
+              authToken={token}
+            />
 
             {/* FAQ section */}
             {faqList.length > 0 && (

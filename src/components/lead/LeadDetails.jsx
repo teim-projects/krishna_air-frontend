@@ -114,22 +114,11 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
                   </span>{" "}
                   {lead.requirements_details || "—"}
                 </div>
-                <div>
-                  <span className="font-medium text-slate-600">
-                    HVAC application:
-                  </span>{" "}
-                  {lead.hvac_application || "—"}
-                </div>
-                <div>
-                  <span className="font-medium text-slate-600">
-                    Capacity required:
-                  </span>{" "}
-                  {lead.capacity_required || "—"}
-                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <span className="font-medium text-slate-600">
-                    Enquiry source:
+                      Enquiry source:
                     </span>{" "}
                     {lead.lead_source || "—"}
                   </div>
@@ -148,6 +137,54 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
                 </div>
               </div>
             </div>
+
+            {/* 2️⃣ Product Details */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">Product Details</h3>
+
+              {lead.product_details && lead.product_details.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-slate-200 rounded-md">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="p-2 text-left">#</th>
+                        <th className="p-2 text-left">AC Type</th>
+                        <th className="p-2 text-left">Sub Type</th>
+                        <th className="p-2 text-left">Brand</th>
+                        <th className="p-2 text-left">Model</th>
+                        <th className="p-2 text-left">Variant</th>
+                        <th className="p-2 text-right">Qty</th>
+                        <th className="p-2 text-right">Expected Price</th>
+                        <th className="p-2 text-left">Remarks</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {lead.product_details.map((product, index) => (
+                        <tr key={product.id} className="border-t">
+                          <td className="p-2">{index + 1}</td>
+                          <td className="p-2">{product.ac_type || "—"}</td>
+                          <td className="p-2">{product.ac_sub_type || "—"}</td>
+                          <td className="p-2">{product.brand || "—"}</td>
+                          <td className="p-2">{product.product_model || "—"}</td>
+                          <td className="p-2">{product.variant || "—"}</td>
+                          <td className="p-2 text-right">{product.quantity || 0}</td>
+                          <td className="p-2 text-right">
+                            ₹{product.expected_price || "0"}
+                          </td>
+                          <td className="p-2">{product.remarks || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-sm text-slate-500">
+                  No products added to this lead.
+                </div>
+              )}
+            </div>
+
 
             {/* 3️⃣ Follow-up details + fixed followups */}
             <div className="border rounded-lg p-4">

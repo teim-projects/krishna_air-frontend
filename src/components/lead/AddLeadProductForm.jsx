@@ -7,8 +7,12 @@ const AddLeadProductForm = ({
   setProducts,
   baseApi,
   authToken,
+  deletedProductIds,
+  setDeletedProductIds,
 }) => {
 
+
+  console.log("baseApi",baseApi)
   /* ===================== STATES ===================== */
   const [acType, setAcType] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -42,7 +46,7 @@ const AddLeadProductForm = ({
   const fetchAcSubTypes = async (acTypeId, index) => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/ac-subtypes/?search=${acTypeId}`,
+        `${baseApi.replace(/\/$/, "")}/api/product/ac-subtypes/?ac_type_id=${acTypeId}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
 
@@ -139,8 +143,15 @@ const AddLeadProductForm = ({
     ]);
   };
 
+  
   const removeProductRow = (index) => {
-    setProducts(prev => prev.filter((_, i) => i !== index));
+    setProducts(prev => {
+      const p = prev[index];
+      if (p.id) {
+        setDeletedProductIds(ids => [...ids, p.id]);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const updateProduct = (index, field, value) => {

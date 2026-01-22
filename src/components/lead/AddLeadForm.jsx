@@ -10,6 +10,27 @@ import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
 
 
+const createEmptyProductRow = () => ({
+  ac_type: "",
+  ac_type_name: "",
+  ac_sub_type: "",
+  ac_sub_type_name: "",
+  brand: "",
+  brand_name: "",
+  product_model: "",
+  product_model_name: "",
+  variant: "",
+  variant_name: "",
+  quantity: 1,
+  expected_price: "",
+  remarks: "",
+  ac_sub_type_options: [],
+  product_model_options: [],
+  product_variant_options: []
+});
+
+
+
 
 export default function AddLeadForm({
   open,
@@ -20,6 +41,8 @@ export default function AddLeadForm({
   lead = null,
 }) {
   const contactRef = useRef("");
+  const productsInitializedRef = useRef(false);
+
   const API_URL = `${baseApi.replace(/\/$/, "")}/api/lead/lead/`;
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [formData, setFormData] = useState({
@@ -61,7 +84,7 @@ export default function AddLeadForm({
   const [showLeadSourceInput, setShowLeadSourceInput] = useState(false);
   const [latestLead, setLatestLead] = useState(null);
   const [loadingLatestLead, setLoadingLatestLead] = useState(false);
-
+  const [deletedProductIds, setDeletedProductIds] = useState([]);
 
 
   const [products, setProducts] = useState([
@@ -164,7 +187,7 @@ export default function AddLeadForm({
     return () => controller.abort();
   }, [open, baseApi, authToken]);
 
-
+  
 
   // Fetch sales staff when modal opens
   useEffect(() => {
@@ -219,11 +242,10 @@ export default function AddLeadForm({
     if (!open) return;
 
     if (lead) {
-
       const selected = leadSourceOptions.find(
         opt => opt.id === lead.lead_source
       );
-
+      
       setFormData({
         enquiry_date: lead.enquiry_date || "",
         clientName: lead.customer_name || "",
@@ -234,7 +256,7 @@ export default function AddLeadForm({
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
-
+        
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
         leadSourceInput: lead.lead_source_input || "",
@@ -245,6 +267,7 @@ export default function AddLeadForm({
         followupDate: lead.followup_date || "",
         remarks: lead.remarks || "",
       });
+      contactRef.current = lead.customer_contact || "";
       setCustomerId(lead.customer ?? null);
       setAssignId(lead.assign_to ?? null);
       setShowLeadSourceInput(!!selected?.needsInput);
@@ -288,10 +311,52 @@ export default function AddLeadForm({
     }
   }, [open, lead]);
 
+
+
+  useEffect(() => {
+    if (!open) {
+      productsInitializedRef.current = false;
+      return;
+    }
+  
+    // ⛔ Prevent overwrite after first init
+    if (productsInitializedRef.current) return;
+  
+    if (lead && Array.isArray(lead.product_details)) {
+      const mappedProducts = lead.product_details.map(p => ({
+        id: p.id,   
+        ac_type: "",
+        ac_type_name: p.ac_type || "",
+        ac_sub_type: "",
+        ac_sub_type_name: p.ac_sub_type || "",
+        brand: "",
+        brand_name: p.brand || "",
+        product_model: "",
+        product_model_name: p.product_model || "",
+        variant: "",
+        variant_name: p.variant || "",
+        quantity: p.quantity || 1,
+        expected_price: p.expected_price || "",
+        remarks: p.remarks || "",
+        ac_sub_type_options: [],
+        product_model_options: [],
+        product_variant_options: []
+      }));
+  
+      setProducts([
+        ...mappedProducts,
+        createEmptyProductRow()
+      ]);
+    } else {
+      setProducts([createEmptyProductRow()]);
+    }
+  
+    productsInitializedRef.current = true;
+  }, [open, lead]);
+  
+  
   if (!open) return null;
-
-
-
+// fetch latest lead by mobile
   const fetchLatestLeadByMobile = async (mobile) => {
     if (!mobile) return;
 
@@ -330,12 +395,7 @@ export default function AddLeadForm({
   };
 
 
-
-
-  // These should match your Django TextChoices values
-
-
-
+  console.log("Deleted IDs:", deletedProductIds);
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "assignTo") {
@@ -589,6 +649,9 @@ export default function AddLeadForm({
         remarks: formData.remarks || "",
         products: productPayload
       };
+
+      payload.deleted_products = deletedProductIds;
+
 
       // When editing, preserve existing FKs unless you provide UI
       if (lead) {
@@ -1063,6 +1126,8 @@ export default function AddLeadForm({
               setProducts={setProducts}
               baseApi={baseApi}
               authToken={authToken}
+              deletedProductIds={deletedProductIds}
+              setDeletedProductIds={setDeletedProductIds}
             />
 
 
