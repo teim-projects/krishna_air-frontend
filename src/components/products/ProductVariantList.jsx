@@ -291,12 +291,15 @@ export default function ProductVariantList({ appliedFilters }) {
                 <label className="text-sm">Active</label>
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-md shadow"
-              >
-                {isEdit ? "Update Variant" : "Add Variant"}
-              </button>
+  <div className="flex justify-center">
+  <button
+    type="submit"
+    className="py-2 px-6 bg-sky-600 hover:bg-sky-700 text-white rounded-md shadow"
+  >
+    {isEdit ? "Update Variant" : "Add Variant"}
+  </button>
+</div>
+
 
             </form>
           </div>

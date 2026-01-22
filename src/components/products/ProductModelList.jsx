@@ -419,12 +419,15 @@ export default function ProductModelList({ appliedFilters }) {
               </div>
 
               {/* SUBMIT BUTTON */}
-              <button
-                type="submit"
-                className="w-full py-2 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
-              >
-                {isEdit ? "Update Model" : "Add Model"}
-              </button>
+          <div className="flex justify-center">
+  <button
+    type="submit"
+    className="px-6 py-3 text-base bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
+  >
+    {isEdit ? "Update Model" : "Add Model"}
+  </button>
+</div>
+
             </form>
           </div>
         </div>
