@@ -24,7 +24,7 @@ export default function ProductVariantList({ appliedFilters }) {
 
   const initialForm = {
     id: null,
-    product_model_id: "",
+    product_model: "",
     capacity: "",
     star_rating: "",
     price: "",
@@ -48,8 +48,10 @@ export default function ProductVariantList({ appliedFilters }) {
     const params = new URLSearchParams();
 
     if (appliedFilters?.search) params.set("search", appliedFilters.search);
-    if (appliedFilters?.star_rating) params.set("star_rating", appliedFilters.star_rating);
-    if (appliedFilters?.is_active) params.set("is_active", appliedFilters.is_active);
+    if (appliedFilters?.star_rating)
+      params.set("star_rating", appliedFilters.star_rating);
+    if (appliedFilters?.is_active)
+      params.set("is_active", appliedFilters.is_active);
 
     const res = await fetch(`${API_URL}?${params.toString()}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -72,6 +74,11 @@ export default function ProductVariantList({ appliedFilters }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const payload = {
+      ...formData,
+      product_model: formData.product_model, // IMPORTANT FIX
+    };
+
     const url = isEdit ? `${API_URL}${formData.id}/` : API_URL;
 
     const res = await fetch(url, {
@@ -80,7 +87,7 @@ export default function ProductVariantList({ appliedFilters }) {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
@@ -99,7 +106,7 @@ export default function ProductVariantList({ appliedFilters }) {
   const handleEdit = (row) => {
     setFormData({
       id: row.id,
-      product_model_id: row.product_model || "",   // <-- FIXED HERE
+      product_model: row.product_model || "",
       capacity: row.capacity,
       star_rating: row.star_rating,
       price: row.price,
@@ -212,9 +219,9 @@ export default function ProductVariantList({ appliedFilters }) {
                 <label className="text-sm font-medium">Product Model</label>
                 <select
                   className={inputBox}
-                  value={formData.product_model_id}
+                  value={formData.product_model}
                   onChange={(e) =>
-                    setFormData({ ...formData, product_model_id: e.target.value })
+                    setFormData({ ...formData, product_model: e.target.value })
                   }
                 >
                   <option value="">Select Model</option>
@@ -240,8 +247,6 @@ export default function ProductVariantList({ appliedFilters }) {
 
               {/* STAR RATING + PRICE */}
               <div className="grid grid-cols-2 gap-4">
-
-                {/* STAR */}
                 <div>
                   <label className="text-sm font-medium">Star Rating</label>
                   <select
@@ -260,7 +265,6 @@ export default function ProductVariantList({ appliedFilters }) {
                   </select>
                 </div>
 
-                {/* PRICE */}
                 <div>
                   <label className="text-sm font-medium">Price</label>
                   <input
@@ -273,7 +277,6 @@ export default function ProductVariantList({ appliedFilters }) {
                     }
                   />
                 </div>
-
               </div>
 
               {/* ACTIVE */}
