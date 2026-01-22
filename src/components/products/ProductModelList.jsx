@@ -7,8 +7,14 @@ export default function ProductModelList({ appliedFilters }) {
   const BASE_API =
     import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
 
+  
+  const [acTypes, setAcTypes] = useState([]);
+  const [acTypeID, setAcTypeID] = useState("");
+  
+
   const API_URL = `${BASE_API}/api/product/product-model/`;
-  const SUBTYPE_API = `${BASE_API}/api/product/ac-subtypes/`;
+  const ACTYPE_API = `${BASE_API}/api/product/actype/`;
+  const SUBTYPE_API = `${BASE_API}/api/product/ac-subtypes/?ac_type_id=${acTypeID}`;
   const BRAND_API = `${BASE_API}/api/product/ac-brand/`;
 
   const token = useMemo(
@@ -19,11 +25,15 @@ export default function ProductModelList({ appliedFilters }) {
     []
   );
 
+
+ 
   const [rows, setRows] = useState([]);
   const [subtypes, setSubtypes] = useState([]);
   const [brands, setBrands] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
+
+
 
   const initialForm = {
     id: null,
@@ -42,15 +52,23 @@ export default function ProductModelList({ appliedFilters }) {
 
   /* LOAD DROPDOWN DATA */
   const loadDropdownData = async () => {
-    const s = await fetch(SUBTYPE_API, {
+
+    const a = await fetch(ACTYPE_API, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
+
+    setAcTypes((await a.json()).results || []);
+
+
+    // const s = await fetch(SUBTYPE_API, {
+    //   headers: token ? { Authorization: `Bearer ${token}` } : {},
+    // });
 
     const b = await fetch(BRAND_API, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
-    setSubtypes((await s.json()).results || []);
+    // setSubtypes((await s.json()).results || []);
     setBrands((await b.json()).results || []);
   };
 
@@ -82,6 +100,10 @@ export default function ProductModelList({ appliedFilters }) {
     setRows(data.results || data);
   };
 
+
+
+
+
   useEffect(() => {
     loadDropdownData();
     loadData();
@@ -91,6 +113,27 @@ export default function ProductModelList({ appliedFilters }) {
     loadData();
   }, [appliedFilters]);
 
+
+  useEffect(() => {
+    if (!acTypeID) {
+      setSubtypes([]);
+      return;
+    }
+  
+    const fetchSubtypes = async () => {
+      const res = await fetch(
+        `${BASE_API}/api/product/ac-subtypes/?ac_type_id=${acTypeID}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+  
+      setSubtypes((await res.json()).results || []);
+    };
+  
+    fetchSubtypes();
+  }, [acTypeID]);
+  
   /* SUBMIT */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -234,7 +277,29 @@ export default function ProductModelList({ appliedFilters }) {
             <form onSubmit={handleSubmit} className="space-y-5">
 
               {/* ROW 1 */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+
+                <div>
+                  <label className="text-sm text-slate-600">AC Type</label>
+                  <select
+                    className="w-full h-10 border border-slate-300 rounded-md px-3 text-sm"
+                    value={acTypeID}
+                    onChange={(e) => {
+                      setAcTypeID(e.target.value);
+                      setFormData({ ...formData, ac_sub_type_id: "" }); // reset subtype
+                    }}
+                  >
+                    <option value="">Select AC Type</option>
+                    {acTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+
+
                 <div>
                   <label className="text-sm text-slate-600">AC Subtype</label>
                   <select
