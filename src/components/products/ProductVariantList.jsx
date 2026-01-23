@@ -40,6 +40,7 @@ export default function ProductVariantList({ appliedFilters }) {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const modelData = await m.json();
+    // console.log("Model Data:", modelData);
     setModels(modelData.results || modelData);
   };
 
@@ -227,7 +228,7 @@ export default function ProductVariantList({ appliedFilters }) {
                   <option value="">Select Model</option>
                   {models.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name}
+                      {m.model}
                     </option>
                   ))}
                 </select>

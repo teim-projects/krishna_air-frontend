@@ -609,26 +609,62 @@ export default function AddLeadForm({
       }
 
 
-      const productPayload = products
-        .filter(p =>
-          p.ac_type &&
-          p.ac_sub_type &&
-          p.brand &&
-          p.product_model &&
-          p.variant &&
-          Number(p.quantity) > 0
-        )
-        .map(p => ({
-          ac_type: Number(p.ac_type),
-          ac_sub_type: Number(p.ac_sub_type),
-          brand: Number(p.brand),
-          product_model: Number(p.product_model),
-          variant: Number(p.variant),
-          quantity: Number(p.quantity),
-          expected_price: Number(p.expected_price) || 0,
-          remarks: p.remarks || ""
-        }));
+      // const productPayload = products
+      //   .filter(p =>
+      //     p.ac_type &&
+      //     p.ac_sub_type &&
+      //     p.brand &&
+      //     p.product_model &&
+      //     p.variant &&
+      //     Number(p.quantity) > 0
+      //   )
+      //   .map(p => ({
+      //     ac_type: Number(p.ac_type),
+      //     ac_sub_type: Number(p.ac_sub_type),
+      //     brand: Number(p.brand),
+      //     product_model: Number(p.product_model),
+      //     variant: Number(p.variant),
+      //     quantity: Number(p.quantity),
+      //     expected_price: Number(p.expected_price) || 0,
+      //     remarks: p.remarks || ""
+      //   }));
       
+      const productPayload = products
+          .filter(p => Number(p.quantity) > 0)
+          .map(p => {
+            // EXISTING PRODUCT (EDIT MODE)
+            if (p.id) {
+              return {
+                id: p.id,
+                quantity: Number(p.quantity),
+                expected_price: Number(p.expected_price) || 0,
+                remarks: p.remarks || ""
+              };
+            }
+          
+            // NEW PRODUCT
+            if (
+              p.ac_type &&
+              p.ac_sub_type &&
+              p.brand &&
+              p.product_model &&
+              p.variant
+            ) {
+              return {
+                ac_type: Number(p.ac_type),
+                ac_sub_type: Number(p.ac_sub_type),
+                brand: Number(p.brand),
+                product_model: Number(p.product_model),
+                variant: Number(p.variant),
+                quantity: Number(p.quantity),
+                expected_price: Number(p.expected_price) || 0,
+                remarks: p.remarks || ""
+              };
+            }
+          
+            return null;
+          })
+          .filter(Boolean);
 
 
       // Map front-end state → backend payload

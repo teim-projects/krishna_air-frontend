@@ -39,6 +39,7 @@ export default function AddLeadFollowUpForm({
 
   const [loading, setLoading] = useState(false);
   const [faqLoading, setFaqLoading] = useState(false);
+  const [leadData, setLeadData] = useState(null);
 
   const token = useMemo(
     () =>
@@ -52,23 +53,56 @@ export default function AddLeadFollowUpForm({
 
 
 
-    const [products, setProducts] = useState([
-      {
-        ac_type: "",
-        ac_type_name: "",
-        ac_sub_type: "",
-        ac_sub_type_name: "",
-        brand: "",
-        brand_name: "",
-        product_model: "",
-        product_model_name: "",
-        variant: "",
-        variant_name: "",
-        quantity: 1,
-        expected_price: "",
-        remarks: ""
+  useEffect(() => {
+    if (!open || !leadId) return;
+  
+    const fetchLead = async () => {
+      try {
+        const res = await fetch(
+          `${BASE_API}/api/lead/lead/${leadId}/`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+  
+        if (!res.ok) throw new Error("Failed to load lead");
+  
+        const data = await res.json();
+        setLeadData(data);
+      } catch (err) {
+        console.error("Lead fetch error:", err);
+        setLeadData(null);
       }
-    ]);
+    };
+  
+    fetchLead();
+  }, [open, leadId, BASE_API, token]);
+  
+
+  const createEmptyProductRow = () => ({
+    ac_type: "",
+    ac_type_name: "",
+    ac_sub_type: "",
+    ac_sub_type_name: "",
+    brand: "",
+    brand_name: "",
+    product_model: "",
+    product_model_name: "",
+    variant: "",
+    variant_name: "",
+    quantity: 1,
+    expected_price: "",
+    remarks: "",
+    ac_sub_type_options: [],
+    product_model_options: [],
+    product_variant_options: []
+  });
+
+  const [products, setProducts] = useState([createEmptyProductRow()]);
+  const [deletedProductIds, setDeletedProductIds] = useState([]);
 
   // sync when followup or modal open changes
   useEffect(() => {
@@ -91,6 +125,50 @@ export default function AddLeadFollowUpForm({
 
     setLoading(false);
   }, [followup, open]);
+
+  
+  useEffect(() => {
+    if (!open) return;
+  
+    if (leadData?.product_details?.length) {
+      const mapped = leadData.product_details.map(p => ({
+        id: p.id,
+  
+        ac_type: "",
+        ac_type_name: p.ac_type,
+  
+        ac_sub_type: "",
+        ac_sub_type_name: p.ac_sub_type,
+  
+        brand: "",
+        brand_name: p.brand,
+  
+        product_model: "",
+        product_model_name: p.product_model,
+  
+        variant: "",
+        variant_name: p.variant,
+  
+        quantity: p.quantity || 1,
+        expected_price: p.expected_price || "",
+        remarks: p.remarks || "",
+  
+        ac_sub_type_options: [],
+        product_model_options: [],
+        product_variant_options: []
+      }));
+  
+      setProducts([...mapped, createEmptyProductRow()]);
+    } else {
+      setProducts([createEmptyProductRow()]);
+    }
+  }, [leadData, open]);
+  
+
+// console.log("LEAD DATA:", leadData);
+// console.log("LEAD PRODUCTS:", leadData?.product_details);
+
+
 
   // load FAQ master list when modal opens
   useEffect(() => {
@@ -169,6 +247,44 @@ export default function AddLeadFollowUpForm({
     return true;
   };
 
+  const productPayload = products
+  .filter(p => Number(p.quantity) > 0)
+  .map(p => {
+    // existing product (edit)
+    if (p.id) {
+      return {
+        id: p.id,
+        quantity: Number(p.quantity),
+        expected_price: Number(p.expected_price) || 0,
+        remarks: p.remarks || ""
+      };
+    }
+
+    // new product
+    if (
+      p.ac_type &&
+      p.ac_sub_type &&
+      p.brand &&
+      p.product_model &&
+      p.variant
+    ) {
+      return {
+        ac_type: Number(p.ac_type),
+        ac_sub_type: Number(p.ac_sub_type),
+        brand: Number(p.brand),
+        product_model: Number(p.product_model),
+        variant: Number(p.variant),
+        quantity: Number(p.quantity),
+        expected_price: Number(p.expected_price) || 0,
+        remarks: p.remarks || ""
+      };
+    }
+
+    return null;
+  })
+  .filter(Boolean);
+
+
   const handleSubmit = async (e) => {
     e && e.preventDefault();
     if (!validate()) return;
@@ -189,8 +305,12 @@ export default function AddLeadFollowUpForm({
         next_followup_date: nextFollowupDate || null,
         status,
         remarks: remarks.trim(),
+        products: productPayload,
+        deleted_products: deletedProductIds
       };
 
+
+      console.log("payload:", payload)
       if (faqPayload.length) {
         payload.faq_answers = faqPayload;
       }
@@ -315,13 +435,16 @@ export default function AddLeadFollowUpForm({
               />
             </div>
 
-            
+
             <AddLeadProductForm
               products={products}
               setProducts={setProducts}
               baseApi={baseApi}
               authToken={token}
+              deletedProductIds={deletedProductIds}
+              setDeletedProductIds={setDeletedProductIds}
             />
+
 
             {/* FAQ section */}
             {faqList.length > 0 && (
@@ -374,8 +497,8 @@ export default function AddLeadFollowUpForm({
                     ? "Updating..."
                     : "Saving..."
                   : followup
-                  ? "Update"
-                  : "Save"}
+                    ? "Update"
+                    : "Save"}
               </button>
             </div>
           </form>

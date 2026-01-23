@@ -12,7 +12,7 @@ const AddLeadProductForm = ({
 }) => {
 
 
-  console.log("baseApi",baseApi)
+  console.log("baseApi", baseApi)
   /* ===================== STATES ===================== */
   const [acType, setAcType] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -69,16 +69,17 @@ const AddLeadProductForm = ({
         `${baseApi.replace(/\/$/, "")}/api/product/product-model/?ac_sub_type_id=${acSubTypeID}&brand_id=${brandID}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
 
-        
+
       );
 
       setProducts(prev =>
         prev.map((p, i) =>
           i === index
-            ? { ...p, product_model_options: res.data.results || [],
+            ? {
+              ...p, product_model_options: res.data.results || [],
               product_model: "",
               product_model_name: "",
-             }
+            }
             : p
         )
       );
@@ -95,7 +96,7 @@ const AddLeadProductForm = ({
       const res = await axios.get(
         `${baseApi.replace(/\/$/, "")}/api/product/product-variant/?product_model=${productModelID}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
-      );  
+      );
       setProducts(prev =>
         prev.map((p, i) =>
           i === index
@@ -143,7 +144,7 @@ const AddLeadProductForm = ({
     ]);
   };
 
-  
+
   const removeProductRow = (index) => {
     setProducts(prev => {
       const p = prev[index];
@@ -202,7 +203,7 @@ const AddLeadProductForm = ({
 
                   if (value) fetchAcSubTypes(value, index);
                 }}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               >
                 <option value="">AC Type</option>
                 {acType.map(type => (
@@ -223,7 +224,7 @@ const AddLeadProductForm = ({
                     fetchProductModels(value, product.ac_sub_type, index);
                   }
                 }}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               >
                 <option value="">Brand</option>
                 {brands.map(b => (
@@ -246,7 +247,7 @@ const AddLeadProductForm = ({
                     fetchProductModels(value, product.brand, index);
                   }
                 }}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               >
                 <option value="">AC Sub Type</option>
                 {(product.ac_sub_type_options || []).map(sub => (
@@ -254,7 +255,7 @@ const AddLeadProductForm = ({
                 ))}
               </select>
 
-              
+
 
               {/* MODEL */}
               <select
@@ -264,7 +265,7 @@ const AddLeadProductForm = ({
                   const selected = product.product_model_options?.find(
                     (m) => m.id === Number(value)
                   );
-                
+
                   updateProduct(index, "product_model", value);
                   updateProduct(index, "product_model_name", selected?.name || "");
 
@@ -273,7 +274,7 @@ const AddLeadProductForm = ({
                   }
 
                 }}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               >
                 <option value="">Model</option>
                 {product.product_model_options?.map((model) => (
@@ -286,7 +287,7 @@ const AddLeadProductForm = ({
               {/* VARIANT */}
               <select
                 value={product.variant}
-                onChange={(e) =>{
+                onChange={(e) => {
                   const value = e.target.value;
                   const selected = product.product_variant_options?.find(
                     (v) => v.id === Number(value)
@@ -294,7 +295,7 @@ const AddLeadProductForm = ({
                   updateProduct(index, "variant", value);
                   updateProduct(index, "variant_name", selected?.sku || "");
                 }}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               >
                 <option value="">Variant</option>
                 {product.product_variant_options?.map((variant) => (
@@ -312,7 +313,7 @@ const AddLeadProductForm = ({
                 onChange={(e) =>
                   updateProduct(index, "quantity", e.target.value)
                 }
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               />
             </div>
 
@@ -324,7 +325,7 @@ const AddLeadProductForm = ({
                 onChange={(e) =>
                   updateProduct(index, "expected_price", e.target.value)
                 }
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               />
 
               <input
@@ -334,7 +335,7 @@ const AddLeadProductForm = ({
                 onChange={(e) =>
                   updateProduct(index, "remarks", e.target.value)
                 }
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border border-slate-300 rounded-md"
               />
             </div>
           </div>
@@ -380,11 +381,28 @@ const AddLeadProductForm = ({
                   <td className="border border-slate-300 p-2">
                     {p.variant_name}
                   </td>
-                  <td className="border border-slate-300 p-2 text-center">
-                    {p.quantity}
+                  <td className="border border-slate-300 p-2 text-center w-2.5">
+                    <input
+                      type="number"
+                      min="1"
+                      value={p.quantity}
+                      onChange={(e) =>
+                        updateProduct(i, "quantity", e.target.value)
+                      }
+                      className="w-16 px-2 py-2 border rounded-md text-center"
+                    />
+
                   </td>
                   <td className="border border-slate-300 p-2">
-                    {p.expected_price}
+                    <input
+                      type="number"
+                      value={p.expected_price}
+                      onChange={(e) =>
+                        updateProduct(i, "expected_price", e.target.value)
+                      }
+                      className="w-24 px-2 py-2 border rounded-md"
+                    />
+
                   </td>
                   <td className="border border-slate-300 p-2 text-center">
                     <button
