@@ -510,7 +510,11 @@ export default function AddLeadForm({
       showError("contactNumber", "Contact Number is required");
       return false;
     }
-    
+    if (!/^\d{10}$/.test(contactRef.current)) {
+  showError("contactNumber", "Please enter a valid 10-digit mobile number");
+  return false;
+}
+
 
     if (!formData.clientName && !customerId) {
       showError("clientName", "Client Name is required");
@@ -782,7 +786,7 @@ export default function AddLeadForm({
       <style>
         {`
       .input-error {
-        border: 2px solid red !important;
+        border: 1px solid red !important;
       }
     `}
       </style>
@@ -821,16 +825,33 @@ export default function AddLeadForm({
                   Contact Number
                 </label>
                 <div className="flex items-center gap-2 mt-1">
-                  <input
-                    name="contactNumber"
-                    placeholder="Enter Contact Number"
-                    value={formData.contactNumber}
-                    onChange={(e) => {
-                      clearError(e);
-                      handleContactChange(e);
-                    }}
-                    className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                  />
+                <input
+  name="contactNumber"
+  placeholder="Enter Contact Number"
+  value={formData.contactNumber}
+  maxLength={10}
+  onChange={(e) => {
+    clearError(e);
+
+    // Accept digits only
+    const cleaned = e.target.value.replace(/\D/g, "");
+
+    // Update state only up to 10 digits
+    if (cleaned.length <= 10) {
+      handleContactChange({ target: { value: cleaned } });
+    }
+
+    // Live red border when less than 10 digits
+    const input = e.target;
+    if (cleaned.length > 0 && cleaned.length < 10) {
+      input.classList.add("input-error");
+    } else {
+      input.classList.remove("input-error");
+    }
+  }}
+  className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+/>
+
 
                   {/* <button
                   type="button" // Important to prevent form submission
