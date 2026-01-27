@@ -215,6 +215,8 @@ export default function ProductVariantList({ appliedFilters }) {
             {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-4">
 
+
+<div className="grid grid-cols-2 gap-4">
               {/* MODEL */}
               <div>
                 <label className="text-sm font-medium">Product Model</label>
@@ -245,7 +247,7 @@ export default function ProductVariantList({ appliedFilters }) {
                   }
                 />
               </div>
-
+</div>
               {/* STAR RATING + PRICE */}
               <div className="grid grid-cols-2 gap-4">
                 <div>

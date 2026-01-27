@@ -229,7 +229,7 @@ export default function InventoryList({ appliedFilters }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-
+<div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Product Variant</label>
                 <select
@@ -261,7 +261,7 @@ export default function InventoryList({ appliedFilters }) {
                   }
                 />
               </div>
-
+</div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Status</label>
@@ -297,7 +297,7 @@ export default function InventoryList({ appliedFilters }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium">Purchase Date</label>
                   <input
@@ -327,8 +327,8 @@ export default function InventoryList({ appliedFilters }) {
                     }
                   />
                 </div>
-              </div>
 
+                
               <div>
                 <label className="text-sm font-medium">Warranty End</label>
                 <input
@@ -343,13 +343,19 @@ export default function InventoryList({ appliedFilters }) {
                   }
                 />
               </div>
+              </div>
 
+<div className="flex justify-center">
               <button
                 type="submit"
-                className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-md shadow"
+                className="px-6 py-3 text-base bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
               >
                 {isEdit ? "Update Inventory" : "Add Inventory"}
               </button>
+
+              </div>
+
+
             </form>
 
           </div>
