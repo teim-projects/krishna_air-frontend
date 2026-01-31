@@ -78,6 +78,7 @@ export default function InventoryList({ appliedFilters }) {
     const list = data.results || data;
 
     setRows(list);
+    console.log(list)
     setWarehouses([...new Set(list.map((x) => x.warehouse))]);
   };
 
@@ -162,7 +163,7 @@ export default function InventoryList({ appliedFilters }) {
   const columns = [
     { key: "sr", label: "Sr.No", render: (_, i) => i + 1 },
     { key: "serial_no", label: "Serial No" },
-    { key: "variant_name", label: "Variant" },
+    { key: "sku", label: "Variant" },
     { key: "status", label: "Status" },
     { key: "warehouse", label: "Warehouse" },
     { key: "purchase_date", label: "Purchase Date" },
@@ -229,39 +230,39 @@ export default function InventoryList({ appliedFilters }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-<div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Product Variant</label>
-                <select
-                  className={inputBox}
-                  value={formData.product_variant}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      product_variant: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Select Variant</option>
-                  {variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.sku}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Product Variant</label>
+                  <select
+                    className={inputBox}
+                    value={formData.product_variant}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        product_variant: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Select Variant</option>
+                    {variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.sku}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium">Serial No</label>
-                <input
-                  className={inputBox}
-                  value={formData.serial_no}
-                  onChange={(e) =>
-                    setFormData({ ...formData, serial_no: e.target.value })
-                  }
-                />
+                <div>
+                  <label className="text-sm font-medium">Serial No</label>
+                  <input
+                    className={inputBox}
+                    value={formData.serial_no}
+                    onChange={(e) =>
+                      setFormData({ ...formData, serial_no: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-</div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Status</label>
@@ -328,30 +329,30 @@ export default function InventoryList({ appliedFilters }) {
                   />
                 </div>
 
-                
-              <div>
-                <label className="text-sm font-medium">Warranty End</label>
-                <input
-                  type="date"
-                  className={inputBox}
-                  value={formData.warranty_end}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      warranty_end: e.target.value,
-                    })
-                  }
-                />
-              </div>
+
+                <div>
+                  <label className="text-sm font-medium">Warranty End</label>
+                  <input
+                    type="date"
+                    className={inputBox}
+                    value={formData.warranty_end}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        warranty_end: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
 
-<div className="flex justify-center">
-              <button
-                type="submit"
-                className="px-6 py-3 text-base bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
-              >
-                {isEdit ? "Update Inventory" : "Add Inventory"}
-              </button>
+              <div className="flex justify-center">
+                <button
+                  type="submit"
+                  className="px-6 py-3 text-base bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
+                >
+                  {isEdit ? "Update Inventory" : "Add Inventory"}
+                </button>
 
               </div>
 
