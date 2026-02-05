@@ -55,9 +55,12 @@ export default function InventoryList({ appliedFilters }) {
     if (appliedFilters?.search)
       params.append("search", appliedFilters.search);
 
-    // ⭐ Brand Dropdown filter
-    if (appliedFilters?.brand)
-      params.set("brand", appliedFilters.brand);
+if (appliedFilters?.brand) {
+  params.append(
+    "product_variant__product_model__brand_id__name",
+    appliedFilters.brand
+  );
+}
 
     // ⭐ Purchase Date
     if (appliedFilters?.purchase_date)
