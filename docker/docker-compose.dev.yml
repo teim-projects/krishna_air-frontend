@@ -1,0 +1,21 @@
+services:
+  krisna-react-frontend-app:
+    container_name: frontend-dev
+    image: frontend-dev-v1
+    build:
+      context: .. 
+      dockerfile: docker/Dockerfile.dev
+
+    ports:
+      - "5173:5173"
+    
+    volumes:
+      - ..:/app
+      - /app/node_modules
+
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+    command: npm run dev
+
