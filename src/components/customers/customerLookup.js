@@ -1,9 +1,9 @@
 // customerLookup.js
 
-export async function fetchCustomerByPhone(baseApi, token, phone) {
-  if (!phone || phone.trim() === "") return null;
+export async function fetchCustomerByQuery(baseApi, token, query, options = {}) {
+  if (!query || query.trim() === "") return null;
 
-  const url = `${baseApi.replace(/\/$/, "")}/api/lead/customer/?search=${encodeURIComponent(phone)}`;
+  const url = `${baseApi.replace(/\/$/, "")}/api/lead/customer/?search=${encodeURIComponent(query)}`;
 
   try {
     const res = await fetch(url, {
@@ -11,6 +11,7 @@ export async function fetchCustomerByPhone(baseApi, token, phone) {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      signal: options.signal,   // supports abort
     });
 
     if (!res.ok) return null;
@@ -19,12 +20,15 @@ export async function fetchCustomerByPhone(baseApi, token, phone) {
     const results = json.results ?? json;
 
     if (Array.isArray(results) && results.length > 0) {
-      return results[0]; // first match
+      return results[0];
     }
 
     return null;
   } catch (err) {
-    console.error("Customer lookup error:", err);
+    if (err?.name !== "AbortError") {
+      console.error("Customer lookup error:", err);
+    }
     return null;
   }
 }
+

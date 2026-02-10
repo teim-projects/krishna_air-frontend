@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
 import Swal from "sweetalert2";
-import { fetchCustomerByPhone } from "../customers/customerLookup";
+import { fetchCustomerByQuery } from "../customers/customerLookup";
 import { useUserRole } from '../../hooks/useAuth';
 import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
@@ -187,7 +187,7 @@ export default function AddLeadForm({
     return () => controller.abort();
   }, [open, baseApi, authToken]);
 
-  
+
 
   // Fetch sales staff when modal opens
   useEffect(() => {
@@ -245,7 +245,7 @@ export default function AddLeadForm({
       const selected = leadSourceOptions.find(
         opt => opt.id === lead.lead_source
       );
-      
+
       setFormData({
         enquiry_date: lead.enquiry_date || "",
         clientName: lead.customer_name || "",
@@ -256,7 +256,7 @@ export default function AddLeadForm({
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
-        
+
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
         leadSourceInput: lead.lead_source_input || "",
@@ -318,13 +318,13 @@ export default function AddLeadForm({
       productsInitializedRef.current = false;
       return;
     }
-  
+
     // ⛔ Prevent overwrite after first init
     if (productsInitializedRef.current) return;
-  
+
     if (lead && Array.isArray(lead.product_details)) {
       const mappedProducts = lead.product_details.map(p => ({
-        id: p.id,   
+        id: p.id,
         ac_type: "",
         ac_type_name: p.ac_type || "",
         ac_sub_type: "",
@@ -342,7 +342,7 @@ export default function AddLeadForm({
         product_model_options: [],
         product_variant_options: []
       }));
-  
+
       setProducts([
         ...mappedProducts,
         createEmptyProductRow()
@@ -350,13 +350,13 @@ export default function AddLeadForm({
     } else {
       setProducts([createEmptyProductRow()]);
     }
-  
+
     productsInitializedRef.current = true;
   }, [open, lead]);
-  
-  
+
+
   if (!open) return null;
-// fetch latest lead by mobile
+  // fetch latest lead by mobile
   const fetchLatestLeadByMobile = async (mobile) => {
     if (!mobile) return;
 
@@ -412,7 +412,7 @@ export default function AddLeadForm({
   const handleContactChange = (e) => {
     const phone = e.target.value;
 
-    contactRef.current = phone; 
+    contactRef.current = phone;
     // update UI instantly
     setFormData((prev) => ({ ...prev, contactNumber: phone }));
 
@@ -448,7 +448,7 @@ export default function AddLeadForm({
 
       try {
         // fetchCustomerByPhone is your headless single-file util; pass baseApi & token
-        const customer = await fetchCustomerByPhone(baseApi, authToken, phone, {
+        const customer = await fetchCustomerByQuery(baseApi, authToken, phone, {
           signal: controller.signal,
         });
 
@@ -511,9 +511,9 @@ export default function AddLeadForm({
       return false;
     }
     if (!/^\d{10}$/.test(contactRef.current)) {
-  showError("contactNumber", "Please enter a valid 10-digit mobile number");
-  return false;
-}
+      showError("contactNumber", "Please enter a valid 10-digit mobile number");
+      return false;
+    }
 
 
     if (!formData.clientName && !customerId) {
@@ -525,14 +525,14 @@ export default function AddLeadForm({
       showError("email", "Email is required");
       return false;
     }
-    
+
     // 📧 validate format ONLY if email exists
     if (formData.email && !emailRegex.test(formData.email)) {
       showError("email", "Please enter a valid email address");
       return false;
     }
 
-    if (!formData.address  && !customerId) {
+    if (!formData.address && !customerId) {
       showError("address", "Address is required");
       return false;
     }
@@ -632,43 +632,43 @@ export default function AddLeadForm({
       //     expected_price: Number(p.expected_price) || 0,
       //     remarks: p.remarks || ""
       //   }));
-      
+
       const productPayload = products
-          .filter(p => Number(p.quantity) > 0)
-          .map(p => {
-            // EXISTING PRODUCT (EDIT MODE)
-            if (p.id) {
-              return {
-                id: p.id,
-                quantity: Number(p.quantity),
-                expected_price: Number(p.expected_price) || 0,
-                remarks: p.remarks || ""
-              };
-            }
-          
-            // NEW PRODUCT
-            if (
-              p.ac_type &&
-              p.ac_sub_type &&
-              p.brand &&
-              p.product_model &&
-              p.variant
-            ) {
-              return {
-                ac_type: Number(p.ac_type),
-                ac_sub_type: Number(p.ac_sub_type),
-                brand: Number(p.brand),
-                product_model: Number(p.product_model),
-                variant: Number(p.variant),
-                quantity: Number(p.quantity),
-                expected_price: Number(p.expected_price) || 0,
-                remarks: p.remarks || ""
-              };
-            }
-          
-            return null;
-          })
-          .filter(Boolean);
+        .filter(p => Number(p.quantity) > 0)
+        .map(p => {
+          // EXISTING PRODUCT (EDIT MODE)
+          if (p.id) {
+            return {
+              id: p.id,
+              quantity: Number(p.quantity),
+              expected_price: Number(p.expected_price) || 0,
+              remarks: p.remarks || ""
+            };
+          }
+
+          // NEW PRODUCT
+          if (
+            p.ac_type &&
+            p.ac_sub_type &&
+            p.brand &&
+            p.product_model &&
+            p.variant
+          ) {
+            return {
+              ac_type: Number(p.ac_type),
+              ac_sub_type: Number(p.ac_sub_type),
+              brand: Number(p.brand),
+              product_model: Number(p.product_model),
+              variant: Number(p.variant),
+              quantity: Number(p.quantity),
+              expected_price: Number(p.expected_price) || 0,
+              remarks: p.remarks || ""
+            };
+          }
+
+          return null;
+        })
+        .filter(Boolean);
 
 
       // Map front-end state → backend payload
@@ -748,37 +748,80 @@ export default function AddLeadForm({
     }
 
   };
+const handleNameChange = (e) => {
+  const name = e.target.value;
+  clearError(e);
+  setFormData(prev => ({ ...prev, clientName: name }));
 
+  // If phone is filled, skip name lookup
+  if (contactRef.current) return;
 
+  // Clear previous timer
+  if (lookupTimerRef.current) {
+    clearTimeout(lookupTimerRef.current);
+    lookupTimerRef.current = null;
+  }
 
-  // const addProductRow = () => {
-  //   setProducts(prev => [
-  //     ...prev,
-  //     {
-  //       ac_type: "",
-  //       ac_sub_type: "",
-  //       brand: "",
-  //       product_model: "",
-  //       variant: "",
-  //       quantity: 1,
-  //       expected_price: "",
-  //       remarks: ""
-  //     }
-  //   ]);
-  // };
+  // Abort previous request
+  if (lookupAbortRef.current) {
+    try { lookupAbortRef.current.abort(); } catch {}
+    lookupAbortRef.current = null;
+  }
 
-  // const removeProductRow = (index) => {
-  //   setProducts(prev => prev.filter((_, i) => i !== index));
-  // };
+  // Avoid noisy calls
+  if (!name || name.length < 3) return;
 
-  // const updateProduct = (index, field, value) => {
-  //   setProducts(prev =>
-  //     prev.map((item, i) =>
-  //       i === index ? { ...item, [field]: value } : item
-  //     )
-  //   );
-  // };
+  // ⏱️ 500ms typing delay (you can keep 300ms if you want)
+  lookupTimerRef.current = setTimeout(async () => {
+    lookupTimerRef.current = null;
+    setLoadingLookup(true);
 
+    const controller = new AbortController();
+    lookupAbortRef.current = controller;
+
+    try {
+      const customer = await fetchCustomerByQuery(baseApi, authToken, name, {
+        signal: controller.signal,
+      });
+
+      if (customer) {
+        setCustomerId(customer.id ?? null);
+        setFormData(prev => ({
+          ...prev,
+          clientName: customer.full_name ?? customer.name ?? "",
+          email: customer.email ?? "",
+          secondary_email: customer.secondary_email ?? "",
+          address: customer.address ?? "",
+          contactNumber: customer.contact_number ?? prev.contactNumber,
+        }));
+      } else {
+        // ✅ clear previously auto-filled fields if no match found
+        setCustomerId(null);
+        setFormData(prev => ({
+          ...prev,
+          contactNumber: "",
+          email: "",
+          secondary_email: "",
+          address: "",
+        }));
+      }
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        console.error("Customer name lookup error:", err);
+      }
+      setCustomerId(null);
+      setFormData(prev => ({
+        ...prev,
+        email: "",
+        secondary_email: "",
+        address: "",
+      }));
+    } finally {
+      lookupAbortRef.current = null;
+      setLoadingLookup(false);
+    }
+  }, 1000); // 👈 delay for name
+};
 
 
   return (
@@ -825,36 +868,38 @@ export default function AddLeadForm({
                   Contact Number
                 </label>
                 <div className="flex items-center gap-2 mt-1">
-                <input
-  name="contactNumber"
-  placeholder="Enter Contact Number"
-  value={formData.contactNumber}
-  maxLength={10}
-  onChange={(e) => {
-    clearError(e);
+                  <input
+                    name="contactNumber"
+                    placeholder="Enter Contact Number"
+                    value={formData.contactNumber}
+                    maxLength={10}
+                    onChange={(e) => {
+                      clearError(e);
 
-    // Accept digits only
-    const cleaned = e.target.value.replace(/\D/g, "");
+                      // Accept digits only
+                      const cleaned = e.target.value.replace(/\D/g, "");
 
-    // Update state only up to 10 digits
-    if (cleaned.length <= 10) {
-      handleContactChange({ target: { value: cleaned } });
-    }
+                      // Update state only up to 10 digits
+                      if (cleaned.length <= 10) {
+                        handleContactChange({ target: { value: cleaned } });
+                      }
 
-    // Live red border when less than 10 digits
-    const input = e.target;
-    if (cleaned.length > 0 && cleaned.length < 10) {
-      input.classList.add("input-error");
-    } else {
-      input.classList.remove("input-error");
-    }
-  }}
-  className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-/>
+                      // Live red border when less than 10 digits
+                      const input = e.target;
+                      if (cleaned.length > 0 && cleaned.length < 10) {
+                        input.classList.add("input-error");
+                      } else {
+                        input.classList.remove("input-error");
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                  />
 
 
                   {/* <button
-                  type="button" // Important to prevent form submission
+                 
+                 
+                 type="button" // Important to prevent form submission
                   onClick={() => setShowCustomerForm(true)}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors" // Add hover style for visual cue
                   title="Add/Edit Customer Details"
@@ -876,13 +921,13 @@ export default function AddLeadForm({
                   name="clientName"
                   placeholder="Customer Name"
                   value={formData.clientName}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  readOnly={!!customerId}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                    }`}
+                  // onChange={(e) => {
+                  //   clearError(e);
+                  //   handleChange(e);
+                  // }}
+                  onChange={handleNameChange}
+                  // readOnly={!!customerId}
+                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400`}
                 />
 
               </div>
