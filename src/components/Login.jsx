@@ -60,7 +60,7 @@ const Login = () => {
         </h1>
   
         <p className="mt-6 text-lg text-sky-700 max-w-md z-10">
-          Premium Cooling, Trusted Service — providing modern AC solutions for your comfort.
+          Premium Cooling, Trusted Service — providing modern AC solutions for your comfort. 
         </p>
   
         <p className="mt-4 text-sm text-sky-600 opacity-80 z-10">

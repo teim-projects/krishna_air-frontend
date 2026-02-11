@@ -287,7 +287,7 @@ export default function AddLeadForm({
         tonCapacity: "",
         leadSource: "",
         leadSourceInput: "",
-        status: "",
+        // status: "",
         assignTo: "",
         creditedBy: "",
         referance_by: "",
@@ -556,10 +556,10 @@ export default function AddLeadForm({
       return false;
     }
 
-    if (!formData.status) {
-      showError("status", "Status is required");
-      return false;
-    }
+    // if (!formData.status) {
+    //   showError("status", "Status is required");
+    //   return false;
+    // }
 
     if (!formData.referance_by) {
       showError("referance_by", "Referance By is required");
@@ -682,7 +682,7 @@ export default function AddLeadForm({
         lead_source_input: showLeadSourceInput
           ? formData.leadSourceInput
           : null,
-        status: formData.status || null,
+        status: "open", // default to open on create; keep unchanged on edit
         referance_by: formData.referance_by || null,
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
@@ -1108,7 +1108,7 @@ const handleNameChange = (e) => {
 
 
               {/* Status */}
-              <div>
+              {/* <div>
                 <label className="text-sm font-normal text-gray-600">
                   Status
                 </label>
@@ -1126,7 +1126,7 @@ const handleNameChange = (e) => {
                   <option value="in_process">In Process</option>
                   <option value="closed">Closed</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Assign To (dummy options for now) */}
               {userRole.name !== "sales" && (
