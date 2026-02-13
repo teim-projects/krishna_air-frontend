@@ -53,6 +53,8 @@ export default function AddLeadForm({
     secondary_email: "",
     address: "",
     projectName: "",
+    enquiryType: "",
+    serviceEnquiry: "",
     projectAddress: "",
     requirementDetails: "",
 
@@ -256,6 +258,9 @@ export default function AddLeadForm({
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
+
+        enquiryType: lead.lead_type || "individual",
+        serviceEnquiry: lead.is_service_lead ? "yes" : "no",
 
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
@@ -676,7 +681,8 @@ export default function AddLeadForm({
         project_name: formData.projectName || "",
         project_adderess: formData.projectAddress || "",
         requirements_details: formData.requirementDetails || "",
-
+        lead_type: formData.enquiryType || "",
+        is_service_lead: formData.serviceEnquiry === "yes",
         capacity_required: formData.tonCapacity || "",
         lead_source: formData.leadSource || null,
         lead_source_input: showLeadSourceInput
@@ -1010,6 +1016,40 @@ const handleNameChange = (e) => {
                   }}
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Enquiry Type
+                </label>
+
+                <select
+                  name="enquiryType"
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  value={formData.enquiryType}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Enquiry Type</option>
+                  <option value="individual">Individuals</option>
+                  <option value="organization">Organization</option>
+                </select>
+              </div>
+
+
+              <div>
+                <label className="text-sm font-normal text-gray-600">
+                  Service Enquiry
+                </label>
+
+                <select
+                  name="serviceEnquiry"
+                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  value={formData.serviceEnquiry || "no"}
+                  onChange={handleChange}
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
               </div>
 
               <div>
