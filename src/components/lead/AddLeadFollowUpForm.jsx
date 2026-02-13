@@ -129,25 +129,25 @@ export default function AddLeadFollowUpForm({
   
   useEffect(() => {
     if (!open) return;
-  
+    console.log("Lead data for products:", leadData);
     if (leadData?.product_details?.length) {
       const mapped = leadData.product_details.map(p => ({
         id: p.id,
   
-        ac_type: "",
-        ac_type_name: p.ac_type,
+        ac_type: p.ac_type_id,
+        ac_type_name: p.ac_type_name ,
   
-        ac_sub_type: "",
-        ac_sub_type_name: p.ac_sub_type,
+        ac_sub_type: p.ac_sub_type_id,
+        ac_sub_type_name: p.ac_sub_type_name,
   
-        brand: "",
-        brand_name: p.brand,
+        brand: p.brand_id,
+        brand_name: p.brand_name,
   
-        product_model: "",
-        product_model_name: p.product_model,
+        product_model: p.product_model_id,
+        product_model_name: p.product_model_name,
   
-        variant: "",
-        variant_name: p.variant,
+        variant: p.variant_id,
+        variant_name: p.variant_name,
   
         quantity: p.quantity || 1,
         expected_price: p.expected_price || "",
@@ -254,6 +254,11 @@ export default function AddLeadFollowUpForm({
     if (p.id) {
       return {
         id: p.id,
+        ac_type: Number(p.ac_type),
+        ac_sub_type: Number(p.ac_sub_type),
+        brand: Number(p.brand),
+        product_model: Number(p.product_model),
+        variant: Number(p.variant),
         quantity: Number(p.quantity),
         expected_price: Number(p.expected_price) || 0,
         remarks: p.remarks || ""
