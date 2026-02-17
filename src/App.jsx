@@ -41,6 +41,8 @@ function AppRoutes() {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+
+
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
       {/* Navbar */}

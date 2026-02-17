@@ -87,6 +87,7 @@ export default function AddLeadForm({
   const [latestLead, setLatestLead] = useState(null);
   const [loadingLatestLead, setLoadingLatestLead] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
 
   const [products, setProducts] = useState([
