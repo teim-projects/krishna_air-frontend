@@ -19,8 +19,8 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Customer from "./pages/Customer";
 import Lead from "./pages/Lead";
-import AcTypeList from "./components/products/AcTypeList";
-import ProductsPage from "./components/products/ProductsPage";
+// import AcTypeList from "./components/products/AcTypeList";
+import ItemMaster from "./pages/ItemMaster";
 
  
 
@@ -102,7 +102,7 @@ function AppRoutes() {
 
                 {/* ✅ Product Module Routes (Inside Routes Now) */}
             
-              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/item_master" element={<ItemMaster />} />
 
             </Routes>
             
