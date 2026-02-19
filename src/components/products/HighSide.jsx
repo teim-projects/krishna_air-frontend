@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiEdit, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import axios from "axios";
+import AddModelForm from "./AddModelForm";
 
 export const highSideProductFiltersConfig = [
     { key: "ac_type", label: "AC Type", type: "text", placeholder: "Search AC Type" },
@@ -22,7 +23,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
     const [editingId, setEditingId] = useState(null);
     const [editingSubTypes, setEditingSubTypes] = useState([]);
     const [list, setList] = useState([]);
-
+    const [openAddModel, setOpenAddModel] = useState(false);
     // ===== BRANDS =====
     const [brands, setBrands] = useState([]);
     const [brandInput, setBrandInput] = useState("");
@@ -473,10 +474,73 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
             )}
 
             {activeTab === "model" && (
-                <div className="text-gray-500">
-                    Models UI will come here (Brand, Model No, Variant mapping, etc.)
+                <div className="space-y-6">
+
+                    {/* Header with Create button */}
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold text-slate-800"> </h2>
+                        <button
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
+                            onClick={() => setOpenAddModel(true)}
+                        >
+                            + Create Model
+                        </button>
+
+                    </div>
+
+                    {/* Models Table */}
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="px-4 py-3">Sr.No</th>
+                                    <th className="px-4 py-3">AC Type</th>
+                                    <th className="px-4 py-3">Subtype</th>
+                                    <th className="px-4 py-3">Brand</th>
+                                    <th className="px-4 py-3">Model Name</th>
+                                    <th className="px-4 py-3">Model No</th>
+                                    <th className="px-4 py-3">Phase</th>
+                                    <th className="px-4 py-3">Inverter</th>
+                                    <th className="px-4 py-3">Variants</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {/* Empty state */}
+                                <tr>
+                                    <td colSpan={11} className="px-6 py-10 text-center text-gray-500">
+                                        No models yet. Click <span className="font-medium">"Create Model"</span> to add one.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+
+
+
+                    </div>
+                    {/* Modal Popup */}
+                    {openAddModel && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-md">
+                            <div className="w-full max-w-5xl">
+                                <AddModelForm 
+                                    base_api={BASE_API}
+                                    authHeaders={authHeaders}
+                                    open={openAddModel}
+                                    onClose={() => setOpenAddModel(false)}
+                                    onSuccess={() => {
+                                        setOpenAddModel(false);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             )}
+
         </div>
     );
 };
