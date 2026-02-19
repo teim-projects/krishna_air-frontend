@@ -14,6 +14,8 @@ const ItemMaster = () => {
     const [activeSide, setActiveSide] = useState('high') // 'high' | 'low'
     const [filters, setFilters] = useState({});
     const [activeHighTab, setActiveHighTab] = useState('product');
+    const [brands, setBrands] = useState([]);
+    const [acTypes, setAcTypes] = useState([]);
     const handleFilterChange = (vals) => {
         setFilters(vals);
     };
@@ -22,7 +24,7 @@ const ItemMaster = () => {
         if (activeSide === 'high') {
             return activeHighTab === 'product'
                 ? highSideProductFiltersConfig
-                : highSideModelFiltersConfig;
+                : highSideModelFiltersConfig(brands, acTypes);
         }
         return null; // LowSide later
     };
@@ -67,6 +69,10 @@ const ItemMaster = () => {
                         filters={filters}
                         activeTab={activeHighTab}
                         onTabChange={setActiveHighTab}
+                        brands={brands}          
+                        setBrands={setBrands}
+                        acTypes={acTypes}           
+                        setAcTypes={setAcTypes}
                     />
                 )}
 

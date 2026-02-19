@@ -2,22 +2,81 @@ import React, { useState, useEffect } from "react";
 import { FiEdit, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import axios from "axios";
 import AddModelForm from "./AddModelForm";
+import { MdOutlineNavigateNext, MdOutlineNavigateBefore } from "react-icons/md";
 
 export const highSideProductFiltersConfig = [
     { key: "ac_type", label: "AC Type", type: "text", placeholder: "Search AC Type" },
     { key: "brand", label: "Brand", type: "text", placeholder: "Search Brand" },
 ];
 
-export const highSideModelFiltersConfig = [
-    { key: "model_name", label: "Model Name", type: "text", placeholder: "Search Model" },
-    { key: "variant", label: "Variant", type: "text", placeholder: "Search Variant" },
+const status_choice = [
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
 ];
 
-const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
+const inverter = [
+    { id: 1, name: "Inverter" },
+    { id: 0, name: "Non-Inverter" },
+];
+
+export const highSideModelFiltersConfig = (brands = [], acTypes = []) => [
+    { key: "search", label: "Model Name", type: "search", placeholder: "Search Model" },
+    // { key: "variant", label: "Variant", type: "text", placeholder: "Search Variant" },
+    {
+        key: "status",
+        type: "select",
+        label: "Status",
+        placeholder: "Status",
+        options: [...status_choice.map(r => ({ value: r.value, label: r.label }))]
+    },
+
+    {
+        key: "brand_id",
+        type: "select",
+        label: "Brand",
+        placeholder: "Select Brand",
+        options: [...brands.map(b => ({ value: b.id, label: b.name }))]
+
+    },
+
+    {
+        key: "inveter",
+        type: "select",
+        label: "Inverter",
+        placeholder: "Select Inverter",
+        options: [...inverter.map(i => ({ value: i.id, label: i.name }))]
+
+    },
+
+    {
+        key: "ac_type_id",
+        type: "select",
+        label: "AC Type",
+        placeholder: "Select AC Type",
+        options: [...acTypes.map(t => ({ value: t.id, label: t.name }))]
+    },
+
+    {
+        key: "phase",
+        type: "select",
+        label: "Phase",
+        placeholder: "Select Phase",
+        options: [
+            { value: "1 Phase", label: "1 Phase" },
+            { value: "3 Phase", label: "3 Phase" },
+        ]
+    },
+
+
+
+];
+
+const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands, acTypes,
+    setAcTypes, }) => {
     // const [activeTab, setActiveTab] = useState("product");
     const BASE_API = base_api;
     // ===== AC TYPES =====
-    const [acType, setAcType] = useState("");
+    // const [acType, setAcType] = useState("");
     const [subTypeMap, setSubTypeMap] = useState({});
     const [subTypes, setSubTypes] = useState([{ id: null, name: "" }]);
     const [editingId, setEditingId] = useState(null);
@@ -25,20 +84,34 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
     const [list, setList] = useState([]);
     const [openAddModel, setOpenAddModel] = useState(false);
     // ===== BRANDS =====
-    const [brands, setBrands] = useState([]);
+    // const [brands, setBrands] = useState([]);
     const [brandInput, setBrandInput] = useState("");
     const [editingBrandId, setEditingBrandId] = useState(null);
 
+    const [models, setModels] = useState([]);
+    const [variants, setVariants] = useState([]);
+    const [openVariantModal, setOpenVariantModal] = useState(false);
+    const [activeModel, setActiveModel] = useState(null);
+
+    const [editingModel, setEditingModel] = useState(null);
+
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const PAGE_SIZE = 10;
 
     const authHeaders = () => ({
         headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
     });
 
+
+    const modelFiltersConfig = highSideModelFiltersConfig(brands, list);
+
     // ================= API =================
     const fetchAcTypes = async () => {
         const res = await axios.get(`${BASE_API}/api/product/actype/`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-        setList(rows);
+        setAcTypes(rows);
         rows.forEach((row) => fetchAcSubTypesByType(row.id));
     };
 
@@ -49,7 +122,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
             authHeaders()
         );
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-        setList(rows);
+        setAcTypes(rows);
     };
 
 
@@ -74,6 +147,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setBrands(rows);
     };
+
     const fetchBrands = async () => {
         const res = await axios.get(`${BASE_API}/api/product/ac-brand/`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
@@ -82,21 +156,100 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
 
 
 
-    useEffect(() => {
-        if (activeTab !== "product") return;
+    // Model filtering based on status or other attributes can be done here
+    // const filterModel = async (filters = {}) => {
+    //     try {
+    //         const params = new URLSearchParams();
 
-        if (filters?.ac_type) {
-            searchAcTypes(filters.ac_type);
-        } else {
-            fetchAcTypes();
+    //         if (typeof filters.search === "string" && filters.search.trim()) {
+    //             params.set("search", filters.search);
+    //         }
+
+    //         if (filters.status === "active") params.set("is_active", "true");
+    //         if (filters.status === "inactive") params.set("is_active", "false");
+
+    //         if (filters.brand_id) params.set("brand_id", filters.brand_id);
+
+    //         if (filters.inveter !== undefined) params.set("inverter", filters.inveter);
+
+    //         if (filters.ac_type_id) params.set("ac_sub_type_id__ac_type_id", filters.ac_type_id);
+
+    //         if (filters.phase) params.set("phase", filters.phase);
+
+    //         const url = `${BASE_API}/api/product/product-model/?${params.toString()}`;
+    //         console.log("🔎 Model Filter URL:", url);
+
+    //         const res = await axios.get(url, authHeaders());
+    //         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+    //         setModels(rows);
+    //     } catch (err) {
+    //         console.error("❌ Model filter failed:", err?.response?.data || err);
+    //         setModels([]);
+    //     }
+    // };
+
+    const filterModel = async (filters = {}, page = 1) => {
+        try {
+            const params = new URLSearchParams();
+            params.set("page", page);
+
+            if (typeof filters.search === "string" && filters.search.trim()) {
+                params.set("search", filters.search);
+            }
+
+            if (filters.status === "active") params.set("is_active", "true");
+            if (filters.status === "inactive") params.set("is_active", "false");
+
+            if (filters.brand_id) params.set("brand_id", filters.brand_id);
+            if (filters.inveter !== undefined) params.set("inverter", filters.inveter);
+            if (filters.ac_type_id) params.set("ac_sub_type_id__ac_type_id", filters.ac_type_id);
+            if (filters.phase) params.set("phase", filters.phase);
+
+            const url = `${BASE_API}/api/product/product-model/?${params.toString()}`;
+            console.log("🔎 Model Filter URL:", url);
+
+            const res = await axios.get(url, authHeaders());
+
+            const data = res.data;
+            const rows = data?.results ?? [];
+
+            setModels(rows);
+
+            const count = data?.count ?? rows.length;
+            const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+
+            setTotalPages(pages);
+            setCurrentPage(page);
+
+        } catch (err) {
+            console.error("❌ Model filter failed:", err?.response?.data || err);
+            setModels([]);
         }
+    };
 
-        if (filters?.brand) {
-            searchBrands(filters.brand);
+
+    useEffect(() => {
+        if (activeTab === "model") {
+            fetchModels(1);   // reset to page 1 when switching tab
+        }
+    }, [activeTab]);
+
+
+    useEffect(() => {
+        if (activeTab !== "model") return;
+
+        const hasAnyFilter = Object.values(filters || {}).some(
+            v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+        );
+
+        if (hasAnyFilter) {
+            filterModel(filters, 1);   // reset to page 1 on new filter
         } else {
-            fetchBrands();
+            fetchModels(1);
         }
     }, [filters, activeTab]);
+
+
 
     useEffect(() => {
         fetchAcTypes();
@@ -122,7 +275,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
 
     // ================= SAVE =================
     const handleAddOrUpdate = async () => {
-        if (!acType.trim()) return;
+        if (!acTypes.trim()) return;
 
         let acTypeId = editingId;
 
@@ -130,13 +283,13 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
         if (editingId) {
             await axios.put(
                 `${BASE_API}/api/product/actype/${editingId}/`,
-                { name: acType },
+                { name: acTypes },
                 authHeaders()
             );
         } else {
             const res = await axios.post(
                 `${BASE_API}/api/product/actype/`,
-                { name: acType },
+                { name: acTypes },
                 authHeaders()
             );
             acTypeId = res.data.id;
@@ -264,19 +417,95 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
 
         fetchBrands();   // refresh list
     };
-    const filteredAcList = list.filter((row) => {
-        if (filters?.ac_type) {
-            return row.name.toLowerCase().includes(filters.ac_type.toLowerCase());
-        }
-        return true;
-    });
+    // const filteredAcList = list.filter((row) => {
+    //     if (filters?.ac_type) {
+    //         return row.name.toLowerCase().includes(filters.ac_type.toLowerCase());
+    //     }
+    //     return true;
+    // });
 
-    const filteredBrands = brands.filter((b) => {
-        if (filters?.brand) {
-            return b.name.toLowerCase().includes(filters.brand.toLowerCase());
+    // const filteredBrands = brands.filter((b) => {
+    //     if (filters?.brand) {
+    //         return b.name.toLowerCase().includes(filters.brand.toLowerCase());
+    //     }
+    //     return true;
+    // });
+
+    const handleEditModel = (model) => {
+        setEditingModel(model);
+        setOpenAddModel(true);
+    };
+
+
+    const handleDeleteModel = async (id) => {
+        if (!window.confirm("Delete this model?")) return;
+
+        await axios.delete(`${BASE_API}/api/product/product-model/${id}/`, authHeaders());
+        fetchModels();
+    };
+
+
+    // Model related handlers will go here 
+
+    const [loadingModels, setLoadingModels] = useState(false);
+
+    const fetchModels = async (page = 1) => {
+        try {
+            setLoadingModels(true);
+
+            const res = await axios.get(
+                `${BASE_API}/api/product/product-model/?page=${page}`,
+                authHeaders()
+            );
+
+            const data = res.data;
+            const rows = data?.results ?? [];
+
+            setModels(rows);
+
+            const count = data?.count ?? rows.length;
+            const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+
+            setTotalPages(pages);
+            setCurrentPage(page);
+
+        } catch (err) {
+            console.error("Failed to fetch models:", err?.response?.data || err);
+        } finally {
+            setLoadingModels(false);
         }
-        return true;
-    });
+    };
+
+
+    const openVariantsModal = async (model) => {
+        setActiveModel(model);
+        await fetchVariants(model.id);
+        setOpenVariantModal(true);
+    };
+
+    const fetchVariants = async (modelId) => {
+        try {
+            const res = await axios.get(
+                `${BASE_API}/api/product/product-variant/?product_model=${modelId}`,
+                authHeaders()
+            );
+
+            const rows = res.data?.results ?? [];
+            setVariants(rows);
+            console.log("variants:", rows);
+        } catch (err) {
+            console.error("Failed to fetch variants:", err?.response?.data || err);
+            setVariants([]);
+        }
+    };
+
+
+    useEffect(() => {
+        if (activeTab === "model") {
+            fetchModels();
+
+        }
+    }, [activeTab]);
 
 
 
@@ -319,7 +548,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
                             <input
                                 className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
                                 placeholder="Enter AC Type name"
-                                value={acType}
+                                value={acTypes}
                                 onChange={(e) => setAcType(e.target.value)}
                             />
                         </div>
@@ -508,14 +737,126 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
                             </thead>
 
                             <tbody>
-                                {/* Empty state */}
-                                <tr>
-                                    <td colSpan={11} className="px-6 py-10 text-center text-gray-500">
-                                        No models yet. Click <span className="font-medium">"Create Model"</span> to add one.
-                                    </td>
-                                </tr>
+                                {models.length === 0 ? (
+                                    // ✅ Empty state
+                                    <tr>
+                                        <td colSpan={11} className="px-6 py-10 text-center text-gray-500">
+                                            No models yet. Click{" "}
+                                            <span className="font-medium">"Create Model"</span> to add one.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    // ✅ Render models
+                                    models.map((model, index) => (
+                                        <tr key={model.id ?? index} className="border-b">
+                                            <td className="px-4 py-2">{index + 1}</td>
+                                            <td className="px-4 py-2">{model.ac_type_name ?? "-"}</td>
+                                            <td className="px-4 py-2">{model.ac_sub_type_name ?? "-"}</td>
+                                            <td className="px-4 py-2">{model.brand_name ?? "-"}</td>
+                                            <td className="px-4 py-2">{model.name}</td>
+                                            <td className="px-4 py-2">{model.model_no}</td>
+
+                                            <td className="px-4 py-2">{model.phase ?? "-"}</td>
+                                            <td className="px-4 py-2">{model.is_inverter ? "Yes" : "No"}</td>
+                                            <td className="px-4 py-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setActiveModel(model);
+                                                        setOpenVariantModal(true);
+                                                    }}
+                                                    className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer"
+                                                >
+                                                    View
+                                                </button>
+
+                                            </td>
+
+                                            <td className="px-4 py-2">
+                                                {model.is_active ? (
+                                                    <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">
+                                                        Inactive
+                                                    </span>
+                                                )}
+                                            </td>
+                                            {/* Actions */}
+                                            <td className="px-4 py-2">
+                                                <div className="flex items-center gap-x-4">
+                                                    <button
+                                                        onClick={() => handleEditModel(model)}   // 👈 edit handler
+                                                        className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                                        title="Edit"
+                                                    >
+                                                        <FiEdit />
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleDeleteModel(model.id)}   // 👈 delete handler
+                                                        className="text-red-600 hover:text-red-800 cursor-pointer"
+                                                        title="Delete"
+                                                    >
+                                                        <FiTrash2 />
+                                                    </button>
+                                                </div>
+                                            </td>
+
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
+
                         </table>
+
+                        {/* 🔹 Pagination Bar */}
+                        <div className="flex items-center justify-between px-4 py-3 border-t bg-white">
+                            {/* Left: Page info */}
+                            <div className="text-sm text-gray-600">
+                                Page <span className="font-medium">{currentPage}</span> of{" "}
+                                <span className="font-medium">{totalPages}</span>
+                            </div>
+
+                            {/* Right: Controls */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    disabled={currentPage === 1}
+                                    onClick={() => {
+                                        const prev = currentPage - 1;
+                                        const hasFilter = Object.values(filters || {}).some(
+                                            v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+                                        );
+                                        hasFilter ? filterModel(filters, prev) : fetchModels(prev);
+                                    }}
+                                    className={`px-3 py-1.5 border rounded-md text-sm ${currentPage === 1
+                                            ? "text-gray-400 cursor-not-allowed"
+                                            : "hover:bg-gray-100"
+                                        }`}
+                                >
+                                    <MdOutlineNavigateBefore />
+                                </button>
+
+                                <button
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => {
+                                        const next = currentPage + 1;
+                                        const hasFilter = Object.values(filters || {}).some(
+                                            v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+                                        );
+                                        hasFilter ? filterModel(filters, next) : fetchModels(next);
+                                    }}
+                                    className={`px-3 py-1.5 border rounded-md text-sm ${currentPage === totalPages
+                                            ? "text-gray-400 cursor-not-allowed"
+                                            : "hover:bg-gray-100"
+                                        }`}
+                                >
+                                    <MdOutlineNavigateNext />
+                                </button>
+                            </div>
+                        </div>
+
+
 
 
 
@@ -525,13 +866,19 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
                     {openAddModel && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-md">
                             <div className="w-full max-w-5xl">
-                                <AddModelForm 
+                                <AddModelForm
                                     base_api={BASE_API}
                                     authHeaders={authHeaders}
                                     open={openAddModel}
-                                    onClose={() => setOpenAddModel(false)}
+                                    model={editingModel}
+                                    onClose={() => {
+                                        setOpenAddModel(false);
+                                        setEditingModel(null);
+                                    }}
                                     onSuccess={() => {
                                         setOpenAddModel(false);
+                                        setEditingModel(null);
+                                        fetchModels();
                                     }}
                                 />
                             </div>
@@ -541,6 +888,18 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
                 </div>
             )}
 
+            {openVariantModal && activeModel && (
+                <VariantModal
+                    open={openVariantModal}
+                    onClose={() => setOpenVariantModal(false)}
+                    model={activeModel}
+                    baseApi={BASE_API}
+                    authHeaders={authHeaders}
+                />
+            )}
+
+
+
         </div>
     );
 };
@@ -548,3 +907,209 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange }) => {
 
 
 export default HighSide;
+
+
+// Variant Modal Component
+const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
+    const [variants, setVariants] = useState([]);
+    const [form, setForm] = useState({
+        id: null,
+        capacity: "",
+        star: "",
+        mrp: "",
+        dp: "",
+        active: true,
+    });
+
+    // Fetch variants
+    const loadVariants = async () => {
+        const res = await axios.get(
+            `${baseApi}/api/product/product-variant/?product_model=${model.id}`,
+            authHeaders()
+        );
+
+        const rows = res.data?.results ?? [];
+        setVariants(
+            rows.map(v => ({
+                id: v.id,
+                sku: v.sku,
+                capacity: v.capacity,
+                star: String(v.star_rating),
+                mrp: v.mrp,
+                dp: v.dp,
+                active: v.is_active,
+            }))
+        );
+    };
+
+    useEffect(() => {
+        if (open && model) loadVariants();
+    }, [open, model]);
+
+    // Form handlers
+    const updateForm = (key, value) => {
+        setForm(prev => ({ ...prev, [key]: value }));
+    };
+
+    const resetForm = () => {
+        setForm({ id: null, capacity: "", star: "", mrp: "", dp: "", active: true });
+    };
+
+    // Add or Update variant
+    const saveVariant = async () => {
+        if (!form.capacity || !form.star || !form.mrp || !form.dp) {
+            alert("Fill all fields");
+            return;
+        }
+
+        const payload = {
+            product_model: model.id,
+            capacity: form.capacity,
+            star_rating: Number(form.star),
+            mrp: Number(form.mrp),
+            dp: Number(form.dp),
+            is_active: form.active,
+        };
+
+        if (form.id) {
+            // UPDATE
+            await axios.put(
+                `${baseApi}/api/product/product-variant/${form.id}/`,
+                payload,
+                authHeaders()
+            );
+        } else {
+            // CREATE
+            await axios.post(
+                `${baseApi}/api/product/product-variant/`,
+                payload,
+                authHeaders()
+            );
+        }
+
+        await loadVariants();
+        resetForm();
+    };
+
+    const handleEdit = (v) => {
+        setForm(v); // load into form
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Delete this variant?")) return;
+
+        await axios.delete(
+            `${baseApi}/api/product/product-variant/${id}/`,
+            authHeaders()
+        );
+
+        loadVariants();
+    };
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+            <div className="bg-white rounded-xl w-full max-w-5xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold">Variants – {model?.name}</h2>
+                    <button onClick={onClose}><FiX /></button>
+                </div>
+
+                {/* 🔹 Single Add/Edit Form */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+                    <input value={form.capacity} onChange={e => updateForm("capacity", e.target.value)} placeholder="Capacity" className="border px-3 py-2 rounded" />
+                    <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded">
+                        <option value="">Star</option>
+                        <option value="1">1 Star</option>
+                        <option value="2">2 Star</option>
+                        <option value="3">3 Star</option>
+                        <option value="4">4 Star</option>
+                        <option value="5">5 Star</option>
+                    </select>
+                    <input value={form.mrp} onChange={e => updateForm("mrp", e.target.value)} placeholder="MRP" className="border px-3 py-2 rounded" />
+                    <input value={form.dp} onChange={e => updateForm("dp", e.target.value)} placeholder="DP" className="border px-3 py-2 rounded" />
+                    <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={form.active} onChange={e => updateForm("active", e.target.checked)} />
+                        Active
+                    </label>
+
+                    <div className="col-span-full flex gap-2 mt-2">
+                        <button onClick={saveVariant} className="px-4 py-2 bg-blue-600 text-white rounded">
+                            {form.id ? "Update" : "Add"}
+                        </button>
+                        {form.id && (
+                            <button onClick={resetForm} className="px-4 py-2 border rounded">
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* 🔹 Variants Table */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 border-b">
+                            <tr>
+                                <th className="px-4 py-3 font-medium text-gray-700">SKU No</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">Capacity</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">Star</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">MRP</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">DP</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">Status</th>
+                                <th className="px-4 py-3 font-medium text-gray-700 text-center">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y">
+                            {variants.map((v) => (
+                                <tr key={v.id} className="hover:bg-gray-50 transition">
+                                    <td className="px-4 py-3">{v.sku}</td>
+                                    <td className="px-4 py-3">{v.capacity}</td>
+                                    <td className="px-4 py-3">{v.star}</td>
+                                    <td className="px-4 py-3">₹{Number(v.mrp).toLocaleString()}</td>
+                                    <td className="px-4 py-3">₹{Number(v.dp).toLocaleString()}</td>
+                                    <td className="px-4 py-3">
+                                        {v.active ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                Active
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                Inactive
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <button
+                                                onClick={() => handleEdit(v)}
+                                                className="p-1.5 rounded hover:bg-blue-50 text-blue-600"
+                                                title="Edit"
+                                            >
+                                                <FiEdit size={16} />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDelete(v.id)}
+                                                className="p-1.5 rounded hover:bg-red-50 text-red-600"
+                                                title="Delete"
+                                            >
+                                                <FiTrash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+
+            </div>
+        </div>
+    );
+};
+
