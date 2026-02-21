@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 const Login = () => {
   const navigate = useNavigate();
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
+  console.log("BASE_API :", BASE_API);
 
   const LOGIN_ENDPOINT = `${BASE_API}/api/auth/dj-rest-auth/login/`;
 

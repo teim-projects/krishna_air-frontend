@@ -1,0 +1,15 @@
+services:
+  krisna-react-frontend-app:
+    container_name: frontend-uat
+    image: tanmay1413/krisna_air:frontend-uat-1.0.0     
+    env_file:
+      - ../.env.uat
+
+    expose:
+      - "80"
+
+    restart: unless-stopped
+
+    environment:
+      - NODE_ENV=production
+      - APP_ENV=uat
