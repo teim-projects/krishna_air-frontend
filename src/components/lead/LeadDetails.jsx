@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MdClose, MdOutlineRemoveRedEye } from "react-icons/md";
+import axios from "axios";
 
 // Local reusable component for Follow-up Product Details Modal
 const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
@@ -12,45 +13,28 @@ const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
     const fetchProductNames = async () => {
       setLoading(true);
       try {
-        // Fetch all required data in parallel
+        // Auth headers
+        const authHeaders = {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        };
+
+        // Fetch all required data in parallel using axios
         const [acTypesRes, acSubTypesRes, brandsRes, modelsRes, variantsRes] = await Promise.all([
-          fetch(`${baseApi}/api/product/actype/`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }),
-          fetch(`${baseApi}/api/product/ac-subtypes/`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }),
-          fetch(`${baseApi}/api/product/ac-brand/`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }),
-          fetch(`${baseApi}/api/product/product-model/`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }),
-          fetch(`${baseApi}/api/product/product-variant/`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }),
+          axios.get(`${baseApi}/api/product/actype/`, authHeaders),
+          axios.get(`${baseApi}/api/product/ac-subtypes/`, authHeaders),
+          axios.get(`${baseApi}/api/product/ac-brand/`, authHeaders),
+          axios.get(`${baseApi}/api/product/product-model/`, authHeaders),
+          axios.get(`${baseApi}/api/product/product-variant/`, authHeaders),
         ]);
 
-        const acTypes = await acTypesRes.json();
-        const acSubTypes = await acSubTypesRes.json();
-        const brands = await brandsRes.json();
-        const models = await modelsRes.json();
-        const variants = await variantsRes.json();
+        const acTypes = acTypesRes.data;
+        const acSubTypes = acSubTypesRes.data;
+        const brands = brandsRes.data;
+        const models = modelsRes.data;
+        const variants = variantsRes.data;
 
         // Create lookup maps
         const acTypeMap = {};
@@ -215,22 +199,17 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch(`${baseApi}/api/lead/lead/${leadId}/`, {
+        
+        const response = await axios.get(`${baseApi}/api/lead/lead/${leadId}/`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
-        if (!res.ok) {
-          const txt = await res.text().catch(() => "");
-          throw new Error(`${res.status} ${res.statusText} ${txt}`);
-        }
-
-        const data = await res.json();
-        setLead(data);
+        setLead(response.data);
       } catch (err) {
-        setError(err.message || String(err));
+        setError(err.response?.data?.message || err.message || String(err));
         setLead(null);
       } finally {
         setLoading(false);

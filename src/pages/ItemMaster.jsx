@@ -76,7 +76,7 @@ const ItemMaster = () => {
                     />
                 )}
 
-                {activeSide === 'low' && <LowSide />}
+                {activeSide === 'low' && <LowSide base_api={BASE_API} />}
             </div>
         </Base>
     )
