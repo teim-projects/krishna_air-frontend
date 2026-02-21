@@ -76,7 +76,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     // const [activeTab, setActiveTab] = useState("product");
     const BASE_API = base_api;
     // ===== AC TYPES =====
-    // const [acType, setAcType] = useState("");
+    const [acType, setAcType] = useState("");
     const [subTypeMap, setSubTypeMap] = useState({});
     const [subTypes, setSubTypes] = useState([{ id: null, name: "" }]);
     const [editingId, setEditingId] = useState(null);
@@ -548,7 +548,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                             <input
                                 className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
                                 placeholder="Enter AC Type name"
-                                value={acTypes}
+                                value={acType}
                                 onChange={(e) => setAcType(e.target.value)}
                             />
                         </div>
