@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Base from '../components/Base'
 // import HighSide from '../components/products/HighSide'
-import LowSide from '../components/products/LowSide'
+import LowSide, { lowSideFiltersConfig } from '../components/products/LowSide'
 import HighSide, {
     highSideProductFiltersConfig,
     highSideModelFiltersConfig,
@@ -26,7 +26,10 @@ const ItemMaster = () => {
                 ? highSideProductFiltersConfig
                 : highSideModelFiltersConfig(brands, acTypes);
         }
-        return null; // LowSide later
+        if (activeSide === 'low') {
+            return lowSideFiltersConfig;
+        }
+        return null;
     };
 
     return (
@@ -37,7 +40,7 @@ const ItemMaster = () => {
                     ? activeHighTab === 'product'
                         ? 'High Side • Product Filters'
                         : 'High Side • Model Filters'
-                    : 'Filters'
+                    : 'Low Side • Item Filters'
             }
             filtersConfig={getFiltersConfig()}
             initialFilterValues={filters}
@@ -69,14 +72,19 @@ const ItemMaster = () => {
                         filters={filters}
                         activeTab={activeHighTab}
                         onTabChange={setActiveHighTab}
-                        brands={brands}          
+                        brands={brands}
                         setBrands={setBrands}
-                        acTypes={acTypes}           
+                        acTypes={acTypes}
                         setAcTypes={setAcTypes}
                     />
                 )}
 
-                {activeSide === 'low' && <LowSide base_api={BASE_API} />}
+                {activeSide === 'low' && (
+                    <LowSide
+                        base_api={BASE_API}
+                        filters={filters}
+                    />
+                )}
             </div>
         </Base>
     )

@@ -5,7 +5,7 @@ import ManageItemTypes from "./ManageItemTypes";
 
 const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null }) => {
   // Unit options arrays
-  const LENGTH_UNITS = ["mm", "cm", "inch"]; 
+  const LENGTH_UNITS = ["mm", "cm", "inch", "Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot", "km", "yd", "mile"]; 
   const DENSITY_UNITS = ["g/cm³", "kg/m³"];
 
   const [showManageModal, setShowManageModal] = useState(false);

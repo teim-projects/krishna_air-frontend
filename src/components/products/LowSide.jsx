@@ -3,26 +3,79 @@ import { FiEdit, FiTrash2 } from "react-icons/fi";
 import AddItem from "./AddItem";
 import axios from "axios";
 
-const LowSide = ({ base_api }) => {
+// Filter configuration for Low Side (using text inputs like HighSide)
+export const lowSideFiltersConfig = [
+  { key: "material_type", label: "Material Type", type: "text", placeholder: "Search Material Type" },
+  { key: "item_type", label: "Item Type", type: "text", placeholder: "Search Item Type" },
+  { key: "feature_type", label: "Feature Type", type: "text", placeholder: "Search Feature Type" },
+  { key: "item_class", label: "Class", type: "text", placeholder: "Search Class" },
+  { key: "search", label: "Item Code", type: "search", placeholder: "Search Item Code" },
+];
+
+const LowSide = ({ base_api, filters }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
+  // Client-side filtering based on text inputs (like HighSide)
+  const filteredItems = items.filter((item) => {
+    if (!filters) return true;
+    
+    // Filter by Material Type (text match)
+    if (filters.material_type && !item.material_type_name?.toLowerCase().includes(filters.material_type.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by Item Type (text match)
+    if (filters.item_type && !item.item_type_name?.toLowerCase().includes(filters.item_type.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by Feature Type (text match)
+    if (filters.feature_type && !item.feature_type_name?.toLowerCase().includes(filters.feature_type.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by Class (text match)
+    if (filters.item_class && !item.item_class_name?.toLowerCase().includes(filters.item_class.toLowerCase())) {
+      return false;
+    }
+    
+    // Filter by Item Code (search)
+    if (filters.search && !item.item_code?.toLowerCase().includes(filters.search.toLowerCase())) {
+      return false;
+    }
+    
+    return true;
+  });
+
   // Auth headers
   const authHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
   });
 
-  // Fetch all items
-  const fetchItems = async () => {
+  // Fetch all items with filters
+  const fetchItems = async (appliedFilters = {}) => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${base_api}/api/product/item/`,
-        authHeaders()
-      );
+      // Build query parameters
+      const params = new URLSearchParams();
+      
+      // Backend filters (exact match by ID)
+      if (appliedFilters.material_type_id) params.append('material_type_id', appliedFilters.material_type_id);
+      if (appliedFilters.item_type_id) params.append('item_type_id', appliedFilters.item_type_id);
+      if (appliedFilters.feature_type_id) params.append('feature_type_id', appliedFilters.feature_type_id);
+      if (appliedFilters.item_class_id) params.append('item_class_id', appliedFilters.item_class_id);
+      if (appliedFilters.search) params.append('search', appliedFilters.search);
+      
+      const queryString = params.toString();
+      const url = queryString 
+        ? `${base_api}/api/product/item/?${queryString}`
+        : `${base_api}/api/product/item/`;
+      
+      const response = await axios.get(url, authHeaders());
       const rows = Array.isArray(response.data)
         ? response.data
         : response.data?.results ?? [];
@@ -62,6 +115,34 @@ const LowSide = ({ base_api }) => {
     fetchItems();
   }, [base_api]);
 
+  // Apply filters when filters prop changes
+  useEffect(() => {
+    if (!filters) return;
+    
+    const hasAnyFilter = Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== ""
+    );
+    
+    if (hasAnyFilter) {
+      // Convert text filters to IDs by matching names (client-side filtering for text inputs)
+      applyTextFilters(filters);
+    } else {
+      fetchItems();
+    }
+  }, [filters]);
+
+  // Helper function to apply text-based filters (client-side)
+  const applyTextFilters = (textFilters) => {
+    // For text-based filtering, we filter the already fetched items
+    // This matches the HighSide pattern where text inputs filter client-side
+    fetchItems(); // First fetch all items
+    
+    // Note: If you want backend filtering by ID, you'd need to:
+    // 1. Fetch all material types, item types, etc.
+    // 2. Find IDs matching the text
+    // 3. Pass those IDs to fetchItems()
+  };
+
 
   return (
     <div className="bg-white rounded-lg p-4">
@@ -69,7 +150,7 @@ const LowSide = ({ base_api }) => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-semibold">Items List</h2>
-          <p className="text-sm text-gray-500">{items.length} item(s) in inventory</p>
+          <p className="text-sm text-gray-500">{filteredItems.length} item(s) in inventory</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -110,7 +191,7 @@ const LowSide = ({ base_api }) => {
                 </td>
               </tr>
             ) : (
-              items.map((item, index) => (
+              filteredItems.map((item, index) => (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
                   <td className="px-4 py-3 text-sm">{item.item_code || "—"}</td>
