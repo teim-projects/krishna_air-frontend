@@ -76,7 +76,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     // const [activeTab, setActiveTab] = useState("product");
     const BASE_API = base_api;
     // ===== AC TYPES =====
-    // const [acType, setAcType] = useState("");
+    const [acType, setAcType] = useState("");
     const [subTypeMap, setSubTypeMap] = useState({});
     const [subTypes, setSubTypes] = useState([{ id: null, name: "" }]);
     const [editingId, setEditingId] = useState(null);
@@ -105,27 +105,18 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     });
 
 
-    const modelFiltersConfig = highSideModelFiltersConfig(brands, list);
 
     // ================= API =================
     const fetchAcTypes = async () => {
         const res = await axios.get(`${BASE_API}/api/product/actype/`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setAcTypes(rows);
+        setList(rows);
+        // console.log("AV types", rows);
         rows.forEach((row) => fetchAcSubTypesByType(row.id));
     };
 
-    const searchAcTypes = async (query) => {
-        if (!query) return; // guard
-        const res = await axios.get(
-            `${BASE_API}/api/product/actype/?search=${encodeURIComponent(query)}`,
-            authHeaders()
-        );
-        const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-        setAcTypes(rows);
-    };
-
-
+    
     const fetchAcSubTypesByType = async (acTypeId) => {
         // console.log("acType",acTypeId)
         const res = await axios.get(
@@ -138,15 +129,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     };
 
 
-    const searchBrands = async (query) => {
-        if (!query) return; // guard
-        const res = await axios.get(
-            `${BASE_API}/api/product/ac-brand/?search=${encodeURIComponent(query)}`,
-            authHeaders()
-        );
-        const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-        setBrands(rows);
-    };
+   
 
     const fetchBrands = async () => {
         const res = await axios.get(`${BASE_API}/api/product/ac-brand/`, authHeaders());
@@ -156,38 +139,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
 
 
-    // Model filtering based on status or other attributes can be done here
-    // const filterModel = async (filters = {}) => {
-    //     try {
-    //         const params = new URLSearchParams();
-
-    //         if (typeof filters.search === "string" && filters.search.trim()) {
-    //             params.set("search", filters.search);
-    //         }
-
-    //         if (filters.status === "active") params.set("is_active", "true");
-    //         if (filters.status === "inactive") params.set("is_active", "false");
-
-    //         if (filters.brand_id) params.set("brand_id", filters.brand_id);
-
-    //         if (filters.inveter !== undefined) params.set("inverter", filters.inveter);
-
-    //         if (filters.ac_type_id) params.set("ac_sub_type_id__ac_type_id", filters.ac_type_id);
-
-    //         if (filters.phase) params.set("phase", filters.phase);
-
-    //         const url = `${BASE_API}/api/product/product-model/?${params.toString()}`;
-    //         console.log("🔎 Model Filter URL:", url);
-
-    //         const res = await axios.get(url, authHeaders());
-    //         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
-    //         setModels(rows);
-    //     } catch (err) {
-    //         console.error("❌ Model filter failed:", err?.response?.data || err);
-    //         setModels([]);
-    //     }
-    // };
-
+    
     const filterModel = async (filters = {}, page = 1) => {
         try {
             const params = new URLSearchParams();
@@ -275,7 +227,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
     // ================= SAVE =================
     const handleAddOrUpdate = async () => {
-        if (!acTypes.trim()) return;
+        if (!acType.trim()) return;
 
         let acTypeId = editingId;
 
@@ -283,13 +235,13 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         if (editingId) {
             await axios.put(
                 `${BASE_API}/api/product/actype/${editingId}/`,
-                { name: acTypes },
+                { name: acType },
                 authHeaders()
             );
         } else {
             const res = await axios.post(
                 `${BASE_API}/api/product/actype/`,
-                { name: acTypes },
+                { name: acType },
                 authHeaders()
             );
             acTypeId = res.data.id;
@@ -376,6 +328,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         await axios.delete(`${BASE_API}/api/product/actype/${id}/`, authHeaders());
         fetchAcTypes();
     };
+
+
     // ===== BRAND HANDLERS =====
     const handleAddOrUpdateBrand = async () => {
         if (!brandInput.trim()) return;
@@ -416,26 +370,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         );
 
         fetchBrands();   // refresh list
-    };
-    // const filteredAcList = list.filter((row) => {
-    //     if (filters?.ac_type) {
-    //         return row.name.toLowerCase().includes(filters.ac_type.toLowerCase());
-    //     }
-    //     return true;
-    // });
-
-    // const filteredBrands = brands.filter((b) => {
-    //     if (filters?.brand) {
-    //         return b.name.toLowerCase().includes(filters.brand.toLowerCase());
-    //     }
-    //     return true;
-    // });
-
-    const handleEditModel = (model) => {
-        setEditingModel(model);
-        setOpenAddModel(true);
-    };
-
+    };  
 
     const handleDeleteModel = async (id) => {
         if (!window.confirm("Delete this model?")) return;
@@ -443,6 +378,34 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         await axios.delete(`${BASE_API}/api/product/product-model/${id}/`, authHeaders());
         fetchModels();
     };
+
+    const handleEditModel = (model) => {
+        setEditingModel(model);
+        setOpenAddModel(true);
+    };
+
+    // Ac type and Brand Filters
+
+    const filteredAcList = list.filter((row) => {
+        if (filters?.ac_type) {
+            return row.name
+                ?.toLowerCase()
+                .includes(filters.ac_type.toLowerCase());
+        }
+        return true;
+    });
+
+    const filteredBrands = brands.filter((b) => {
+        if (filters?.brand) {
+            return b.name
+                ?.toLowerCase()
+                .includes(filters.brand.toLowerCase());
+        }
+        return true;
+    });
+
+
+ 
 
 
     // Model related handlers will go here 
@@ -548,7 +511,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                             <input
                                 className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
                                 placeholder="Enter AC Type name"
-                                value={acTypes}
+                                value={acType}
                                 onChange={(e) => setAcType(e.target.value)}
                             />
                         </div>
@@ -606,8 +569,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                 </tr>
                             </thead>
                             <tbody>
-                                {Array.isArray(list) && list.length > 0 ? (
-                                    list.map((row, index) => (
+                                {Array.isArray(filteredAcList) && filteredAcList.length > 0 ? (
+                                    filteredAcList.map((row, index) => (
                                         <tr key={row.id} className="border-b border-gray-200">
                                             <td className="px-6 py-4 text-sm">{index + 1}</td>
                                             <td className="px-6 py-4 text-sm">{row.name}</td>
@@ -678,7 +641,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                 </tr>
                             </thead>
                             <tbody>
-                                {brands.map((brand, index) => (
+                                {filteredBrands.map((brand, index) => (
                                     <tr key={brand.id} className="border-b border-gray-200">
                                         <td className="px-6 py-4 text-sm">{index + 1}</td>
                                         <td className="px-6 py-4 text-sm">{brand.name}</td>
@@ -830,8 +793,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                         hasFilter ? filterModel(filters, prev) : fetchModels(prev);
                                     }}
                                     className={`px-3 py-1.5 border rounded-md text-sm ${currentPage === 1
-                                            ? "text-gray-400 cursor-not-allowed"
-                                            : "hover:bg-gray-100"
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "hover:bg-gray-100"
                                         }`}
                                 >
                                     <MdOutlineNavigateBefore />
@@ -847,8 +810,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                         hasFilter ? filterModel(filters, next) : fetchModels(next);
                                     }}
                                     className={`px-3 py-1.5 border rounded-md text-sm ${currentPage === totalPages
-                                            ? "text-gray-400 cursor-not-allowed"
-                                            : "hover:bg-gray-100"
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "hover:bg-gray-100"
                                         }`}
                                 >
                                     <MdOutlineNavigateNext />
