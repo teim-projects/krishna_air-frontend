@@ -1,5 +1,5 @@
 # Use node slim as the base image
-FROM node:22.21.1-slim AS builder
+FROM node:22-alpine AS builder
 
 # Set the working directory 
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install project dependancies 
-RUN npm install
+RUN npm ci && npm cache clean --force
 
 # Copy the source code 
 COPY . . 

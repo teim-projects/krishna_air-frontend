@@ -8,7 +8,7 @@ export default function Base({
   filterTitle,
   filtersConfig = null,
   initialFilterValues = {},
-  onFiltersChange = () => {},
+  onFiltersChange = () => { },
   sidebarWidth = 230,
   drawerWidth = 320,
   children,
@@ -36,9 +36,9 @@ export default function Base({
             style={leftStyle}
           >
             <div className="p-6 flex items-center justify-between border-b border-slate-50"> {/* Added border-b */}
-<h3 className="text-lg font-semibold text-slate-700">
-  {filterTitle || "Filters"}
-</h3>
+              <h3 className="text-lg font-semibold text-slate-700">
+                {filterTitle || "Filters"}
+              </h3>
               <button
                 onClick={() => setFiltersOpen(false)}
                 className="text-slate-600 hover:text-slate-800 p-1 rounded"

@@ -19,12 +19,13 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Customer from "./pages/Customer";
 import Lead from "./pages/Lead";
-import AcTypeList from "./components/products/AcTypeList";
-import ProductsPage from "./components/products/ProductsPage";
+
 import Quotation from "./pages/Quotation";
 import Invoice from "./pages/Invoice";
+// import AcTypeList from "./components/products/AcTypeList";
+import ItemMaster from "./pages/ItemMaster";
 
- 
+
 
 
 function AppRoutes() {
@@ -42,6 +43,8 @@ function AppRoutes() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
@@ -104,13 +107,14 @@ function AppRoutes() {
 
                 {/* ✅ Product Module Routes (Inside Routes Now) */}
             
-              <Route path="/products" element={<ProductsPage />} />
+              
               
               <Route path="/quotation" element={<Quotation/>}/>
               <Route path="/invoice" element={<Invoice/>}/>
 
 
 
+              <Route path="/item_master" element={<ItemMaster />} />
 
             </Routes>
             
