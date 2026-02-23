@@ -19,10 +19,13 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./pages/Accounts";
 import Customer from "./pages/Customer";
 import Lead from "./pages/Lead";
+
+import Quotation from "./pages/Quotation";
+import Invoice from "./pages/Invoice";
 // import AcTypeList from "./components/products/AcTypeList";
 import ItemMaster from "./pages/ItemMaster";
 
- 
+
 
 
 function AppRoutes() {
@@ -104,6 +107,13 @@ function AppRoutes() {
 
                 {/* ✅ Product Module Routes (Inside Routes Now) */}
             
+              
+              
+              <Route path="/quotation" element={<Quotation/>}/>
+              <Route path="/invoice" element={<Invoice/>}/>
+
+
+
               <Route path="/item_master" element={<ItemMaster />} />
 
             </Routes>
