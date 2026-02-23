@@ -17,7 +17,7 @@ const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
 
 const api = axios.create({
-  baseURL: `${BASE_API}/api/`,
+  baseURL: `${BASE_API}/`,
 });
 
 // TOKEN

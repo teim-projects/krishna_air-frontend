@@ -46,7 +46,7 @@ export default function AddRoleForm({ open, onClose, onSuccess, baseApi, initial
 
     setLoading(true);
     try {
-      const url = roleId ? `${BASE_API}/api/auth/roles/${roleId}/` : `${BASE_API}/api/auth/roles/`;
+      const url = roleId ? `${BASE_API}/auth/roles/${roleId}/` : `${BASE_API}/auth/roles/`;
       const method = roleId ? "PUT" : "POST";
 
       const res = await fetch(url, {

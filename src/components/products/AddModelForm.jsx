@@ -33,7 +33,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchAcTypes = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/api/product/actype/`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/actype/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setAcTypes(rows);
       // console.log("Ac Types:", rows);
@@ -47,7 +47,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchSubtypes = async (acTypeId) => {
     try {
-      const res = await axios.get(`${BASE_API}/api/product/ac-subtypes/?ac_type_id=${acTypeId}`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setSubtypes(rows);
       // console.log("Subtypes:", rows);
@@ -59,7 +59,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchBrands = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/api/product/ac-brand/`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setBrands(rows);
       // console.log("Brands:", rows);
@@ -148,7 +148,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   //   try {
   //     const res = await axios.post(
-  //       `${BASE_API}/api/product/product-model/`,
+  //       `${BASE_API}/product/product-model/`,
   //       payload,
   //       authHeaders()
   //     );
@@ -192,7 +192,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
       if (model?.id) {
         // ✅ UPDATE model only (variants handled in Variant modal)
         await axios.put(
-          `${BASE_API}/api/product/product-model/${model.id}/`,
+          `${BASE_API}/product/product-model/${model.id}/`,
           payload,
           authHeaders()
         );
@@ -200,7 +200,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
       } else {
         // ✅ CREATE model
         res = await axios.post(
-          `${BASE_API}/api/product/product-model/`,
+          `${BASE_API}/product/product-model/`,
           payload,
           authHeaders()
         );
@@ -242,7 +242,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
       };
 
       return axios.post(
-        `${BASE_API}/api/product/product-variant/`,
+        `${BASE_API}/product/product-variant/`,
         variantPayload,
         authHeaders()
       );

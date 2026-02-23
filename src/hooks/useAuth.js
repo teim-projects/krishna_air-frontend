@@ -13,7 +13,7 @@ export function useUserRole(baseApi) {
     }
 
     setIsLoading(true);
-    fetch(`${baseApi}/api/auth/me/`, {
+    fetch(`${baseApi}/auth/me/`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

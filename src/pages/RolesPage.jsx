@@ -27,7 +27,7 @@ export default function RolePage({ baseApi, onClose, open = true }) {
     setError(null);
 
     try {
-      const url = `${BASE_API}/api/auth/roles/?page=${pageNo}`;
+      const url = `${BASE_API}/auth/roles/?page=${pageNo}`;
       console.log("[RolePage] fetching roles:", url);
 
       const res = await fetch(url, {
@@ -106,7 +106,7 @@ export default function RolePage({ baseApi, onClose, open = true }) {
     if (!confirmDelete.isConfirmed) return;
   
     try {
-      const res = await fetch(`${BASE_API}/api/auth/roles/${id}/`, {
+      const res = await fetch(`${BASE_API}/auth/roles/${id}/`, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

@@ -6,7 +6,7 @@ const ResetPasswordConfirm = () => {
   const navigate = useNavigate();
 
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
-  const CONFIRM_ENDPOINT = `${BASE_API}/api/auth/password-reset-confirm/`;
+  const CONFIRM_ENDPOINT = `${BASE_API}/auth/password-reset-confirm/`;
 
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");

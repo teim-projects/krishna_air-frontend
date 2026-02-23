@@ -81,8 +81,8 @@ export default function AddStaffForm({
     if (!staff || changePassword) payload.password = password;
 
     const url = staff
-      ? `${BASE_API}/api/auth/staff/${staff.id}/`
-      : `${BASE_API}/api/auth/staff/`;
+      ? `${BASE_API}/auth/staff/${staff.id}/`
+      : `${BASE_API}/auth/staff/`;
 
     const method = staff ? "PATCH" : "POST";
 

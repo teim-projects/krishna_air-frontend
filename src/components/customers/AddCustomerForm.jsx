@@ -206,7 +206,7 @@ export default function AddCustomerForm({
       }
 
       // choose endpoint & method
-      const url = customer ? `${BASE_API}/api/lead/customer/${customer.id}/` : `${BASE_API}/api/lead/customer/`;
+      const url = customer ? `${BASE_API}/lead/customer/${customer.id}/` : `${BASE_API}/lead/customer/`;
       const method = customer ? "PATCH" : "POST";
 
       const res = await fetch(url, {

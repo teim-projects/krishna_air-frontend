@@ -1,14 +1,38 @@
 import { useState, useEffect } from "react";
-import { FiEdit, FiTrash2 } from "react-icons/fi";
 import AddItem from "./AddItem";
 import axios from "axios";
+import Pagination from "../Pagination";
 
-// Filter configuration for Low Side (using text inputs like HighSide)
-export const lowSideFiltersConfig = [
-  { key: "material_type", label: "Material Type", type: "text", placeholder: "Search Material Type" },
-  { key: "item_type", label: "Item Type", type: "text", placeholder: "Search Item Type" },
-  { key: "feature_type", label: "Feature Type", type: "text", placeholder: "Search Feature Type" },
-  { key: "item_class", label: "Class", type: "text", placeholder: "Search Class" },
+// Filter configuration for Low Side (using dropdowns)
+export const getLowSideFiltersConfig = (materialTypes = [], itemTypes = [], featureTypes = [], classes = []) => [
+  {
+    key: "material_type_id",
+    type: "select",
+    label: "Material Type",
+    placeholder: "Select Material Type",
+    options: materialTypes.map(m => ({ value: m.id, label: m.name }))
+  },
+  {
+    key: "item_type_id",
+    type: "select",
+    label: "Item Type",
+    placeholder: "Select Item Type",
+    options: itemTypes.map(i => ({ value: i.id, label: i.name }))
+  },
+  {
+    key: "feature_type_id",
+    type: "select",
+    label: "Feature Type",
+    placeholder: "Select Feature Type",
+    options: featureTypes.map(f => ({ value: f.id, label: f.name }))
+  },
+  {
+    key: "item_class_id",
+    type: "select",
+    label: "Class",
+    placeholder: "Select Class",
+    options: classes.map(c => ({ value: c.id, label: c.name }))
+  },
   { key: "search", label: "Item Code", type: "search", placeholder: "Search Item Code" },
 ];
 
@@ -19,67 +43,41 @@ const LowSide = ({ base_api, filters }) => {
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Client-side filtering based on text inputs (like HighSide)
-  const filteredItems = items.filter((item) => {
-    if (!filters) return true;
-    
-    // Filter by Material Type (text match)
-    if (filters.material_type && !item.material_type_name?.toLowerCase().includes(filters.material_type.toLowerCase())) {
-      return false;
-    }
-    
-    // Filter by Item Type (text match)
-    if (filters.item_type && !item.item_type_name?.toLowerCase().includes(filters.item_type.toLowerCase())) {
-      return false;
-    }
-    
-    // Filter by Feature Type (text match)
-    if (filters.feature_type && !item.feature_type_name?.toLowerCase().includes(filters.feature_type.toLowerCase())) {
-      return false;
-    }
-    
-    // Filter by Class (text match)
-    if (filters.item_class && !item.item_class_name?.toLowerCase().includes(filters.item_class.toLowerCase())) {
-      return false;
-    }
-    
-    // Filter by Item Code (search)
-    if (filters.search && !item.item_code?.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
-    }
-    
-    return true;
-  });
+  // ← ADD THESE PAGINATION STATES
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 10;  // Items per page
+
 
   // Auth headers
   const authHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
   });
 
-  // Fetch all items with filters
-  const fetchItems = async (appliedFilters = {}) => {
+  // Fetch items with pagination
+  const fetchItems = async (page = 1) => {
     setLoading(true);
     try {
-      // Build query parameters
-      const params = new URLSearchParams();
+      const response = await axios.get(
+        `${base_api}/product/item/?page=${page}`,
+        authHeaders()
+      );
       
-      // Backend filters (exact match by ID)
-      if (appliedFilters.material_type_id) params.append('material_type_id', appliedFilters.material_type_id);
-      if (appliedFilters.item_type_id) params.append('item_type_id', appliedFilters.item_type_id);
-      if (appliedFilters.feature_type_id) params.append('feature_type_id', appliedFilters.feature_type_id);
-      if (appliedFilters.item_class_id) params.append('item_class_id', appliedFilters.item_class_id);
-      if (appliedFilters.search) params.append('search', appliedFilters.search);
+      // Handle paginated response
+      const data = response.data;
+      const rows = data?.results ?? [];
       
-      const queryString = params.toString();
-      const url = queryString 
-        ? `${base_api}/api/product/item/?${queryString}`
-        : `${base_api}/api/product/item/`;
-      
-      const response = await axios.get(url, authHeaders());
-      const rows = Array.isArray(response.data)
-        ? response.data
-        : response.data?.results ?? [];
       setItems(rows);
+      
+      // Calculate pagination
+      const count = data?.count ?? rows.length;
+      const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+      
+      setTotalCount(count);
+      setTotalPages(pages);
+      setCurrentPage(page);
+      
     } catch (err) {
       console.error("Error fetching items:", err);
       alert("Failed to fetch items");
@@ -87,6 +85,46 @@ const LowSide = ({ base_api, filters }) => {
       setLoading(false);
     }
   };
+
+  // Filter items with pagination
+  const filterItems = async (filters = {}, page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", page);
+
+      // Add filter parameters
+      if (filters.material_type_id) params.set("material_type_id", filters.material_type_id);
+      if (filters.item_type_id) params.set("item_type_id", filters.item_type_id);
+      if (filters.feature_type_id) params.set("feature_type_id", filters.feature_type_id);
+      if (filters.item_class_id) params.set("item_class_id", filters.item_class_id);
+      if (filters.search && filters.search.trim()) params.set("search", filters.search);
+
+      const url = `${base_api}/product/item/?${params.toString()}`;
+      console.log("🔎 Filter URL:", url);
+
+      const response = await axios.get(url, authHeaders());
+
+      const data = response.data;
+      const rows = data?.results ?? [];
+
+      setItems(rows);
+
+      const count = data?.count ?? rows.length;
+      const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+
+      setTotalCount(count);
+      setTotalPages(pages);
+      setCurrentPage(page);
+
+    } catch (err) {
+      console.error("Error filtering items:", err);
+      alert("Failed to filter items");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Delete item
   const handleDelete = async (itemId) => {
@@ -98,7 +136,7 @@ const LowSide = ({ base_api, filters }) => {
 
     try {
       await axios.delete(
-        `${base_api}/api/product/item/${itemId}/`,
+        `${base_api}/product/item/${itemId}/`,
         authHeaders()
       );
       alert("Item deleted successfully!");
@@ -110,38 +148,19 @@ const LowSide = ({ base_api, filters }) => {
   };
 
 
-  // Fetch items on component mount
+  // Fetch items on mount and when filters change
   useEffect(() => {
-    fetchItems();
-  }, [base_api]);
-
-  // Apply filters when filters prop changes
-  useEffect(() => {
-    if (!filters) return;
-    
-    const hasAnyFilter = Object.values(filters).some(
-      v => v !== undefined && v !== null && v !== ""
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
     );
-    
-    if (hasAnyFilter) {
-      // Convert text filters to IDs by matching names (client-side filtering for text inputs)
-      applyTextFilters(filters);
-    } else {
-      fetchItems();
-    }
-  }, [filters]);
 
-  // Helper function to apply text-based filters (client-side)
-  const applyTextFilters = (textFilters) => {
-    // For text-based filtering, we filter the already fetched items
-    // This matches the HighSide pattern where text inputs filter client-side
-    fetchItems(); // First fetch all items
-    
-    // Note: If you want backend filtering by ID, you'd need to:
-    // 1. Fetch all material types, item types, etc.
-    // 2. Find IDs matching the text
-    // 3. Pass those IDs to fetchItems()
-  };
+    if (hasAnyFilter) {
+      filterItems(filters, 1);  // Reset to page 1 when filters change
+    } else {
+      fetchItems(1);  // Reset to page 1 when no filters
+    }
+  }, [base_api, filters]);
+
 
 
   return (
@@ -150,7 +169,7 @@ const LowSide = ({ base_api, filters }) => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-semibold">Items List</h2>
-          <p className="text-sm text-gray-500">{filteredItems.length} item(s) in inventory</p>
+          <p className="text-sm text-gray-500">{totalCount} item(s) in inventory</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -159,7 +178,6 @@ const LowSide = ({ base_api, filters }) => {
           <span className="text-xl">+</span>
           Add Item
         </button>
-
       </div>
 
       {/* Table */}
@@ -191,9 +209,9 @@ const LowSide = ({ base_api, filters }) => {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item, index) => (
+              items.map((item, index) => (
                 <tr key={item.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm">{item.item_code || "—"}</td>
                   <td className="px-4 py-3 text-sm">{item.material_type_name || "—"}</td>
                   <td className="px-4 py-3 text-sm">{item.item_type_name || "—"}</td>
@@ -238,9 +256,26 @@ const LowSide = ({ base_api, filters }) => {
           </tbody>
 
         </table>
-      </div>
+      
+      {/* ← ADD PAGINATION HERE */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalCount}
+        onPageChange={(newPage) => {
+          // Check if filters are active
+          const hasAnyFilter = filters && Object.values(filters).some(
+            v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+          );
+          
+          // Call appropriate function
+          hasAnyFilter ? filterItems(filters, newPage) : fetchItems(newPage);
+        }}
+      />
+      
+    </div>
 
-      {/* Add Item Modal */}
+    {/* Add Item Modal */}
       <AddItem
         open={showAddModal}
         onClose={() => {

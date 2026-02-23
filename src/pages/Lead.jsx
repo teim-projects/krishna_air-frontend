@@ -11,7 +11,7 @@ import { useUserRole } from '../hooks/useAuth';
 
 export default function Lead() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
-  const API_URL = `${BASE_API}/api/lead/lead/`;
+  const API_URL = `${BASE_API}/lead/lead/`;
 
   // ✅ Called hook to get user role
   const { userRole, isLoading: loadingUser } = useUserRole(BASE_API);
@@ -96,7 +96,7 @@ export default function Lead() {
     setLoadingStaff(true);
     const controller = new AbortController();
 
-    const staffUrl = `${BASE_API.replace(/\/$/, "")}/api/auth/staff/?search=sales`;
+    const staffUrl = `${BASE_API.replace(/\/$/, "")}/auth/staff/?search=sales`;
 
     fetch(staffUrl, {
       method: "GET",
