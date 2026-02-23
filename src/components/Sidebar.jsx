@@ -12,8 +12,8 @@ const allItems = [
   { key: "contacts", label: "Contacts", icon: UserIcon, path: "/customer" },
   { key: "accounts", label: "Accounts", icon: BuildingIcon, path: "/accounts" }, // <-- Item to hide
   { key: "products", label: "Products", icon: BoxIcon, path: "/products" },
-  { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotes" },
-  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoices" },
+  { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotation" },
+  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice" },
 ];
 
 export default function Sidebar() {
