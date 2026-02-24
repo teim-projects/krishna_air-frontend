@@ -36,7 +36,7 @@ export default function AddLeadForm({
   open,
   onClose,
   onSuccess,
-  baseApi = "http://127.0.0.1:8000",
+  baseApi,
   token = "",
   lead = null,
 }) {
@@ -723,6 +723,7 @@ export default function AddLeadForm({
         body: JSON.stringify(payload),
       });
 
+      console.log("res:",res);
       let data;
       try {
         data = await res.json();
