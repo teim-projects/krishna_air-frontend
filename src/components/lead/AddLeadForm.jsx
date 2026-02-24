@@ -153,7 +153,9 @@ export default function AddLeadForm({
     const controller = new AbortController();
     setLoadingReference(true);
 
-    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all`;
+    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all/`;
+
+    console.log("url:",url);
 
     fetch(url, {
       method: "GET",
