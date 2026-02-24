@@ -26,7 +26,7 @@ const AddLeadProductForm = ({
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setAcType(res.data.results || []);
-      console.log("Ac Types:", res.data.results);
+      // console.log("Ac Types:", res.data.results);
     } catch (err) {
       console.error("AC Type fetch failed:", err);
     }
@@ -39,7 +39,7 @@ const AddLeadProductForm = ({
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setBrands(res.data.results || []);
-      console.log("brands:", res.data.results);
+      // console.log("brands:", res.data.results);
     } catch (err) {
       console.error("Brand fetch failed:", err);
     }
@@ -60,7 +60,7 @@ const AddLeadProductForm = ({
         )
       );
 
-      console.log("Sub types:", res.data.results);
+      // console.log("Sub types:", res.data.results);
     } catch (err) {
       console.error("AC Sub Type fetch failed:", err);
     }
