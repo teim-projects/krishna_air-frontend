@@ -7,7 +7,7 @@ const Login = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
   console.log("BASE_API :", BASE_API);
 
-  const LOGIN_ENDPOINT = `${BASE_API}/api/auth/dj-rest-auth/login/`;
+  const LOGIN_ENDPOINT = `${BASE_API}/auth/dj-rest-auth/login/`;
 
   const [form, setForm] = useState({ email_or_mobile: "", password: "" });
   const [message, setMessage] = useState("");

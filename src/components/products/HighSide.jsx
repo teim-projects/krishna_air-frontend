@@ -108,7 +108,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
     // ================= API =================
     const fetchAcTypes = async () => {
-        const res = await axios.get(`${BASE_API}/api/product/actype/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/actype/`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setAcTypes(rows);
         setList(rows);
@@ -120,7 +120,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchAcSubTypesByType = async (acTypeId) => {
         // console.log("acType",acTypeId)
         const res = await axios.get(
-            `${BASE_API}/api/product/ac-subtypes/?ac_type_id=${acTypeId}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}`,
             authHeaders()
         );
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
@@ -132,7 +132,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
    
 
     const fetchBrands = async () => {
-        const res = await axios.get(`${BASE_API}/api/product/ac-brand/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setBrands(rows);
     };
@@ -157,7 +157,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             if (filters.ac_type_id) params.set("ac_sub_type_id__ac_type_id", filters.ac_type_id);
             if (filters.phase) params.set("phase", filters.phase);
 
-            const url = `${BASE_API}/api/product/product-model/?${params.toString()}`;
+            const url = `${BASE_API}/product/product-model/?${params.toString()}`;
             console.log("🔎 Model Filter URL:", url);
 
             const res = await axios.get(url, authHeaders());
@@ -234,13 +234,13 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         // 1. Save AC Type
         if (editingId) {
             await axios.put(
-                `${BASE_API}/api/product/actype/${editingId}/`,
+                `${BASE_API}/product/actype/${editingId}/`,
                 { name: acType },
                 authHeaders()
             );
         } else {
             const res = await axios.post(
-                `${BASE_API}/api/product/actype/`,
+                `${BASE_API}/product/actype/`,
                 { name: acType },
                 authHeaders()
             );
@@ -256,7 +256,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             editingSubTypes.map((old) => {
                 if (!current.find((c) => c.id === old.id)) {
                     return axios.delete(
-                        `${BASE_API}/api/product/ac-subtypes/${old.id}/`,
+                        `${BASE_API}/product/ac-subtypes/${old.id}/`,
                         authHeaders()
                     );
                 }
@@ -271,7 +271,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                     const old = editingSubTypes.find((o) => o.id === c.id);
                     if (old && old.name !== c.name) {
                         return axios.patch(
-                            `${BASE_API}/api/product/ac-subtypes/${c.id}/`,
+                            `${BASE_API}/product/ac-subtypes/${c.id}/`,
                             { name: c.name },
                             authHeaders()
                         );
@@ -286,7 +286,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             current.map((c) => {
                 if (!c.id) {
                     return axios.post(
-                        `${BASE_API}/api/product/ac-subtypes/`,
+                        `${BASE_API}/product/ac-subtypes/`,
                         { name: c.name, ac_type_id: acTypeId },
                         authHeaders()
                     );
@@ -308,7 +308,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         setEditingId(row.id);
 
         const res = await axios.get(
-            `${BASE_API}/api/product/ac-subtypes/?ac_type_id=${row.id}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${row.id}`,
             authHeaders()
         );
 
@@ -325,7 +325,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
     const handleDelete = async (id) => {
         if (!window.confirm("Delete this AC Type?")) return;
-        await axios.delete(`${BASE_API}/api/product/actype/${id}/`, authHeaders());
+        await axios.delete(`${BASE_API}/product/actype/${id}/`, authHeaders());
         fetchAcTypes();
     };
 
@@ -337,14 +337,14 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         if (editingBrandId) {
             // UPDATE
             await axios.patch(
-                `${BASE_API}/api/product/ac-brand/${editingBrandId}/`,
+                `${BASE_API}/product/ac-brand/${editingBrandId}/`,
                 { name: brandInput },
                 authHeaders()
             );
         } else {
             // CREATE
             await axios.post(
-                `${BASE_API}/api/product/ac-brand/`,
+                `${BASE_API}/product/ac-brand/`,
                 { name: brandInput },
                 authHeaders()
             );
@@ -365,7 +365,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         if (!window.confirm("Delete this brand?")) return;
 
         await axios.delete(
-            `${BASE_API}/api/product/ac-brand/${id}/`,
+            `${BASE_API}/product/ac-brand/${id}/`,
             authHeaders()
         );
 
@@ -375,7 +375,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const handleDeleteModel = async (id) => {
         if (!window.confirm("Delete this model?")) return;
 
-        await axios.delete(`${BASE_API}/api/product/product-model/${id}/`, authHeaders());
+        await axios.delete(`${BASE_API}/product/product-model/${id}/`, authHeaders());
         fetchModels();
     };
 
@@ -417,7 +417,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             setLoadingModels(true);
 
             const res = await axios.get(
-                `${BASE_API}/api/product/product-model/?page=${page}`,
+                `${BASE_API}/product/product-model/?page=${page}`,
                 authHeaders()
             );
 
@@ -449,7 +449,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchVariants = async (modelId) => {
         try {
             const res = await axios.get(
-                `${BASE_API}/api/product/product-variant/?product_model=${modelId}`,
+                `${BASE_API}/product/product-variant/?product_model=${modelId}`,
                 authHeaders()
             );
 
@@ -887,7 +887,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     // Fetch variants
     const loadVariants = async () => {
         const res = await axios.get(
-            `${baseApi}/api/product/product-variant/?product_model=${model.id}`,
+            `${baseApi}/product/product-variant/?product_model=${model.id}`,
             authHeaders()
         );
 
@@ -937,14 +937,14 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
         if (form.id) {
             // UPDATE
             await axios.put(
-                `${baseApi}/api/product/product-variant/${form.id}/`,
+                `${baseApi}/product/product-variant/${form.id}/`,
                 payload,
                 authHeaders()
             );
         } else {
             // CREATE
             await axios.post(
-                `${baseApi}/api/product/product-variant/`,
+                `${baseApi}/product/product-variant/`,
                 payload,
                 authHeaders()
             );
@@ -962,7 +962,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
         if (!window.confirm("Delete this variant?")) return;
 
         await axios.delete(
-            `${baseApi}/api/product/product-variant/${id}/`,
+            `${baseApi}/product/product-variant/${id}/`,
             authHeaders()
         );
 

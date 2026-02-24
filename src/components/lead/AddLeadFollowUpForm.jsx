@@ -16,31 +16,31 @@ const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
       try {
         // Fetch all required data in parallel
         const [acTypesRes, acSubTypesRes, brandsRes, modelsRes, variantsRes] = await Promise.all([
-          fetch(`${baseApi}/api/product/actype/`, {
+          fetch(`${baseApi}/product/actype/`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/api/product/ac-subtypes/`, {
+          fetch(`${baseApi}/product/ac-subtypes/`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/api/product/ac-brand/`, {
+          fetch(`${baseApi}/product/ac-brand/`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/api/product/product-model/`, {
+          fetch(`${baseApi}/product/product-model/`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/api/product/product-variant/`, {
+          fetch(`${baseApi}/product/product-variant/`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -362,7 +362,7 @@ export default function AddLeadFollowUpForm({
     const fetchLead = async () => {
       try {
         const res = await fetch(
-          `${BASE_API}/api/lead/lead/${leadId}/`,
+          `${BASE_API}/lead/lead/${leadId}/`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -506,7 +506,7 @@ export default function AddLeadFollowUpForm({
     const fetchFaqs = async () => {
       setFaqLoading(true);
       try {
-        const res = await fetch(`${BASE_API}/api/lead/lead-faqs/`, {
+        const res = await fetch(`${BASE_API}/lead/lead-faqs/`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -650,8 +650,8 @@ export default function AddLeadFollowUpForm({
       }
 
       const url = followup
-        ? `${BASE_API}/api/lead/lead-followups/${followup.id}/`
-        : `${BASE_API}/api/lead/lead-followups/`;
+        ? `${BASE_API}/lead/lead-followups/${followup.id}/`
+        : `${BASE_API}/lead/lead-followups/`;
       const method = followup ? "PATCH" : "POST";
 
       const res = await fetch(url, {

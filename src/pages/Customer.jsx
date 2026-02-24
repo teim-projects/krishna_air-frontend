@@ -7,7 +7,7 @@ import AddCustomerForm from "../components/customers/AddCustomerForm"; // <-- im
 
 export default function Customer() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
-  const API_URL = `${BASE_API}/api/lead/customer/`;
+  const API_URL = `${BASE_API}/lead/customer/`;
   const initialFilters = useMemo(() => ({ search: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 

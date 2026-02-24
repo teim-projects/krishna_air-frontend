@@ -58,7 +58,7 @@ export default function Accounts() {
     try {
       if (!token) throw new Error("No bearer token found.");
 
-      const url = `${BASE_API}/api/auth/roles/`;
+      const url = `${BASE_API}/auth/roles/`;
 
       const res = await fetch(url, {
         headers: {
@@ -99,7 +99,7 @@ export default function Accounts() {
       if (appliedFilters.search) params.set("search", appliedFilters.search);
       if (appliedFilters.role) params.set("role", appliedFilters.role);
 
-      const url = `${BASE_API}/api/auth/staff/?${params.toString()}`;
+      const url = `${BASE_API}/auth/staff/?${params.toString()}`;
 
       const res = await fetch(url, {
         headers: {
@@ -170,7 +170,7 @@ export default function Accounts() {
 
     if (!confirm.isConfirmed) return;
 
-    await fetch(`${BASE_API}/api/auth/staff/${id}/`, {
+    await fetch(`${BASE_API}/auth/staff/${id}/`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     });

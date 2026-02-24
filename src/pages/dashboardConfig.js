@@ -1,22 +1,21 @@
+const BASE_API = import.meta.env.VITE_BASE_API_URL;
+
 export const dashboardConfig = [
-  
-  // ⭐ NEW: Lead Count
+  // Lead Count
   {
     id: "kpi_leads",
     type: "kpi",
     title: "Total Leads",
-    api: "https://api.dsaqua.online/api/lead/lead/",
+    api: `${BASE_API}/lead/lead/`,
     icon: "📊",
   },
 
-  
-  
-    // Inventory
+  // Inventory
   {
     id: "kpi_inventory",
     type: "kpi",
     title: "Total Inventory",
-    api: "https://api.dsaqua.online/api/product/product-inventory/",
+    api: `${BASE_API}/product/product-inventory/`,
     icon: "📦",
   },
 
@@ -25,18 +24,16 @@ export const dashboardConfig = [
     id: "kpi_variants",
     type: "kpi",
     title: "Total Variants",
-    api: "https://api.dsaqua.online/api/product/product-variant/",
+    api: `${BASE_API}/product/product-variant/`,
     icon: "🧩",
   },
-
- 
 
   // Brands
   {
     id: "kpi_brands",
     type: "kpi",
     title: "Total Brands",
-    api: "https://api.dsaqua.online/api/product/ac-brand/",
+    api: `${BASE_API}/product/ac-brand/`,
     icon: "🏷️",
   },
 
@@ -45,7 +42,7 @@ export const dashboardConfig = [
     id: "kpi_ac_types",
     type: "kpi",
     title: "AC Types",
-    api: "https://api.dsaqua.online/api/product/actype/",
+    api: `${BASE_API}/product/actype/`,
     icon: "❄️",
   },
 
@@ -54,7 +51,7 @@ export const dashboardConfig = [
     id: "kpi_sub_types",
     type: "kpi",
     title: "Sub Types",
-    api: "https://api.dsaqua.online/api/product/ac-subtypes/",
+    api: `${BASE_API}/product/ac-subtypes/`,
     icon: "📘",
   },
 ];

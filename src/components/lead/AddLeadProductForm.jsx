@@ -22,10 +22,11 @@ const AddLeadProductForm = ({
   const fetchAcTypes = async () => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/actype/`,
+        `${baseApi.replace(/\/$/, "")}/product/actype/`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setAcType(res.data.results || []);
+      console.log("Ac Types:", res.data.results);
     } catch (err) {
       console.error("AC Type fetch failed:", err);
     }
@@ -34,10 +35,11 @@ const AddLeadProductForm = ({
   const fetchBrands = async () => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/ac-brand/`,
+        `${baseApi.replace(/\/$/, "")}/product/ac-brand/`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setBrands(res.data.results || []);
+      console.log("brands:", res.data.results);
     } catch (err) {
       console.error("Brand fetch failed:", err);
     }
@@ -46,7 +48,7 @@ const AddLeadProductForm = ({
   const fetchAcSubTypes = async (acTypeId, index) => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/ac-subtypes/?ac_type_id=${acTypeId}`,
+        `${baseApi.replace(/\/$/, "")}/product/ac-subtypes/?ac_type_id=${acTypeId}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
 
@@ -57,6 +59,8 @@ const AddLeadProductForm = ({
             : p
         )
       );
+
+      console.log("Sub types:", res.data.results);
     } catch (err) {
       console.error("AC Sub Type fetch failed:", err);
     }
@@ -66,7 +70,7 @@ const AddLeadProductForm = ({
   const fetchProductModels = async (acSubTypeID, brandID, index) => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/product-model/?ac_sub_type_id=${acSubTypeID}&brand_id=${brandID}`,
+        `${baseApi.replace(/\/$/, "")}/product/product-model/?ac_sub_type_id=${acSubTypeID}&brand_id=${brandID}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
 
 
@@ -94,7 +98,7 @@ const AddLeadProductForm = ({
   const fetchProductVariants = async (productModelID, index) => {
     try {
       const res = await axios.get(
-        `${baseApi.replace(/\/$/, "")}/api/product/product-variant/?product_model=${productModelID}`,
+        `${baseApi.replace(/\/$/, "")}/product/product-variant/?product_model=${productModelID}`,
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
       setProducts(prev =>

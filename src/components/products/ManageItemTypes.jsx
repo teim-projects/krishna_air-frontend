@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
-import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus, FiSearch } from "react-icons/fi";
 import axios from "axios";
 
 const ManageItemTypes = ({ open, onClose, base_api }) => {
@@ -9,18 +9,6 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const [itemTypes, setItemTypes] = useState([]);
   const [featureTypes, setFeatureTypes] = useState([]);
   const [classes, setClasses] = useState([]);
-
-  // Pagination state for backend pagination
-  const [materialPage, setMaterialPage] = useState(1);
-  const [itemPage, setItemPage] = useState(1);
-  const [featurePage, setFeaturePage] = useState(1);
-  const [classPage, setClassPage] = useState(1);
-
-  // Total counts from backend
-  const [materialCount, setMaterialCount] = useState(0);
-  const [itemCount, setItemCount] = useState(0);
-  const [featureCount, setFeatureCount] = useState(0);
-  const [classCount, setClassCount] = useState(0);
 
   // Add input states for adding new items
   const [materialInput, setMaterialInput] = useState("");
@@ -34,153 +22,201 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const [editingFeatureId, setEditingFeatureId] = useState(null);
   const [editingClassId, setEditingClassId] = useState(null);
 
+  // Button mode states for smart add/search functionality
+  const [materialButtonMode, setMaterialButtonMode] = useState('idle'); // 'idle', 'search', 'add'
+  const [itemButtonMode, setItemButtonMode] = useState('idle');
+  const [featureButtonMode, setFeatureButtonMode] = useState('idle');
+  const [classButtonMode, setClassButtonMode] = useState('idle');
+
+  // Search term states for filtering
+  const [materialSearchTerm, setMaterialSearchTerm] = useState('');
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [featureSearchTerm, setFeatureSearchTerm] = useState('');
+  const [classSearchTerm, setClassSearchTerm] = useState('');
+
+
   const authHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
   });
 
-  // Fetch Material Types with pagination
-  const fetchMaterialTypes = async (page = 1) => {
+  // Fetch Material Types
+  const fetchMaterialTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/material-type/?page=${page}`, authHeaders());
-      setMaterialTypes(res.data.results || []);
-      setMaterialCount(res.data.count || 0);
+      const res = await axios.get(`${base_api}/product/material-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setMaterialTypes(rows);
     } catch (err) {
       console.error("Error fetching Material Types:", err);
     }
   };
 
-  // Fetch Item Types with pagination
-  const fetchItemTypes = async (page = 1) => {
+  // Fetch Item Types
+  const fetchItemTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/item-type/?page=${page}`, authHeaders());
-      setItemTypes(res.data.results || []);
-      setItemCount(res.data.count || 0);
+      const res = await axios.get(`${base_api}/product/item-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setItemTypes(rows);
     } catch (err) {
       console.error("Error fetching Item Types:", err);
     }
   };
 
-  // Fetch Feature Types with pagination
-  const fetchFeatureTypes = async (page = 1) => {
+  // Fetch Feature Types
+  const fetchFeatureTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/feature-type/?page=${page}`, authHeaders());
-      setFeatureTypes(res.data.results || []);
-      setFeatureCount(res.data.count || 0);
+      const res = await axios.get(`${base_api}/product/feature-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setFeatureTypes(rows);
     } catch (err) {
       console.error("Error fetching Feature Types:", err);
     }
   };
 
-  // Fetch Classes with pagination
-  const fetchClasses = async (page = 1) => {
+  // Fetch Classes
+  const fetchClasses = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/item-class/?page=${page}`, authHeaders());
-      setClasses(res.data.results || []);
-      setClassCount(res.data.count || 0);
+      const res = await axios.get(`${base_api}/product/item-class/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setClasses(rows);
     } catch (err) {
       console.error("Error fetching Classes:", err);
     }
   };
 
 
-  // Add or Update Material Type
+  // Add or Update or Search Material Type
   const handleAddOrUpdateMaterial = async () => {
     if (!materialInput.trim()) return;
 
+    // SEARCH MODE: If item exists, filter the table
+    if (materialButtonMode === 'search') {
+      setMaterialSearchTerm(materialInput.trim());
+      return;
+    }
+
+    // ADD/UPDATE MODE: Create or update item
     try {
       if (editingMaterialId) {
         await axios.patch(
-          `${base_api}/api/product/material-type/${editingMaterialId}/`,
+          `${base_api}/product/material-type/${editingMaterialId}/`,
           { name: materialInput },
           authHeaders()
         );
       } else {
         await axios.post(
-          `${base_api}/api/product/material-type/`,
+          `${base_api}/product/material-type/`,
           { name: materialInput },
           authHeaders()
         );
       }
       setMaterialInput("");
       setEditingMaterialId(null);
+      setMaterialSearchTerm(''); // Clear search when adding
       fetchMaterialTypes(materialPage);
     } catch (err) {
       console.error("Error saving Material Type:", err);
     }
   };
 
-  // Add or Update Item Type
+
+  // Add or Update or Search Item Type
   const handleAddOrUpdateItem = async () => {
     if (!itemInput.trim()) return;
 
+    // SEARCH MODE
+    if (itemButtonMode === 'search') {
+      setItemSearchTerm(itemInput.trim());
+      return;
+    }
+
+    // ADD/UPDATE MODE
     try {
       if (editingItemId) {
         await axios.patch(
-          `${base_api}/api/product/item-type/${editingItemId}/`,
+          `${base_api}/product/item-type/${editingItemId}/`,
           { name: itemInput },
           authHeaders()
         );
       } else {
         await axios.post(
-          `${base_api}/api/product/item-type/`,
+          `${base_api}/product/item-type/`,
           { name: itemInput },
           authHeaders()
         );
       }
       setItemInput("");
       setEditingItemId(null);
+      setItemSearchTerm('');
       fetchItemTypes(itemPage);
     } catch (err) {
       console.error("Error saving Item Type:", err);
     }
   };
 
-  // Add or Update Feature Type
+
+  // Add or Update or Search Feature Type
   const handleAddOrUpdateFeature = async () => {
     if (!featureInput.trim()) return;
 
+    // SEARCH MODE
+    if (featureButtonMode === 'search') {
+      setFeatureSearchTerm(featureInput.trim());
+      return;
+    }
+
+    // ADD/UPDATE MODE
     try {
       if (editingFeatureId) {
         await axios.patch(
-          `${base_api}/api/product/feature-type/${editingFeatureId}/`,
+          `${base_api}/product/feature-type/${editingFeatureId}/`,
           { name: featureInput },
           authHeaders()
         );
       } else {
         await axios.post(
-          `${base_api}/api/product/feature-type/`,
+          `${base_api}/product/feature-type/`,
           { name: featureInput },
           authHeaders()
         );
       }
       setFeatureInput("");
       setEditingFeatureId(null);
+      setFeatureSearchTerm('');
       fetchFeatureTypes(featurePage);
     } catch (err) {
       console.error("Error saving Feature Type:", err);
     }
   };
 
-  // Add or Update Class
+
+  // Add or Update or Search Class
   const handleAddOrUpdateClass = async () => {
     if (!classInput.trim()) return;
 
+    // SEARCH MODE
+    if (classButtonMode === 'search') {
+      setClassSearchTerm(classInput.trim());
+      return;
+    }
+
+    // ADD/UPDATE MODE
     try {
       if (editingClassId) {
         await axios.patch(
-          `${base_api}/api/product/item-class/${editingClassId}/`,
+          `${base_api}/product/item-class/${editingClassId}/`,
           { name: classInput },
           authHeaders()
         );
       } else {
         await axios.post(
-          `${base_api}/api/product/item-class/`,
+          `${base_api}/product/item-class/`,
           { name: classInput },
           authHeaders()
         );
       }
       setClassInput("");
       setEditingClassId(null);
+      setClassSearchTerm('');
       fetchClasses(classPage);
     } catch (err) {
       console.error("Error saving Class:", err);
@@ -212,8 +248,8 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const handleDeleteMaterial = async (id) => {
     if (!window.confirm("Delete this Material Type?")) return;
     try {
-      await axios.delete(`${base_api}/api/product/material-type/${id}/`, authHeaders());
-      fetchMaterialTypes(materialPage);
+      await axios.delete(`${base_api}/product/material-type/${id}/`, authHeaders());
+      fetchMaterialTypes();
     } catch (err) {
       console.error("Error deleting Material Type:", err);
     }
@@ -222,8 +258,8 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const handleDeleteItem = async (id) => {
     if (!window.confirm("Delete this Item Type?")) return;
     try {
-      await axios.delete(`${base_api}/api/product/item-type/${id}/`, authHeaders());
-      fetchItemTypes(itemPage);
+      await axios.delete(`${base_api}/product/item-type/${id}/`, authHeaders());
+      fetchItemTypes();
     } catch (err) {
       console.error("Error deleting Item Type:", err);
     }
@@ -232,8 +268,8 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const handleDeleteFeature = async (id) => {
     if (!window.confirm("Delete this Feature Type?")) return;
     try {
-      await axios.delete(`${base_api}/api/product/feature-type/${id}/`, authHeaders());
-      fetchFeatureTypes(featurePage);
+      await axios.delete(`${base_api}/product/feature-type/${id}/`, authHeaders());
+      fetchFeatureTypes();
     } catch (err) {
       console.error("Error deleting Feature Type:", err);
     }
@@ -242,77 +278,142 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   const handleDeleteClass = async (id) => {
     if (!window.confirm("Delete this Class?")) return;
     try {
-      await axios.delete(`${base_api}/api/product/item-class/${id}/`, authHeaders());
-      fetchClasses(classPage);
+      await axios.delete(`${base_api}/product/item-class/${id}/`, authHeaders());
+      fetchClasses();
     } catch (err) {
       console.error("Error deleting Class:", err);
     }
   };
 
+  // Filter tables based on search terms
+  const filteredMaterialTypes = materialSearchTerm
+    ? materialTypes.filter(m =>
+      m.name.toLowerCase().includes(materialSearchTerm.toLowerCase())
+    )
+    : materialTypes;
+
+  const filteredItemTypes = itemSearchTerm
+    ? itemTypes.filter(i =>
+      i.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+    )
+    : itemTypes;
+
+  const filteredFeatureTypes = featureSearchTerm
+    ? featureTypes.filter(f =>
+      f.name.toLowerCase().includes(featureSearchTerm.toLowerCase())
+    )
+    : featureTypes;
+
+  const filteredClasses = classSearchTerm
+    ? classes.filter(c =>
+      c.name.toLowerCase().includes(classSearchTerm.toLowerCase())
+    )
+    : classes;
+
+
 
   useEffect(() => {
     if (!open) return;
 
-    fetchMaterialTypes(materialPage);
-    fetchItemTypes(itemPage);
-    fetchFeatureTypes(featurePage);
-    fetchClasses(classPage);
+    fetchMaterialTypes();
+    fetchItemTypes();
+    fetchFeatureTypes();
+    fetchClasses();
   }, [open, base_api]);
 
-  // Fetch data when page changes
+
+  // Detect if Material Type input matches existing item
   useEffect(() => {
-    if (!open) return;
-    fetchMaterialTypes(materialPage);
-  }, [materialPage]);
+    if (!materialInput.trim()) {
+      setMaterialButtonMode('idle');
+      setMaterialSearchTerm('');
+      return;
+    }
 
+    const exactMatch = materialTypes.some(
+      m => m.name.toLowerCase() === materialInput.trim().toLowerCase()
+    );
+
+    setMaterialButtonMode(exactMatch ? 'search' : 'add');
+  }, [materialInput, materialTypes]);
+
+  // Detect if Item Type input matches existing item
   useEffect(() => {
-    if (!open) return;
-    fetchItemTypes(itemPage);
-  }, [itemPage]);
+    if (!itemInput.trim()) {
+      setItemButtonMode('idle');
+      setItemSearchTerm('');
+      return;
+    }
 
+    const exactMatch = itemTypes.some(
+      i => i.name.toLowerCase() === itemInput.trim().toLowerCase()
+    );
+
+    setItemButtonMode(exactMatch ? 'search' : 'add');
+  }, [itemInput, itemTypes]);
+
+  // Detect if Feature Type input matches existing item
   useEffect(() => {
-    if (!open) return;
-    fetchFeatureTypes(featurePage);
-  }, [featurePage]);
+    if (!featureInput.trim()) {
+      setFeatureButtonMode('idle');
+      setFeatureSearchTerm('');
+      return;
+    }
 
+    const exactMatch = featureTypes.some(
+      f => f.name.toLowerCase() === featureInput.trim().toLowerCase()
+    );
+
+    setFeatureButtonMode(exactMatch ? 'search' : 'add');
+  }, [featureInput, featureTypes]);
+
+  // Detect if Class input matches existing item
   useEffect(() => {
-    if (!open) return;
-    fetchClasses(classPage);
-  }, [classPage]);
+    if (!classInput.trim()) {
+      setClassButtonMode('idle');
+      setClassSearchTerm('');
+      return;
+    }
+
+    const exactMatch = classes.some(
+      c => c.name.toLowerCase() === classInput.trim().toLowerCase()
+    );
+
+    setClassButtonMode(exactMatch ? 'search' : 'add');
+  }, [classInput, classes]);
 
 
-  // Backend pagination - 10 items per page
-  const itemsPerPage = 10;
+  // Pagination State
+  const [materialPage, setMaterialPage] = useState(1);
+  const [itemPage, setItemPage] = useState(1);
+  const [featurePage, setFeaturePage] = useState(1);
+  const [classPage, setClassPage] = useState(1);
+
+  const itemsPerPage = 5;
 
   if (!open) return null;
 
-  const PaginationControls = ({ page, setPage, total }) => {
-    const totalPages = Math.ceil(total / itemsPerPage);
-    
-    return (
-      <div className="flex justify-between items-center mt-3">
-        <span className="text-sm text-gray-600">
-          Page {page} of {totalPages} ({total} total items)
-        </span>
-        <div className="flex gap-2">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-100 flex items-center"
-          >
-            &lt;
-          </button>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-100 flex items-center"
-          >
-            &gt;
-          </button>
-        </div>
-      </div>
-    );
-  };
+  const paginate = (data, page) =>
+    data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const PaginationControls = ({ page, setPage, total }) => (
+    <div className="flex justify-end gap-2 mt-3">
+      <button
+        disabled={page === 1}
+        onClick={() => setPage(page - 1)}
+        className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-100 flex items-center"
+      >
+        &lt;
+      </button>
+      <button
+        disabled={page * itemsPerPage >= total}
+        onClick={() => setPage(page + 1)}
+        className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-100 flex items-center"
+      >
+        &gt;
+      </button>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-[60] mt-15">
@@ -350,9 +451,27 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                 />
                 <button
                   onClick={handleAddOrUpdateMaterial}
-                  className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${materialButtonMode === 'search'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-black text-white'
+                    }`}
+                  title={
+                    materialButtonMode === 'idle'
+                      ? 'Type to add or search'
+                      : materialButtonMode === 'search'
+                        ? `Found! Click to filter "${materialInput}"`
+                        : `Click to add "${materialInput}"`
+                  }
                 >
-                  <FiPlus />
+                  {materialButtonMode === 'search' ? (
+                    <>
+                      <FiSearch /> 
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus /> {editingMaterialId ? 'Update' : materialButtonMode === 'idle' ? 'Add' : 'Add New'}
+                    </>
+                  )}
                 </button>
 
               </div>
@@ -366,7 +485,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {materialTypes.map((item, index) => (
+                    {paginate(filteredMaterialTypes, materialPage).map((item, index) => (
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">
@@ -391,7 +510,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
               <PaginationControls
                 page={materialPage}
                 setPage={setMaterialPage}
-                total={materialCount}
+                total={materialTypes.length}
               />
             </div>
 
@@ -408,10 +527,23 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                 />
                 <button
                   onClick={handleAddOrUpdateItem}
-                  className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${itemButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                    }`}
+                  title={
+                    itemButtonMode === 'idle' ? 'Type to add or search'
+                      : itemButtonMode === 'search' ? `Found! Click to filter "${itemInput}"`
+                        : `Click to add "${itemInput}"`
+                  }
                 >
-                  <FiPlus />
+                  {itemButtonMode === 'search' ? (
+                    <>
+                      <FiSearch /> 
+                    </>
+                  ) : (
+                    <><FiPlus /> {editingItemId ? 'Update' : itemButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                  )}
                 </button>
+
 
               </div>
 
@@ -424,7 +556,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {itemTypes.map((item, index) => (
+                    {paginate(filteredItemTypes, itemPage).map((item, index) => (
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">
@@ -449,7 +581,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
               <PaginationControls
                 page={itemPage}
                 setPage={setItemPage}
-                total={itemCount}
+                total={itemTypes.length}
               />
             </div>
           </div>
@@ -470,10 +602,24 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                 />
                 <button
                   onClick={handleAddOrUpdateFeature}
-                  className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${featureButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                    }`}
+                  title={
+                    featureButtonMode === 'idle' ? 'Type to add or search'
+                      : featureButtonMode === 'search' ? `Found! Click to filter "${featureInput}"`
+                        : `Click to add "${featureInput}"`
+                  }
                 >
-                  <FiPlus />
+                  {featureButtonMode === 'search' ? (
+                    <>
+                    <FiSearch />
+                    </>
+                  ) : (
+                    <><FiPlus /> {editingFeatureId ? 'Update' : featureButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                  )}
                 </button>
+
+
 
               </div>
 
@@ -486,7 +632,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {featureTypes.map((item, index) => (
+                    {paginate(filteredFeatureTypes, featurePage).map((item, index) => (
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">
@@ -511,7 +657,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
               <PaginationControls
                 page={featurePage}
                 setPage={setFeaturePage}
-                total={featureCount}
+                total={featureTypes.length}
               />
             </div>
 
@@ -528,10 +674,23 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                 />
                 <button
                   onClick={handleAddOrUpdateClass}
-                  className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${classButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                    }`}
+                  title={
+                    classButtonMode === 'idle' ? 'Type to add or search'
+                      : classButtonMode === 'search' ? `Found! Click to filter "${classInput}"`
+                        : `Click to add "${classInput}"`
+                  }
                 >
-                  <FiPlus />
+                  {classButtonMode === 'search' ? (
+                    <>
+                    <FiSearch />
+                    </>
+                  ) : (
+                    <><FiPlus /> {editingClassId ? 'Update' : classButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                  )}
                 </button>
+
 
               </div>
 
@@ -544,7 +703,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {classes.map((item, index) => (
+                    {paginate(filteredClasses, classPage).map((item, index) => (
                       <tr key={item.id} className="border-b border-gray-200">
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">
@@ -569,7 +728,7 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
               <PaginationControls
                 page={classPage}
                 setPage={setClassPage}
-                total={classCount}
+                total={classes.length}
               />
             </div>
           </div>

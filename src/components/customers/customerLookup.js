@@ -3,7 +3,7 @@
 export async function fetchCustomerByQuery(baseApi, token, query, options = {}) {
   if (!query || query.trim() === "") return null;
 
-  const url = `${baseApi.replace(/\/$/, "")}/api/lead/customer/?search=${encodeURIComponent(query)}`;
+  const url = `${baseApi.replace(/\/$/, "")}/lead/customer/?search=${encodeURIComponent(query)}`;
 
   try {
     const res = await fetch(url, {

@@ -41,7 +41,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Material Types
   const fetchMaterialTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/material-type/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/material-type/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setMaterialTypes(rows);
     } catch (err) {
@@ -52,7 +52,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Item Types
   const fetchItemTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/item-type/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/item-type/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setItemTypes(rows);
     } catch (err) {
@@ -63,7 +63,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Feature Types
   const fetchFeatureTypes = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/feature-type/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/feature-type/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setFeatureTypes(rows);
     } catch (err) {
@@ -74,7 +74,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Classes
   const fetchClasses = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/item-class/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/item-class/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setClasses(rows);
     } catch (err) {
@@ -85,7 +85,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Brands
   const fetchBrands = async () => {
     try {
-      const res = await axios.get(`${base_api}/api/product/ac-brand/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/ac-brand/`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setBrands(rows);
     } catch (err) {
@@ -196,7 +196,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
       if (editMode && itemData) {
         // UPDATE existing item (PUT request)
         const response = await axios.put(
-          `${base_api}/api/product/item/${itemData.id}/`,
+          `${base_api}/product/item/${itemData.id}/`,
           payload,
           authHeaders()
         );
@@ -205,7 +205,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
       } else {
         // CREATE new item (POST request)
         const response = await axios.post(
-          `${base_api}/api/product/item/`,
+          `${base_api}/product/item/`,
           payload,
           authHeaders()
         );

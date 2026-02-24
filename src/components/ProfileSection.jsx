@@ -23,7 +23,7 @@ const ProfileSection = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/user/`,
+        `${import.meta.env.VITE_BASE_API_URL}/auth/dj-rest-auth/user/`,
         {
           method: "GET",
           headers: {
@@ -62,7 +62,7 @@ const ProfileSection = () => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/user/`,
+        `${import.meta.env.VITE_BASE_API_URL}/auth/dj-rest-auth/user/`,
         {
           method: "PATCH",
           headers: {

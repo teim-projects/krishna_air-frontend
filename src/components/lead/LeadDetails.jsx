@@ -23,11 +23,11 @@ const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
 
         // Fetch all required data in parallel using axios
         const [acTypesRes, acSubTypesRes, brandsRes, modelsRes, variantsRes] = await Promise.all([
-          axios.get(`${baseApi}/api/product/actype/`, authHeaders),
-          axios.get(`${baseApi}/api/product/ac-subtypes/`, authHeaders),
-          axios.get(`${baseApi}/api/product/ac-brand/`, authHeaders),
-          axios.get(`${baseApi}/api/product/product-model/`, authHeaders),
-          axios.get(`${baseApi}/api/product/product-variant/`, authHeaders),
+          axios.get(`${baseApi}/product/actype/`, authHeaders),
+          axios.get(`${baseApi}/product/ac-subtypes/`, authHeaders),
+          axios.get(`${baseApi}/product/ac-brand/`, authHeaders),
+          axios.get(`${baseApi}/product/product-model/`, authHeaders),
+          axios.get(`${baseApi}/product/product-variant/`, authHeaders),
         ]);
 
         const acTypes = acTypesRes.data;
@@ -200,7 +200,7 @@ const LeadDetails = ({ open, onClose, leadId, baseApi, token }) => {
         setLoading(true);
         setError("");
         
-        const response = await axios.get(`${baseApi}/api/lead/lead/${leadId}/`, {
+        const response = await axios.get(`${baseApi}/lead/lead/${leadId}/`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),

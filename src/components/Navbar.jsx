@@ -22,7 +22,7 @@ const Navbar = ({ onMenuClick }) => {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/user/`,
+        `${import.meta.env.VITE_BASE_API_URL}/auth/dj-rest-auth/user/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

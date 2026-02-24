@@ -43,7 +43,7 @@ export default function AddLeadForm({
   const contactRef = useRef("");
   const productsInitializedRef = useRef(false);
 
-  const API_URL = `${baseApi.replace(/\/$/, "")}/api/lead/lead/`;
+  const API_URL = `${baseApi.replace(/\/$/, "")}/lead/lead/`;
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [formData, setFormData] = useState({
     enquiry_date: "",
@@ -153,7 +153,7 @@ export default function AddLeadForm({
     const controller = new AbortController();
     setLoadingReference(true);
 
-    const url = `${baseApi.replace(/\/$/, "")}/api/auth/staff/all`;
+    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all`;
 
     fetch(url, {
       method: "GET",
@@ -199,7 +199,7 @@ export default function AddLeadForm({
     const controller = new AbortController();
     setLoadingAssign(true);
 
-    const url = `${baseApi.replace(/\/$/, "")}/api/auth/staff/?search=sales`;
+    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/?search=sales`;
 
     fetch(url, {
       method: "GET",
@@ -369,7 +369,7 @@ export default function AddLeadForm({
     setLoadingLatestLead(true);
     try {
       const res = await fetch(
-        `${baseApi.replace(/\/$/, "")}/api/lead/lead/latest-lead-by-mobile/?mobile=${mobile}`,
+        `${baseApi.replace(/\/$/, "")}/lead/lead/latest-lead-by-mobile/?mobile=${mobile}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -592,7 +592,7 @@ export default function AddLeadForm({
         }
 
         const customerRes = await fetch(
-          `${baseApi.replace(/\/$/, "")}/api/lead/customer/`,
+          `${baseApi.replace(/\/$/, "")}/lead/customer/`,
           {
             method: "POST",
             headers: {

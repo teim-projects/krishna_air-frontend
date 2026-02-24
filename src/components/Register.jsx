@@ -4,7 +4,7 @@ import GoogleAuthButton from "./GoogleAuthButton";
 
 const Register = () => {
   const navigate = useNavigate();
-  const REGISTER_URL = `${import.meta.env.VITE_BASE_API_URL}/api/auth/dj-rest-auth/registration/`;
+  const REGISTER_URL = `${import.meta.env.VITE_BASE_API_URL}/auth/dj-rest-auth/registration/`;
 
   const [form, setForm] = useState({
     email: "",
@@ -105,7 +105,7 @@ const Register = () => {
 
       {/* ✅ Reusable GoogleAuthButton */}
       <GoogleAuthButton
-        endpoint="/api/auth/auth/google/"
+        endpoint="/auth/auth/google/"
         onSuccessNavigate="/dashboard"
       />
       {message && <p style={styles.message}>{message}</p>}
