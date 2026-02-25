@@ -18,7 +18,7 @@ export default function AddStaffForm({
   const [changePassword, setChangePassword] = useState(false); // <-- new
 
   const [loading, setLoading] = useState(false);
-  const BASE_API = baseApi ?? "http://127.0.0.1:8000";
+  const BASE_API = baseApi;
 
   const token = useMemo(() => localStorage.getItem("access") || "", []);
 
