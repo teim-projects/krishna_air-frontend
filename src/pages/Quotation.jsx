@@ -23,19 +23,19 @@ export default function Quotation() {
 
   return(
     <>
-      {mode==="list" && (
-        <QuotationList
-          onAdd={openAdd}
-          onEdit={openEdit}
-        />
-      )}
+  {/* ALWAYS SHOW LIST */}
+  <QuotationList
+    onAdd={openAdd}
+    onEdit={openEdit}
+  />
 
-      {mode==="add" && (
-        <AddQuotation
-          id={editId}
-          onBack={goBack}
-        />
-      )}
-    </>
+  {/* SHOW MODAL ON TOP */}
+  {mode==="add" && (
+    <AddQuotation
+      id={editId}
+      onBack={goBack}
+    />
+  )}
+</>
   );
 }
