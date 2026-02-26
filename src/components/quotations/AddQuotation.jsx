@@ -208,16 +208,20 @@ const resetForm = () => {
 
     try{
 
-      if(isEdit){
-        await api.put(`quotation/quotation/${id}/`,payload);
-      }else{
-        await api.post("quotation/quotation/",payload);
-      }
+  if(isEdit){
+    await api.put(`quotation/quotation/${id}/`,payload);
+  }else{
+    await api.post("quotation/quotation/",payload);
+  }
 
-      alert("Quotation Saved Successfully ✅");
-      resetForm();
+  alert("Quotation Saved Successfully ✅");
 
-    }catch(err){
+  resetForm();
+
+  // ⭐ CLOSE MODAL & RETURN TO LIST
+  onBack && onBack();
+
+}catch(err){
       console.log(err.response?.data);
       alert("Error saving quotation ❌");
     }
