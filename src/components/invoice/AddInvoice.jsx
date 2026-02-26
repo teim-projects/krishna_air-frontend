@@ -22,13 +22,73 @@ api.interceptors.request.use((config) => {
 const normalize = (data) =>
   Array.isArray(data) ? data : data?.results || [];
 
+
+
+const STATES = [
+  { name: "Andhra Pradesh", code: "37" },
+  { name: "Arunachal Pradesh", code: "12" },
+  { name: "Assam", code: "18" },
+  { name: "Bihar", code: "10" },
+  { name: "Chhattisgarh", code: "22" },
+  { name: "Goa", code: "30" },
+  { name: "Gujarat", code: "24" },
+  { name: "Haryana", code: "06" },
+  { name: "Himachal Pradesh", code: "02" },
+  { name: "Jharkhand", code: "20" },
+  { name: "Karnataka", code: "29" },
+  { name: "Kerala", code: "32" },
+  { name: "Madhya Pradesh", code: "23" },
+  { name: "Maharashtra", code: "27" },
+  { name: "Manipur", code: "14" },
+  { name: "Meghalaya", code: "17" },
+  { name: "Mizoram", code: "15" },
+  { name: "Nagaland", code: "13" },
+  { name: "Odisha", code: "21" },
+  { name: "Punjab", code: "03" },
+  { name: "Rajasthan", code: "08" },
+  { name: "Sikkim", code: "11" },
+  { name: "Tamil Nadu", code: "33" },
+  { name: "Telangana", code: "36" },
+  { name: "Tripura", code: "16" },
+  { name: "Uttar Pradesh", code: "09" },
+  { name: "Uttarakhand", code: "05" },
+  { name: "West Bengal", code: "19" },
+];
+
+
 export default function AddInvoice({ id, onBack }) {
 
   const isEdit = !!id;
 
   // ================= COMPANY PROFILE =================
   const [companyProfile, setCompanyProfile] = useState(null);
+  const [stateSearch, setStateSearch] = useState("");
+  const [showStateList, setShowStateList] = useState(false);
+  const filteredStates = STATES.filter(s =>
+    s.name.toLowerCase().includes(stateSearch.toLowerCase())
+  );
 
+
+  const handleStateChange = (value) => {
+  setStateSearch(value);
+
+  setBuyerSnapshot(prev => ({
+    ...prev,
+    buyer_state: value
+  }));
+
+  const found = STATES.find(
+    s => s.name.toLowerCase() === value.toLowerCase()
+  );
+
+  if (found) {
+    setBuyerSnapshot(prev => ({
+      ...prev,
+      buyer_state: found.name,
+      buyer_state_code: found.code
+    }));
+  }
+};
   
   // ================= CUSTOMER =================
   const [customer, setCustomer] = useState({
@@ -503,12 +563,40 @@ value={buyerSnapshot.buyer_gstin}
 onChange={(e)=>setBuyerSnapshot({...buyerSnapshot,buyer_gstin:e.target.value})}
 />
 
+<div className="relative">
 <input
-className="border rounded-lg px-3 py-2"
-placeholder="State"
-value={buyerSnapshot.buyer_state}
-onChange={(e)=>setBuyerSnapshot({...buyerSnapshot,buyer_state:e.target.value})}
+  className="border rounded-lg px-3 py-2 w-full"
+  placeholder="State"
+  value={stateSearch || buyerSnapshot.buyer_state}
+  onChange={(e)=>{
+    handleStateChange(e.target.value);
+    setShowStateList(true);
+  }}
+  onFocus={()=>setShowStateList(true)}
 />
+
+{showStateList && filteredStates.length > 0 && (
+  <div className="absolute z-20 bg-white border w-full max-h-40 overflow-y-auto rounded-md shadow">
+    {filteredStates.map((s,i)=>(
+      <div
+        key={i}
+        className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+        onClick={()=>{
+          setStateSearch(s.name);
+          setBuyerSnapshot(prev=>({
+            ...prev,
+            buyer_state:s.name,
+            buyer_state_code:s.code
+          }));
+          setShowStateList(false);
+        }}
+      >
+        {s.name}
+      </div>
+    ))}
+  </div>
+)}
+</div>
 
 <input
 className="border rounded-lg px-3 py-2"

@@ -172,30 +172,45 @@ export default function ItemSelectionEngine({
 
   const addHighItem = () => {
 
-    if (!draftHighItem.product_variant) {
-      alert("Select Product Variant");
-      return;
-    }
+  if (!draftHighItem.product_variant) {
+    alert("Select Product Variant");
+    return;
+  }
 
-    setItems(prev => [...prev, { ...draftHighItem }]);
+  const selectedVariant = variants.find(
+    v => String(v.id) === String(draftHighItem.product_variant)
+  );
 
-    setDraftHighItem({
-      acType: "",
-      subType: "",
-      brand: "",
-      model: "",
-      product_variant: "",
-      description: "",
-      hsn_sac: "",
-      unit: "NOS",
-      quantity: 1,
-      unit_price: 0,
-      rate: 0,
-      gst_percent: 18,
-      mathadi_charges: 0,
-      transportation_charges: 0
-    });
+  const newRow = {
+    ...draftHighItem,
+
+    // ⭐ inject display fields
+    ac_type_name: selectedVariant?.ac_type_name,
+    ac_sub_type_name: selectedVariant?.ac_sub_type_name,
+    brand_name: selectedVariant?.brand_name,
+    model_no: selectedVariant?.model_no,
+    variant_sku: selectedVariant?.variant_sku,
   };
+
+  setItems(prev => [...prev, newRow]);
+
+  setDraftHighItem({
+    acType: "",
+    subType: "",
+    brand: "",
+    model: "",
+    product_variant: "",
+    description: "",
+    hsn_sac: "",
+    unit: "NOS",
+    quantity: 1,
+    unit_price: 0,
+    rate: 0,
+    gst_percent: 18,
+    mathadi_charges: 0,
+    transportation_charges: 0
+  });
+};
 
   const addLowItem = () => {
 
@@ -204,8 +219,16 @@ export default function ItemSelectionEngine({
       return;
     }
 
-    setLowItems(prev => [...prev, { ...draftLowItem }]);
+    const selectedItem = lowItemsMaster.find(
+  i => String(i.id) === String(draftLowItem.item)
+);
 
+const newLow = {
+  ...draftLowItem,
+  item_code: selectedItem?.item_code
+};
+
+setLowItems(prev => [...prev, newLow]);
     setDraftLowItem({
       material_type_id: "",
       item_type_id: "",
