@@ -333,6 +333,26 @@ setLowItems(prev => [...prev, newLow]);
             value={draftHighItem.gst_percent}
             onChange={e => updateHighDraft("gst_percent", e.target.value)} />
 
+          {!isInvoice && (
+<>
+<input
+  className="border rounded-lg px-3 py-2"
+  type="number"
+  placeholder="Mathadi Charges"
+  value={draftHighItem.mathadi_charges}
+  onChange={e => updateHighDraft("mathadi_charges", e.target.value)}
+/>
+
+<input
+  className="border rounded-lg px-3 py-2"
+  type="number"
+  placeholder="Transportation Charges"
+  value={draftHighItem.transportation_charges}
+  onChange={e => updateHighDraft("transportation_charges", e.target.value)}
+/>
+</>
+)}
+
         </div>
 
         <div className="flex justify-end">
@@ -365,6 +385,13 @@ setLowItems(prev => [...prev, newLow]);
 <th className="border p-2">Qty</th>
 <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
 <th className="border p-2">GST%</th>
+
+{!isInvoice && (
+<>
+<th className="border p-2">Mathadi</th>
+<th className="border p-2">Transport</th>
+</>
+)}
 <th className="border p-2">Action</th>
 </tr>
 </thead>
@@ -455,6 +482,36 @@ setItems(copy);
 />
 </td>
 
+{!isInvoice && (
+<>
+<td className="border p-2">
+<input
+  type="number"
+  className="border rounded px-2 py-1 w-[80px]"
+  value={row.mathadi_charges || 0}
+  onChange={e=>{
+    const copy=[...items];
+    copy[i].mathadi_charges=e.target.value;
+    setItems(copy);
+  }}
+/>
+</td>
+
+<td className="border p-2">
+<input
+  type="number"
+  className="border rounded px-2 py-1 w-[80px]"
+  value={row.transportation_charges || 0}
+  onChange={e=>{
+    const copy=[...items];
+    copy[i].transportation_charges=e.target.value;
+    setItems(copy);
+  }}
+/>
+</td>
+</>
+)}
+
 <td className="border p-2">
 <button
 className="text-red-500 font-bold"
@@ -518,7 +575,7 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
 
         </div>
 
-        <div className="grid md:grid-cols-5 gap-3">
+        <div className="grid md:grid-cols-6 gap-3">
 
           <input className="border rounded-lg px-3 py-2"
             type="number"
@@ -537,6 +594,16 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
             placeholder="GST%"
             value={draftLowItem.gst_percent}
             onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+
+           {!isInvoice && (
+<input
+  className="border rounded-lg px-3 py-2"
+  type="number"
+  placeholder="Mathadi Charges"
+  value={draftLowItem.mathadi_charges}
+  onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+/>
+)}
 
         </div>
 
@@ -566,6 +633,9 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
 <th className="border p-2">Qty</th>
 <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
 <th className="border p-2">GST%</th>
+{!isInvoice && (
+<th className="border p-2">Mathadi</th>
+)}
 <th className="border p-2">Action</th>
 </tr>
 </thead>
@@ -648,6 +718,21 @@ setLowItems(copy);
 }}
 />
 </td>
+
+{!isInvoice && (
+<td className="border p-2">
+<input
+  type="number"
+  className="border rounded px-2 py-1 w-[80px]"
+  value={row.mathadi_charges || 0}
+  onChange={e=>{
+    const copy=[...lowItems];
+    copy[i].mathadi_charges=e.target.value;
+    setLowItems(copy);
+  }}
+/>
+</td>
+)}
 
 <td className="border p-2">
 <button
