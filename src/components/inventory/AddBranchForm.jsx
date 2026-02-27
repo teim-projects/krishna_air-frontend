@@ -9,11 +9,10 @@ export default function AddBranchForm({
   open,
   onClose,
   onSuccess,
-  baseApi,
+  base_api,
   branch = null
 }) {
-  const DEFAULT_API = "http://127.0.0.1:8000";
-  const BASE_API = baseApi ?? DEFAULT_API;
+  const BASE_API = base_api;
   const INDIA_ID = 101;
 
   const [formData, setFormData] = useState({
@@ -124,7 +123,7 @@ export default function AddBranchForm({
       Swal.fire({ icon: "error", title: "Validation", text: "State is required" });
       return false;
     }
-    if (!formData.pincode || formData.pincode.length !== 6) {
+    if (!formData.pincode || String(formData.pincode).length !== 6) {
       Swal.fire({ icon: "error", title: "Validation", text: "Pincode must be 6 digits" });
       return false;
     }
@@ -142,7 +141,7 @@ export default function AddBranchForm({
       };
 
       // Note: Update this URL when backend is ready
-      const url = branch ? `${BASE_API}/inventory/branches/${branch.id}/` : `${BASE_API}/inventory/branches/`;
+      const url = branch ? `${BASE_API}/auth/branch/${branch.id}/` : `${BASE_API}/auth/branch/`;
       const method = branch ? "PATCH" : "POST";
 
       const res = await fetch(url, {

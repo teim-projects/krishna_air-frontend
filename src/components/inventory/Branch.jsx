@@ -3,8 +3,8 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddBranchForm from "./AddBranchForm";
 
-export default function Branch() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+export default function Branch({base_api}) {
+  const BASE_API = base_api;
   
   // State for branches list
   const [branches, setBranches] = useState([]);
@@ -27,7 +27,7 @@ export default function Branch() {
     setLoading(true);
     try {
       // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/inventory/branches/`, {
+      const response = await fetch(`${BASE_API}/auth/branch/`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -72,8 +72,7 @@ export default function Branch() {
     if (!result.isConfirmed) return;
 
     try {
-      // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/api/branches/${id}/`, {
+      const response = await fetch(`${BASE_API}/auth/branch/${id}/`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -216,7 +215,7 @@ export default function Branch() {
           setShowBranchForm(false);
           setEditingBranch(null);
         }}
-        baseApi={BASE_API}
+        base_api={BASE_API}
         branch={editingBranch}
         onSuccess={handleFormSuccess}
       />

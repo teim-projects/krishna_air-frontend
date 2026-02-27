@@ -9,11 +9,10 @@ export default function AddVendorForm({
   open,
   onClose,
   onSuccess,
-  baseApi,
+  base_api,
   vendor = null
 }) {
-  const DEFAULT_API = "http://127.0.0.1:8000";
-  const BASE_API = baseApi ?? DEFAULT_API;
+  const BASE_API = base_api;
   const INDIA_ID = 101;
 
   const [formData, setFormData] = useState({
@@ -148,10 +147,18 @@ export default function AddVendorForm({
     setLoading(true);
     try {
       const payload = {
-        ...data,
-        gst_details: data.gst_details.toUpperCase(),
-        pan_details: data.pan_details.toUpperCase(),
-      };
+  ...data,
+  gst_details: data.gst_details.toUpperCase(),
+  pan_details: data.pan_details ? data.pan_details.toUpperCase() : null,
+  company_type: data.company_type || null,
+  bank_details: data.bank_details || null,
+  store_address: data.store_address || null,
+  supplier_category: data.supplier_category || null,
+  store_poc_name: data.store_poc_name || null,
+  store_poc_phone: data.store_poc_phone || null,
+  website: data.website || null,
+};
+
 
       const url = vendor ? `${BASE_API}/inventory/vendors/${vendor.id}/` : `${BASE_API}/inventory/vendors/`;
       const method = vendor ? "PATCH" : "POST";

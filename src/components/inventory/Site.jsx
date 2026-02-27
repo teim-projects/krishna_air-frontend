@@ -3,8 +3,8 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddSiteForm from "./AddSiteForm";
 
-export default function Site() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+export default function Site({base_api}) {
+  const BASE_API = base_api;
   
   // State for sites list
   const [sites, setSites] = useState([]);
@@ -26,8 +26,8 @@ export default function Site() {
   const fetchSites = async () => {
     setLoading(true);
     try {
-      // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/inventory/sites/`, {
+      // GET
+      const response = await fetch(`${BASE_API}/auth/site/`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -72,8 +72,8 @@ export default function Site() {
     if (!result.isConfirmed) return;
 
     try {
-      // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/api/sites/${id}/`, {
+      
+      const response = await fetch(`${BASE_API}/auth/site/${id}/`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -210,7 +210,7 @@ export default function Site() {
           setShowSiteForm(false);
           setEditingSite(null);
         }}
-        baseApi={BASE_API}
+        base_api={BASE_API}
         site={editingSite}
         onSuccess={handleFormSuccess}
       />
