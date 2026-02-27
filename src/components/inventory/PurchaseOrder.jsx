@@ -1,18 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
-import AddSiteForm from "./AddSiteForm";
+import AddPoFrom from "./AddPoFrom";
 
-export default function Site({ base_api }) {
+export default function PurchaseOrder({ base_api }) {
   const BASE_API = base_api;
   
   // State for sites list
-  const [sites, setSites] = useState([]);
+  const [po, setPo] = useState([]);
   const [loading, setLoading] = useState(false);
   
   // Modal state
-  const [showSiteForm, setShowSiteForm] = useState(false);
-  const [editingSite, setEditingSite] = useState(null);
+  const [showPoForm, setShowPoForm] = useState(false);
+  const [editingPo, setEditingPo] = useState(null);
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -23,11 +23,11 @@ export default function Site({ base_api }) {
   ), []);
 
   // Fetch sites from API (will be implemented later)
-  const fetchSites = async () => {
+  const fetchPO = async () => {
     setLoading(true);
     try {
       // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/inventory/sites/`, {
+      const response = await fetch(`${BASE_API}/inventory/purchase-orders/`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -39,15 +39,9 @@ export default function Site({ base_api }) {
       }
 
       const data = await response.json();
-      setSites(data.results || data);
+      setPo(data.results || data);
     } catch (error) {
-      console.error("Error fetching sites:", error);
-      // Don't show error alert for now since backend is not ready
-      // Swal.fire({
-      //   icon: "error",
-      //   title: "Error",
-      //   text: "Failed to fetch sites"
-      // });
+      console.error("Error fetching purchase orders:", error);
     } finally {
       setLoading(false);
     }
@@ -55,13 +49,13 @@ export default function Site({ base_api }) {
 
   // Fetch sites on component mount (commented out until backend is ready)
   useEffect(() => {
-    fetchSites();
+    fetchPO();
   }, []);
 
   // Handle delete site
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: "Delete site?",
+      title: "Delete purchase order?",
       text: "This action cannot be undone",
       icon: "warning",
       showCancelButton: true,
@@ -73,7 +67,7 @@ export default function Site({ base_api }) {
 
     try {
       // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/api/sites/${id}/`, {
+      const response = await fetch(`${BASE_API}/inventory/purchase-orders/${id}/`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -86,13 +80,13 @@ export default function Site({ base_api }) {
 
       Swal.fire({
         icon: "success",
-        text: "Site deleted successfully",
+        text: "Purchase Order deleted successfully",
         timer: 1500,
         showConfirmButton: false
       });
 
       // Refresh site list
-      fetchSites();
+      fetchPO();
     } catch (error) {
       console.error("Error deleting site:", error);
       Swal.fire({
@@ -104,23 +98,24 @@ export default function Site({ base_api }) {
   };
 
   // Handle edit site
-  const handleEdit = (site) => {
-    setEditingSite(site);
-    setShowSiteForm(true);
+  const handleEdit = (po) => {
+    setEditingPo(po);
+    setShowPoForm(true);
   };
 
   // Handle add site button
-  const handleAddSite = () => {
-    setEditingSite(null);
-    setShowSiteForm(true);
+  const handleAddPo = () => {
+    // console.log("Add PO clicked");
+    setEditingPo(null);
+    setShowPoForm(true);
   };
 
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
-    console.log("Site saved:", data);
+    console.log("Purchase Order saved:", data);
     // Refresh site list
-    fetchSites();
-    setEditingSite(null);
+    fetchPO();
+    setEditingPo(null);
   };
 
   return (
@@ -129,17 +124,17 @@ export default function Site({ base_api }) {
       {/* Header Section */}
       <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Site Management</h2>
+          <h2 className="text-lg font-semibold">Purchase Order Management</h2>
           <div className="text-sm text-slate-600">
-            {loading ? "Loading..." : `${sites.length} site(s) found`}
+            {loading ? "Loading..." : `${po.length} site(s) found`}
           </div>
         </div>
         <div>
           <button
-            onClick={handleAddSite}
+            onClick={handleAddPo}
             className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
           >
-            + Add Site
+            + Add Purchase Order
           </button>
         </div>
       </div>
@@ -161,14 +156,14 @@ export default function Site({ base_api }) {
             </tr>
           </thead>
           <tbody>
-            {sites.length === 0 ? (
+            {po.length === 0 ? (
               <tr>
                 <td colSpan="9" className="px-4 py-8 text-center text-slate-500">
-                  No sites found. Click "Add Site" to create one.
+                  No purchase orders found. Click "Add Purchase Order" to create one.
                 </td>
               </tr>
             ) : (
-              sites.map((site, index) => (
+              po.map((site, index) => (
                 <tr key={site.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{site.name}</td>
@@ -204,15 +199,16 @@ export default function Site({ base_api }) {
       </div>
 
       {/* Add / Edit Site Modal */}
-      <AddSiteForm
-        open={showSiteForm}
+      <AddPoFrom
+        open={showPoForm}
         onClose={() => {
-          setShowSiteForm(false);
-          setEditingSite(null);
+          setShowPoForm(false);
+          setEditingPo(null);
         }}
         baseApi={BASE_API}
-        site={editingSite}
+        po={editingPo}
         onSuccess={handleFormSuccess}
+        token={token}
       />
     </div>
   );

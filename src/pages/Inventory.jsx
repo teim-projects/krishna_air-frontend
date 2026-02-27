@@ -3,11 +3,12 @@ import Base from '../components/Base';
 import Vendor from '../components/inventory/Vendor';
 import Site from '../components/inventory/Site';
 import Branch from '../components/inventory/Branch';
+import PurchaseOrder from '../components/inventory/PurchaseOrder';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
   const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock'
-
+  
   return (
     <Base title="Inventory Management">
       <div className="p-4">
@@ -44,7 +45,7 @@ const Inventory = () => {
             }`}
             onClick={() => setActiveTab('purchase')}
           >
-            Purchase
+            Purchase Order
           </button>
         </div>
 
@@ -54,11 +55,7 @@ const Inventory = () => {
         
         {activeTab === 'vendor' && <Vendor base_api={BASE_API} />}
         
-        {activeTab === 'purchase' && (
-          <div className="bg-white p-8 rounded-md shadow text-center text-slate-500">
-            Purchase management coming soon...
-          </div>
-        )}
+        {activeTab === 'purchase' && <PurchaseOrder base_api={BASE_API} />}
       </div>
     </Base>
   );
