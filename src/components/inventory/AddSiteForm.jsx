@@ -9,11 +9,11 @@ export default function AddSiteForm({
   open,
   onClose,
   onSuccess,
-  baseApi,
+  base_api,
   site = null
 }) {
-  const DEFAULT_API = "http://127.0.0.1:8000";
-  const BASE_API = baseApi ?? DEFAULT_API;
+
+  const BASE_API = base_api;
   const INDIA_ID = 101;
 
   const [formData, setFormData] = useState({
@@ -96,7 +96,8 @@ export default function AddSiteForm({
       Swal.fire({ icon: "error", title: "Validation", text: "State is required" });
       return false;
     }
-    if (!formData.pincode || formData.pincode.length !== 6) {
+    //wrap it in string becuase it gives validation error when editing. becuase payload converts pincode from string to integer but validation checks the string lenght.
+    if (!formData.pincode || String(formData.pincode).length !== 6) {
       Swal.fire({ icon: "error", title: "Validation", text: "Pincode must be 6 digits" });
       return false;
     }
@@ -121,8 +122,8 @@ export default function AddSiteForm({
         pincode: parseInt(data.pincode),
       };
 
-      // Note: Update this URL when backend is ready
-      const url = site ? `${BASE_API}/inventory/sites/${site.id}/` : `${BASE_API}/inventory/sites/`;
+    
+      const url = site ? `${BASE_API}/auth/site/${site.id}/` : `${BASE_API}/auth/site/`;
       const method = site ? "PATCH" : "POST";
 
       const res = await fetch(url, {

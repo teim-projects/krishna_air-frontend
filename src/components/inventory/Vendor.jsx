@@ -4,8 +4,8 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddVendorForm from "./AddVendorForm";
 
-export default function Vendor() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+export default function Vendor({base_api}) {
+  const BASE_API = base_api;
   
   // State for vendors list
   const [vendors, setVendors] = useState([]);
@@ -210,7 +210,7 @@ export default function Vendor() {
           setShowVendorForm(false);
           setEditingVendor(null);
         }}
-        baseApi={BASE_API}
+        base_api={BASE_API}
         vendor={editingVendor}
         onSuccess={handleFormSuccess}
       />
