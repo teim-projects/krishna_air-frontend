@@ -23,13 +23,13 @@ export default function Invoice() {
 
   return(
     <>
-      {mode==="list" && (
-        <InvoiceList
-          onAdd={openAdd}
-          onEdit={openEdit}
-        />
-      )}
+      {/* ✅ ALWAYS SHOW LIST IN BACKGROUND */}
+      <InvoiceList
+        onAdd={openAdd}
+        onEdit={openEdit}
+      />
 
+      {/* ✅ SHOW ADD INVOICE AS MODAL OVER LIST */}
       {mode==="add" && (
         <AddInvoice
           id={editId}
