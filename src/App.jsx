@@ -24,6 +24,7 @@ import Quotation from "./pages/Quotation";
 import Invoice from "./pages/Invoice";
 // import AcTypeList from "./components/products/AcTypeList";
 import ItemMaster from "./pages/ItemMaster";
+import Inventory from "./pages/Inventory";
 
 
 
@@ -115,6 +116,7 @@ function AppRoutes() {
 
 
               <Route path="/item_master" element={<ItemMaster />} />
+              <Route path="/inventory" element={<Inventory/>} />
 
             </Routes>
             
