@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import ItemSelectionEngine from "../ItemSelectionEngine";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -17,26 +18,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const normalize = (data) =>
-  Array.isArray(data) ? data : data?.results || [];
 
 export default function AddQuotation({ id, onBack }) {
 
   const isEdit = !!id;
 
   // ================= HIGH SIDE MASTER =================
-  const [acTypes, setAcTypes] = useState([]);
-  const [subTypes, setSubTypes] = useState({});
-  const [brands, setBrands] = useState({});
-  const [models, setModels] = useState({});
-  const [variants, setVariants] = useState({});
-
-  // ================= LOW SIDE MASTER =================
-  const [materialTypes,setMaterialTypes] = useState([]);
-  const [itemTypes,setItemTypes] = useState([]);
-  const [featureTypes,setFeatureTypes] = useState([]);
-  const [itemClasses,setItemClasses] = useState([]);
-  const [lowItemsMaster,setLowItemsMaster] = useState({});
+  
 
   const [gstType, setGstType] = useState("CGST_SGST");
 
@@ -50,54 +38,14 @@ export default function AddQuotation({ id, onBack }) {
   });
 
   // ================= HIGH SIDE ITEMS =================
-  const [items, setItems] = useState([
-    {
-      acType:"",
-      subType:"",
-      brand:"",
-      model:"",
-      product_variant:"",
-      quantity:1,
-      unit_price:0,
-      gst_percent:18,
-      mathadi_charges:0,
-      transportation_charges:0
-    }
-  ]);
+  const [items, setItems] = useState([]);
 
   // ================= LOW SIDE ITEMS =================
-  const [lowItems,setLowItems] = useState([
-  {
-    material_type_id:"",
-    item_type_id:"",
-    feature_type_id:"",
-    item_class_id:"",
-    item:"",
-    quantity:1,
-    unit_price:0,
-    gst_percent:18,     // ⭐ NEW
-    mathadi_charges:0
-  }
-]);
+  const [lowItems,setLowItems] = useState([]);
 
 
   // ================= LOAD MASTERS =================
-  useEffect(() => {
-    api.get("product/actype/")
-      .then(res => setAcTypes(normalize(res.data)));
-
-    api.get("product/material-type/")
-      .then(res=>setMaterialTypes(normalize(res.data)));
-
-    api.get("product/item-type/")
-      .then(res=>setItemTypes(normalize(res.data)));
-
-    api.get("product/feature-type/")
-      .then(res=>setFeatureTypes(normalize(res.data)));
-
-    api.get("product/item-class/")
-      .then(res=>setItemClasses(normalize(res.data)));
-  }, []);
+ 
 
   // ================= EDIT LOAD =================
   useEffect(()=>{
@@ -120,33 +68,37 @@ export default function AddQuotation({ id, onBack }) {
         setGstType(active.gst_type);
 
         setItems(
-          active.high_side_items.map(i=>({
-            acType:"",
-            subType:"",
-            brand:"",
-            model:"",
-            product_variant:i.product_variant,
-            quantity:i.quantity,
-            unit_price:i.unit_price,
-            gst_percent:i.gst_percent,
-            mathadi_charges:i.mathadi_charges || 0,
-            transportation_charges:i.transportation_charges || 0
-          }))
-        );
+  active.high_side_items.map(i=>({
+    product_variant: i.product_variant,
+
+    // ⭐ VERY IMPORTANT (ADD THESE)
+    ac_type_name: i.ac_type_name,
+    ac_sub_type_name: i.ac_sub_type_name,
+    brand_name: i.brand_name,
+    model_no: i.model_no,
+    variant_sku: i.variant_sku,
+
+    quantity: i.quantity,
+    unit_price: i.unit_price,
+    gst_percent: i.gst_percent,
+    mathadi_charges: i.mathadi_charges || 0,
+    transportation_charges: i.transportation_charges || 0
+  }))
+);
 
         setLowItems(
-          active.low_side_items.map(l=>({
-            material_type_id:"",
-            item_type_id:"",
-            feature_type_id:"",
-            item_class_id:"",
-            item:l.item,
-            quantity:l.quantity,
-            gst_percent:l.gst_percent || 18,
-            unit_price:l.unit_price,
-            mathadi_charges:l.mathadi_charges || 0
-          }))
-        );
+  active.low_side_items.map(l=>({
+    item: l.item,
+
+    // ⭐ ADD THIS
+    item_code: l.item_code,
+
+    quantity: l.quantity,
+    gst_percent: l.gst_percent || 18,
+    unit_price: l.unit_price,
+    mathadi_charges: l.mathadi_charges || 0
+  }))
+);
 
       });
 
@@ -159,7 +111,7 @@ export default function AddQuotation({ id, onBack }) {
 
     if (phone.length >= 10) {
       const res = await api.get(`lead/customer/?search=${phone}`);
-      const data = normalize(res.data);
+      const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
 
       if (data.length > 0) {
         setCustomer({
@@ -172,157 +124,8 @@ export default function AddQuotation({ id, onBack }) {
   };
 
   // ================= HIGH SIDE LOADERS =================
-  const loadSubTypes = async (index, id) => {
-    const res = await api.get(`product/ac-subtypes/?ac_type_id=${id}`);
-    setSubTypes(prev => ({ ...prev, [index]: normalize(res.data) }));
-  };
-
-  const loadBrands = async (index, id) => {
-    const res = await api.get(`product/ac-brand/?subtype=${id}`);
-    setBrands(prev => ({ ...prev, [index]: normalize(res.data) }));
-  };
-
-  const loadModels = async (index, id) => {
-    const res = await api.get(`product/product-model/?brand_id=${id}`);
-    setModels(prev => ({ ...prev, [index]: normalize(res.data) }));
-  };
-
-  const loadVariants = async (index, id) => {
-    const res = await api.get(`product/product-variant/?product_model=${id}`);
-    setVariants(prev => ({ ...prev, [index]: normalize(res.data) }));
-  };
-
-  // ================= LOW SIDE ITEM LOAD =================
-  const loadLowSideItems = async(index,data)=>{
-    const res = await api.get(
-      `product/item/?material_type_id=${data.material_type_id}&item_type_id=${data.item_type_id}&feature_type_id=${data.feature_type_id}&item_class_id=${data.item_class_id}`
-    );
-
-    setLowItemsMaster(prev=>({...prev,[index]:normalize(res.data)}))
-  };
-
-  // ================= UPDATE HIGH SIDE =================
-  const updateItem = (index, field, value) => {
-    const copy=[...items];
-    copy[index][field]=value;
-
-    if(field==="acType"){
-      copy[index].subType="";
-      copy[index].brand="";
-      copy[index].model="";
-      copy[index].product_variant="";
-      loadSubTypes(index,value);
-    }
-    if(field==="subType"){
-      copy[index].brand="";
-      copy[index].model="";
-      copy[index].product_variant="";
-      loadBrands(index,value);
-    }
-    if(field==="brand"){
-      copy[index].model="";
-      copy[index].product_variant="";
-      loadModels(index,value);
-    }
-    if(field==="model"){
-      copy[index].product_variant="";
-      loadVariants(index,value);
-    }
-
-    setItems(copy);
-  };
-
-  // ================= UPDATE LOW SIDE =================
-  const updateLowItem=(index,field,value)=>{
-    const copy=[...lowItems];
-    copy[index][field]=value;
-
-    if(
-      copy[index].material_type_id &&
-      copy[index].item_type_id &&
-      copy[index].feature_type_id &&
-      copy[index].item_class_id
-    ){
-      loadLowSideItems(index,copy[index]);
-    }
-
-    setLowItems(copy);
-  };
-
-  // ================= ADD ROWS =================
-  const addRow=()=>{
-    setItems([...items,{
-      acType:"",
-      subType:"",
-      brand:"",
-      model:"",
-      product_variant:"",
-      quantity:1,
-      unit_price:0,
-      gst_percent:18,
-      mathadi_charges:0,
-      transportation_charges:0
-    }])
-  };
 
 
-  const removeRow = (index) => {
-  const copy = [...items];
-  copy.splice(index, 1);
-
-  // always keep at least one row
-  if (copy.length === 0) {
-    setItems([{
-      acType:"",
-      subType:"",
-      brand:"",
-      model:"",
-      product_variant:"",
-      quantity:1,
-      unit_price:0,
-      gst_percent:18,
-      mathadi_charges:0,
-      transportation_charges:0
-    }]);
-  } else {
-    setItems(copy);
-  }
-};
-
-  const addLowRow=()=>{
-  setLowItems([...lowItems,{
-    material_type_id:"",
-    item_type_id:"",
-    feature_type_id:"",
-    item_class_id:"",
-    item:"",
-    quantity:1,
-    unit_price:0,
-    gst_percent:18,   // ⭐ NEW
-    mathadi_charges:0
-  }])
-};
-
-const removeLowRow = (index) => {
-  const copy = [...lowItems];
-  copy.splice(index, 1);
-
-  if (copy.length === 0) {
-    setLowItems([{
-      material_type_id:"",
-      item_type_id:"",
-      feature_type_id:"",
-      item_class_id:"",
-      item:"",
-      quantity:1,
-      unit_price:0,
-      gst_percent:18,
-      mathadi_charges:0
-    }]);
-  } else {
-    setLowItems(copy);
-  }
-};
 
 
 const resetForm = () => {
@@ -367,11 +170,7 @@ const resetForm = () => {
   ]);
 
   // optional but recommended
-  setSubTypes({});
-  setBrands({});
-  setModels({});
-  setVariants({});
-  setLowItemsMaster({});
+ 
 };
 
 
@@ -409,16 +208,20 @@ const resetForm = () => {
 
     try{
 
-      if(isEdit){
-        await api.put(`quotation/quotation/${id}/`,payload);
-      }else{
-        await api.post("quotation/quotation/",payload);
-      }
+  if(isEdit){
+    await api.put(`quotation/quotation/${id}/`,payload);
+  }else{
+    await api.post("quotation/quotation/",payload);
+  }
 
-      alert("Quotation Saved Successfully ✅");
-      resetForm();
+  alert("Quotation Saved Successfully ✅");
 
-    }catch(err){
+  resetForm();
+
+  // ⭐ CLOSE MODAL & RETURN TO LIST
+  onBack && onBack();
+
+}catch(err){
       console.log(err.response?.data);
       alert("Error saving quotation ❌");
     }
@@ -426,48 +229,45 @@ const resetForm = () => {
 
   // ================= UI =================
   return (
-  <div className="min-h-screen bg-gray-100 p-6 flex justify-center">
-    <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg p-6 space-y-6">
+  <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
+    <div className="relative w-full max-w-2xl text-[13.5px] p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto space-y-6">
 
-      <h2 className="text-2xl font-semibold text-gray-800">
-        Add Quotation
+<button
+  onClick={onBack}
+  className="absolute top-3 right-4 text-gray-500 hover:text-black text-lg font-bold"
+>
+  ✕
+</button>
+      <h2 className="text-xl font-bold text-center mb-2">
+        {isEdit ? "Edit Quotation" : "Add Quotation"}
       </h2>
 
       {/* ================= CUSTOMER INFO ================= */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         <input
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+          className="w-full px-3 py-2 rounded-md border border-slate-300"
           placeholder="Customer Phone"
           value={customer.phone}
           onChange={handlePhone}
         />
 
         <input
-          className="border rounded-lg px-3 py-2 bg-gray-50"
+          className="w-full px-3 py-2 rounded-md border border-slate-300 bg-gray-100"
           placeholder="Customer Name"
           value={customer.name}
           readOnly
         />
 
         <input
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
+          className="w-full px-3 py-2 rounded-md border border-slate-300"
           placeholder="Site Name"
           value={siteName}
           onChange={(e)=>setSiteName(e.target.value)}
         />
-      </div>
 
-      <textarea
-        className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none"
-        placeholder="Thank You Note"
-        value={thankNote}
-        onChange={(e)=>setThankNote(e.target.value)}
-      />
-
-      <div className="flex items-center gap-3">
-        <label className="font-medium text-gray-700">GST Type :</label>
         <select
-          className="border rounded-lg px-3 py-2"
+          className="w-full px-3 py-2 rounded-md border border-slate-300"
           value={gstType}
           onChange={(e)=>setGstType(e.target.value)}
         >
@@ -476,163 +276,30 @@ const resetForm = () => {
         </select>
       </div>
 
+      <textarea
+        className="w-full px-3 py-2 rounded-md border border-slate-300"
+        placeholder="Thank You Note"
+        value={thankNote}
+        onChange={(e)=>setThankNote(e.target.value)}
+      />
+
       {/* ================= HIGH SIDE ================= */}
-      <div className="space-y-4">
-        {items.map((item,index)=>(
-          <div key={index} className="border rounded-xl p-4 bg-gray-50 space-y-3 relative">
-
-
-          <button
-  type="button"
-  onClick={() => removeRow(index)}
-  className="absolute top-2 right-3 text-red-500 font-bold hover:text-red-700"
->
-  ✕
-</button>
-
-            <div className="grid md:grid-cols-5 gap-3">
-              <select className="border rounded-lg px-2 py-2"
-                value={item.acType}
-                onChange={(e)=>updateItem(index,"acType",e.target.value)}>
-                <option>AC Type</option>
-                {acTypes.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                disabled={!item.acType}
-                value={item.subType}
-                onChange={(e)=>updateItem(index,"subType",e.target.value)}>
-                <option>SubType</option>
-                {(subTypes[index]||[]).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                disabled={!item.subType}
-                value={item.brand}
-                onChange={(e)=>updateItem(index,"brand",e.target.value)}>
-                <option>Brand</option>
-                {(brands[index]||[]).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                disabled={!item.brand}
-                value={item.model}
-                onChange={(e)=>updateItem(index,"model",e.target.value)}>
-                <option>Model</option>
-                {(models[index]||[]).map(m=><option key={m.id} value={m.id}>{m.model_no}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                disabled={!item.model}
-                value={item.product_variant}
-                onChange={(e)=>updateItem(index,"product_variant",e.target.value)}>
-                <option>Variant</option>
-                {(variants[index]||[]).map(v=><option key={v.id} value={v.id}>{v.sku}</option>)}
-              </select>
-            </div>
-
-            <div className="grid md:grid-cols-5 gap-3">
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Qty"
-                value={item.quantity} onChange={(e)=>updateItem(index,"quantity",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Price"
-                value={item.unit_price} onChange={(e)=>updateItem(index,"unit_price",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="GST%"
-                value={item.gst_percent} onChange={(e)=>updateItem(index,"gst_percent",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Mathadi"
-                value={item.mathadi_charges} onChange={(e)=>updateItem(index,"mathadi_charges",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Transport"
-                value={item.transportation_charges} onChange={(e)=>updateItem(index,"transportation_charges",e.target.value)}/>
-            </div>
-
-          </div>
-        ))}
-
-        <button
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          onClick={addRow}>
-          + Add Product
-        </button>
-      </div>
-
-      {/* ================= LOW SIDE ================= */}
-      <h3 className="text-lg font-semibold text-gray-700">Low Side Items</h3>
-
-      <div className="space-y-4">
-        {lowItems.map((l,index)=>(
-          <div key={index} className="border rounded-xl p-4 bg-gray-50 space-y-3 relative">
-
-          <button
-  type="button"
- onClick={() => removeLowRow(index)}
-  className="absolute top-2 right-3 text-red-500 font-bold hover:text-red-700"
->
-  ✕
-</button>
-
-            <div className="grid md:grid-cols-5 gap-3">
-              <select className="border rounded-lg px-2 py-2"
-                value={l.material_type_id}
-                onChange={e=>updateLowItem(index,"material_type_id",e.target.value)}>
-                <option>Material Type</option>
-                {materialTypes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                value={l.item_type_id}
-                onChange={e=>updateLowItem(index,"item_type_id",e.target.value)}>
-                <option>Item Type</option>
-                {itemTypes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                value={l.feature_type_id}
-                onChange={e=>updateLowItem(index,"feature_type_id",e.target.value)}>
-                <option>Feature Type</option>
-                {featureTypes.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                value={l.item_class_id}
-                onChange={e=>updateLowItem(index,"item_class_id",e.target.value)}>
-                <option>Item Class</option>
-                {itemClasses.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-
-              <select className="border rounded-lg px-2 py-2"
-                value={l.item}
-                onChange={e=>updateLowItem(index,"item",e.target.value)}>
-                <option>Select Item</option>
-                {(lowItemsMaster[index]||[]).map(i=>
-                  <option key={i.id} value={i.id}>{i.item_code}</option>
-                )}
-              </select>
-            </div>
-
-            <div className="grid md:grid-cols-4 gap-3">
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Qty"
-                value={l.quantity} onChange={e=>updateLowItem(index,"quantity",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Price"
-                value={l.unit_price} onChange={e=>updateLowItem(index,"unit_price",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="GST%"
-                value={l.gst_percent} onChange={e=>updateLowItem(index,"gst_percent",e.target.value)}/>
-              <input className="border rounded-lg px-2 py-2" type="number" placeholder="Mathadi"
-                value={l.mathadi_charges} onChange={e=>updateLowItem(index,"mathadi_charges",e.target.value)}/>
-            </div>
-
-          </div>
-        ))}
-
-        <button
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          onClick={addLowRow}>
-          + Add Low Item
-        </button>
-      </div>
+      {/* ================= HIGH SIDE and low ================= */}
+<ItemSelectionEngine
+ baseApi={BASE_API}
+ authToken={localStorage.getItem("access")}
+ items={items}
+ setItems={setItems}
+ lowItems={lowItems}
+ setLowItems={setLowItems}
+ mode="quotation"
+/>
 
       <div className="flex justify-end">
         <button
-          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold"
-          onClick={handleSubmit}>
+          className="px-5 py-2 bg-blue-600 text-white rounded-md"
+          onClick={handleSubmit}
+        >
           Save Quotation
         </button>
       </div>
