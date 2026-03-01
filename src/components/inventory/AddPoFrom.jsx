@@ -3,8 +3,8 @@ import ReusableForm from "../Form";
 import axios from "axios";
 import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
-import ItemSelectionEngine from "../ItemSelectionEngine";
-
+// import ItemSelectionEngine from "../ItemSelectionEngine";
+import PurchaseOrderItems from "./PurchaseOrderItems";
 
 const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
@@ -31,8 +31,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     }, [open]);
     // ------------------------------
 
-    const [items, setItems] = useState([]);
-    const [lowItems, setLowItems] = useState([]);
+    // State for items and low stock items
+    // const [items, setItems] = useState([]);
+    // const [lowItems, setLowItems] = useState([]);
+
 
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -41,10 +43,21 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         site: "",
         book_no: "",
         po_date: "",
-        notes: "",
-        is_active: true,
-    });
+        quotation_ref_no: "",
+        quotation_date: "",
+        contact_name: "",
+        contact_no: "",
 
+        gst_percentage: 18,
+        gst_type: "exclusive",
+        transport_charges: 0,
+        round_off: 0,
+
+        products: [],
+
+        payment_terms: [],
+        delivery_terms: [],
+    });
 
     // If editing existing PO
     useEffect(() => {
@@ -55,8 +68,13 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 site: po.site || "",
                 book_no: po.book_no || "",
                 po_date: po.po_date || "",
-                notes: po.notes || "",
-                is_active: po.is_active ?? true,
+                quotation_ref_no: po.quotation_ref_no || "",
+                quotation_date: po.quotation_date || "",
+                contact_name: po.contact_name || "",
+                contact_no: po.contact_no || "",
+                products: po.products || [],
+                payment_terms: po.payment_terms || [],
+                delivery_terms: po.delivery_terms || [],
             });
         }
     }, [po]);
@@ -137,21 +155,65 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
 
         {
-            name: "items_section",
+            name: "products_section",
             label: "Items",
             component: () => (
-                <ItemSelectionEngine
+                <PurchaseOrderItems
                     baseApi={baseApi}
-                    authToken={token}
-                    items={items}
-                    setItems={setItems}
-                    lowItems={lowItems}
-                    setLowItems={setLowItems}
-                    mode="quotation"
+                    token={token}
+                    initialProducts={formData.products || []}
+                    onProductsChange={(products) =>
+                        setFormData(prev => ({
+                            ...prev,
+                            products
+                        }))
+                    }
                 />
             ),
             gridCols: 2,
         },
+
+        {
+            name: "gst_percentage",
+            label: "GST %",
+            type: "number",
+        },
+        {
+            name: "gst_type",
+            label: "GST Type",
+            type: "select",
+            options: [
+                { value: "exclusive", label: "Exclusive" },
+                { value: "inclusive", label: "Inclusive" },
+            ],
+        },
+        {
+            name: "transport_charges",
+            label: "Transport Charges",
+            type: "number",
+        },
+        {
+            name: "round_off",
+            label: "Round Off",
+            type: "number",
+        },
+
+        // {
+        //     name: "items_section",
+        //     label: "Items",
+        //     component: () => (
+        //         <ItemSelectionEngine
+        //             baseApi={baseApi}
+        //             authToken={token}
+        //             items={items}
+        //             setItems={setItems}
+        //             lowItems={lowItems}
+        //             setLowItems={setLowItems}
+        //             mode="quotation"
+        //         />
+        //     ),
+        //     gridCols: 2,
+        // },
 
         // {
         //     name: "notes",
@@ -198,16 +260,39 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         try {
             setLoading(true);
 
+            const payload = {
+                vendor: data.vendor,
+                branch: data.branch,
+                site: data.site,
+                book_no: data.book_no,
+                po_date: data.po_date,
+                quotation_ref_no: data.quotation_ref_no,
+                quotation_date: data.quotation_date,
+                contact_name: data.contact_name,
+                contact_no: data.contact_name,
+
+                gst_percentage: data.gst_percentage,
+                gst_type: data.gst_type,
+                transport_charges: data.transport_charges,
+                round_off: data.round_off,
+
+                terms_conditions: [
+                    ...(data.payment_terms || []),
+                    ...(data.delivery_terms || [])
+                ],
+
+                products: data.products
+            };
+
             if (po) {
-                // Update
-                await axios.put(`${baseApi}/purchase-orders/${po.id}/`, data);
+                await axios.put(`${baseApi}/purchase-orders/${po.id}/`, payload);
             } else {
-                // Create
-                await axios.post(`${baseApi}/purchase-orders/`, data);
+                await axios.post(`${baseApi}/purchase-orders/`, payload);
             }
 
             onSuccess && onSuccess();
             onClose && onClose();
+
         } catch (error) {
             console.error("Error saving PO:", error);
         } finally {

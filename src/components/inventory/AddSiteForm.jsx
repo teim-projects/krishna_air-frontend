@@ -18,7 +18,7 @@ export default function AddSiteForm({
 
   const [formData, setFormData] = useState({
     name: "",
-    site_shortcut: "",
+    // site_shortcut: "",
     address: "",
     city: "",
     state: "",
@@ -42,7 +42,7 @@ export default function AddSiteForm({
     if (!site || !open) {
       setFormData({
         name: "",
-        site_shortcut: "",
+        // site_shortcut: "",
         address: "",
         city: "",
         state: "",
@@ -56,7 +56,7 @@ export default function AddSiteForm({
 
     setFormData({
       name: site.name || "",
-      site_shortcut: site.site_shortcut || "",
+      // site_shortcut: site.site_shortcut || "",
       address: site.address || "",
       city: site.city || "",
       state: site.state || "",
@@ -161,7 +161,7 @@ export default function AddSiteForm({
 
   const fields = [
     { name: "name", label: "Site Name", type: "text", required: true, gridCols: 1, placeholder: "Enter site name" },
-    { name: "site_shortcut", label: "Site Shortcut", type: "text", gridCols: 1, placeholder: "Auto-generated if empty", disabled: !!site },
+    // { name: "site_shortcut", label: "Site Shortcut", type: "text", gridCols: 1, placeholder: "Auto-generated if empty", disabled: !!site },
     { name: "address", label: "Address", type: "textarea", required: true, rows: 2, gridCols: 2, placeholder: "Enter site address" },
     { name: "city", label: "City", type: "text", required: true, gridCols: 1, placeholder: "Enter city" },
     {

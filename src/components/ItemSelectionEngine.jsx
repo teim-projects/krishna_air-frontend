@@ -12,7 +12,7 @@ export default function ItemSelectionEngine({
 }) {
 
   const isInvoice = mode === "invoice";
-
+  
   const api = axios.create({ baseURL: `${baseApi}/` });
 
   api.interceptors.request.use(config => {
