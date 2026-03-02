@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import ReusableForm from "../Form";
 import axios from "axios";
 import TermsMultiSelect from "../TermsMultiSelect";
@@ -10,8 +10,12 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
     // term types are needed to get the correct terms for payment and delivery
     const { getOrCreateTermTypeId } = useTermTypes({ baseApi, token });
+    const [loading, setLoading] = useState(false);
     const [paymentTypeId, setPaymentTypeId] = useState(null);
     const [deliveryTypeId, setDeliveryTypeId] = useState(null);
+    const [vendors, setVendors] = useState([]);
+    const [branches, setBranches] = useState([]);
+    const [sites, setSites] = useState([]);
 
 
 
@@ -31,12 +35,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     }, [open]);
     // ------------------------------
 
-    // State for items and low stock items
-    // const [items, setItems] = useState([]);
-    // const [lowItems, setLowItems] = useState([]);
 
-
-    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         vendor: "",
         branch: "",
@@ -79,6 +78,76 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         }
     }, [po]);
 
+    // Fetch vendors, branches, sites for select options (if needed)
+    const fetchVendors = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`${baseApi}/inventory/vendors/`, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+            });
+
+            setVendors(response.data.results || response.data);
+            console.log("vendors", response.data.results || response.data);
+        } catch (error) {
+            console.error("Error fetching vendors:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+   
+    const fetchBranches = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`${baseApi}/auth/branch/`, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+            });
+            setBranches(response.data.results || response.data);
+        } catch (error) {
+            console.error("Error fetching branches:", error);
+        }
+
+        finally {
+            setLoading(false);
+        }
+    }
+
+
+    const fetchSites = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`${baseApi}/auth/site/`, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+            });
+            setSites(response.data.results || response.data);
+        } catch (error) {
+            console.error("Error fetching sites:", error);
+        }
+
+        finally {
+            setLoading(false);
+        }
+    }
+
+
+    useEffect(() => {
+        if (open) {
+            fetchVendors(); 
+            fetchBranches();
+            fetchSites();
+        }   
+    }, [open]);
+
+    // Define form fields configuration
+
     const fields = [
         {
             name: "vendor",
@@ -86,10 +155,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             type: "select",
             required: true,
             placeholder: "Select Vendor",
-            options: [
-                { value: 1, label: "Vendor A" },
-                { value: 2, label: "Vendor B" },
-            ],
+            options: vendors.map(vendor => ({
+                value: vendor.id,
+                label: vendor.name
+            })),
         },
         {
             name: "branch",
@@ -97,10 +166,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             type: "select",
             required: true,
             placeholder: "Select Branch",
-            options: [
-                { value: 1, label: "Pune Branch" },
-                { value: 2, label: "Mumbai Branch" },
-            ],
+            options: branches.map(branch => ({
+                value: branch.id,
+                label: branch.name
+            })),
         },
         {
             name: "site",
@@ -108,10 +177,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             type: "select",
             required: false,
             placeholder: "Select Site",
-            options: [
-                { value: 1, label: "Pune Site" },
-                { value: 2, label: "Mumbai Site" },
-            ],
+            options: sites.map(site => ({
+                value: site.id,
+                label: site.name
+            })),
         },
         {
             name: "book_no",
@@ -197,31 +266,6 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             label: "Round Off",
             type: "number",
         },
-
-        // {
-        //     name: "items_section",
-        //     label: "Items",
-        //     component: () => (
-        //         <ItemSelectionEngine
-        //             baseApi={baseApi}
-        //             authToken={token}
-        //             items={items}
-        //             setItems={setItems}
-        //             lowItems={lowItems}
-        //             setLowItems={setLowItems}
-        //             mode="quotation"
-        //         />
-        //     ),
-        //     gridCols: 2,
-        // },
-
-        // {
-        //     name: "notes",
-        //     label: "Notes",
-        //     type: "textarea",
-        //     gridCols: 2,
-        //     placeholder: "Enter additional notes...",
-        // },
 
         // Terms MultiSelects
         {
