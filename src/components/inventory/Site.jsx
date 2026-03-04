@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddSiteForm from "./AddSiteForm";
+import Pagination from "../Pagination";
 
 export default function Site({base_api}) {
   const BASE_API = base_api;
@@ -9,6 +10,13 @@ export default function Site({base_api}) {
   // State for sites list
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Pagination state
+const [currentPage, setCurrentPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const [totalCount, setTotalCount] = useState(0);
+const PAGE_SIZE = 10;
+
   
   // Modal state
   const [showSiteForm, setShowSiteForm] = useState(false);
@@ -22,12 +30,12 @@ export default function Site({base_api}) {
     ""
   ), []);
 
-  // Fetch sites from API (will be implemented later)
-  const fetchSites = async () => {
+  // Fetch sites from API with pagination / GET
+  const fetchSites = async (page = 1) => {
     setLoading(true);
     try {
       // GET
-      const response = await fetch(`${BASE_API}/auth/site/`, {
+      const response = await fetch(`${BASE_API}/auth/site/?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -39,24 +47,34 @@ export default function Site({base_api}) {
       }
 
       const data = await response.json();
-      setSites(data.results || data);
+
+      if (data.results) {
+      setSites(data.results);
+      setTotalCount(data.count || 0);
+      setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+    } else {
+      setSites(data);
+      setTotalCount(data.length);
+      setTotalPages(1);
+    }
+    
+    setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching sites:", error);
-      // Don't show error alert for now since backend is not ready
-      // Swal.fire({
-      //   icon: "error",
-      //   title: "Error",
-      //   text: "Failed to fetch sites"
-      // });
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch sites"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   // Fetch sites on component mount (commented out until backend is ready)
-  useEffect(() => {
+  useEffect((currentPage) => {
     fetchSites();
-  }, []);
+  }, [currentPage]);
 
   // Handle delete site
   const handleDelete = async (id) => {
@@ -131,7 +149,7 @@ export default function Site({base_api}) {
         <div>
           <h2 className="text-lg font-semibold">Site Management</h2>
           <div className="text-sm text-slate-600">
-            {loading ? "Loading..." : `${sites.length} site(s) found`}
+            {loading ? "Loading..." : `${totalCount} site(s) found`}
           </div>
         </div>
         <div>
@@ -201,6 +219,18 @@ export default function Site({base_api}) {
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+          totalItems={totalCount}
+          showInfo={true}
+          size="md"
+          variant="default"
+        />
+
       </div>
 
       {/* Add / Edit Site Modal */}

@@ -2,14 +2,22 @@ import { useState, useEffect, useMemo } from "react";
 import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddBranchForm from "./AddBranchForm";
+import Pagination from "../Pagination";
 
-export default function Branch({base_api}) {
+export default function Branch({ base_api }) {
   const BASE_API = base_api;
-  
+
   // State for branches list
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 10; // Items per page
+
+
   // Modal state
   const [showBranchForm, setShowBranchForm] = useState(false);
   const [editingBranch, setEditingBranch] = useState(null);
@@ -22,12 +30,12 @@ export default function Branch({base_api}) {
     ""
   ), []);
 
-  // Fetch branches from API (will be implemented later)
-  const fetchBranches = async () => {
+  // Fetch branches from API with pagination / GET
+  const fetchBranches = async (page = 1) => {
     setLoading(true);
     try {
       // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/auth/branch/`, {
+      const response = await fetch(`${BASE_API}/auth/branch/?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -39,15 +47,24 @@ export default function Branch({base_api}) {
       }
 
       const data = await response.json();
-      setBranches(data.results || data);
+      if (data.results) {
+        setBranches(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setBranches(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching branches:", error);
-      // Don't show error alert for now since backend is not ready
-      // Swal.fire({
-      //   icon: "error",
-      //   title: "Error",
-      //   text: "Failed to fetch branches"
-      // });
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch branches"
+      });
     } finally {
       setLoading(false);
     }
@@ -55,8 +72,8 @@ export default function Branch({base_api}) {
 
   // Fetch branches on component mount (commented out until backend is ready)
   useEffect(() => {
-     fetchBranches();
-  }, []);
+    fetchBranches(currentPage);
+  }, [currentPage]);
 
   // Handle delete branch
   const handleDelete = async (id) => {
@@ -68,7 +85,7 @@ export default function Branch({base_api}) {
       confirmButtonText: "Delete",
       confirmButtonColor: "#dc2626",
     });
-    
+
     if (!result.isConfirmed) return;
 
     try {
@@ -124,13 +141,13 @@ export default function Branch({base_api}) {
 
   return (
     <div className="space-y-6">
-      
+
       {/* Header Section */}
       <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Branch Management</h2>
           <div className="text-sm text-slate-600">
-            {loading ? "Loading..." : `${branches.length} branch(es) found`}
+            {loading ? "Loading..." : `${totalCount} branch(es) found`}
           </div>
         </div>
         <div>
@@ -206,6 +223,16 @@ export default function Branch({base_api}) {
             )}
           </tbody>
         </table>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+          totalItems={totalCount}
+          showInfo={true}
+          size="md"
+          variant="defualt"
+        />
       </div>
 
       {/* Add / Edit Branch Modal */}

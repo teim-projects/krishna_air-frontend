@@ -549,7 +549,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
                         <button
                             onClick={handleAddOrUpdate}
-                            className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                         >
                             {editingId ? "Update" : "Add"}
                         </button>
@@ -623,7 +623,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                             />
                             <button
                                 onClick={handleAddOrUpdateBrand}
-                                className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
+                                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
                             >
                                 {editingBrandId ? "Update" : "Add"}
                             </button>

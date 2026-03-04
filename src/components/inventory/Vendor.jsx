@@ -3,14 +3,21 @@ import React, { useState, useEffect, useMemo } from "react";
 import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddVendorForm from "./AddVendorForm";
+import Pagination from "../Pagination";
 
-export default function Vendor({base_api}) {
+export default function Vendor({ base_api }) {
   const BASE_API = base_api;
-  
+
   // State for vendors list
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 10; // Items per page
+
   // Modal state
   const [showVendorForm, setShowVendorForm] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
@@ -23,11 +30,11 @@ export default function Vendor({base_api}) {
     ""
   ), []);
 
-  // Fetch vendors from API
-  const fetchVendors = async () => {
+  // Fetch vendors from API with pagination | GET
+  const fetchVendors = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_API}/inventory/vendors/`, {
+      const response = await fetch(`${BASE_API}/inventory/vendors/?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -39,7 +46,21 @@ export default function Vendor({base_api}) {
       }
 
       const data = await response.json();
-      setVendors(data.results || data);
+
+      //setVendors(data.results || data);
+      // Handle paginated response from Django REST Framework
+      if (data.results) {
+        setVendors(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        // Fallback for non-paginated response
+        setVendors(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching vendors:", error);
       Swal.fire({
@@ -54,8 +75,8 @@ export default function Vendor({base_api}) {
 
   // Fetch vendors on component mount
   useEffect(() => {
-    fetchVendors();
-  }, []);
+    fetchVendors(currentPage);
+  }, [currentPage]);
 
   // Handle delete vendor
   const handleDelete = async (id) => {
@@ -67,7 +88,7 @@ export default function Vendor({base_api}) {
       confirmButtonText: "Delete",
       confirmButtonColor: "#dc2626",
     });
-    
+
     if (!result.isConfirmed) return;
 
     try {
@@ -122,84 +143,95 @@ export default function Vendor({base_api}) {
   };
 
   return (
-      <div className="space-y-6">
-        
-        {/* Header Section */}
-        <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Vendor Management</h2>
-            <div className="text-sm text-slate-600">
-              {loading ? "Loading..." : `${vendors.length} vendor(s) found`}
-            </div>
-          </div>
-          <div>
-            <button
-              onClick={handleAddVendor}
-              className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
-            >
-              + Add Vendor
-            </button>
+    <div className="space-y-6">
+
+      {/* Header Section */}
+      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Vendor Management</h2>
+          <div className="text-sm text-slate-600">
+            {loading ? "Loading..." : `${totalCount} vendor(s) found`}
           </div>
         </div>
+        <div>
+          <button
+            onClick={handleAddVendor}
+            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+          >
+            + Add Vendor
+          </button>
+        </div>
+      </div>
 
-        {/* Vendors Table */}
-        <div className="bg-white rounded-md shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b">
+      {/* Vendors Table */}
+      <div className="bg-white rounded-md shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Vendor Name</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mobile</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">State</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">GST</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Category</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Office POC</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {vendors.length === 0 ? (
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Vendor Name</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Mobile</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">State</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">GST</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Category</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Office POC</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
+                <td colSpan="9" className="px-4 py-8 text-center text-slate-500">
+                  No vendors found. Click "Add Vendor" to create one.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {vendors.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-slate-500">
-                    No vendors found. Click "Add Vendor" to create one.
+            ) : (
+              vendors.map((vendor, index) => (
+                <tr key={vendor.id} className="border-b hover:bg-slate-50">
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{vendor.name}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.email}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.mobile}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.state || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.gst_details}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.supplier_category || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{vendor.office_poc_name}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleEdit(vendor)}
+                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                        title="Edit"
+                      >
+                        <MdEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(vendor.id)}
+                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                        title="Delete"
+                      >
+                        <MdDelete />
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                vendors.map((vendor, index) => (
-                  <tr key={vendor.id} className="border-b hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm">{index + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{vendor.name}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.email}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.mobile}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.state || "-"}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.gst_details}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.supplier_category || "-"}</td>
-                    <td className="px-4 py-3 text-sm">{vendor.office_poc_name}</td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(vendor)}
-                          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
-                          title="Edit"
-                        >
-                          <MdEdit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(vendor.id)}
-                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                          title="Delete"
-                        >
-                          <MdDelete />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+          totalItems={totalCount}
+          showInfo={true}
+          size="md"
+          variant="default"
+        />
+      </div>
 
 
       {/* Add / Edit Vendor Modal */}
@@ -214,6 +246,6 @@ export default function Vendor({base_api}) {
         vendor={editingVendor}
         onSuccess={handleFormSuccess}
       />
-       </div>
+    </div>
   );
 }

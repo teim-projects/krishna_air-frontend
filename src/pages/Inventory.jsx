@@ -16,7 +16,7 @@ const Inventory = () => {
         <div className="flex gap-4 mb-4">
           <button
             className={`px-4 py-2 rounded ${
-              activeTab === 'site' ? 'bg-black text-white' : 'bg-gray-200'
+              activeTab === 'site' ? 'bg-blue-600 text-white' : 'bg-blue-100'
             }`}
             onClick={() => setActiveTab('site')}
           >
@@ -24,7 +24,7 @@ const Inventory = () => {
           </button>
           <button
             className={`px-4 py-2 rounded ${
-              activeTab === 'branch' ? 'bg-black text-white' : 'bg-gray-200'
+              activeTab === 'branch' ? 'bg-blue-600 text-white' : 'bg-blue-100'
             }`}
             onClick={() => setActiveTab('branch')}
           >
@@ -32,7 +32,7 @@ const Inventory = () => {
           </button>
           <button
             className={`px-4 py-2 rounded ${
-              activeTab === 'vendor' ? 'bg-black text-white' : 'bg-gray-200'
+              activeTab === 'vendor' ? 'bg-blue-600 text-white' : 'bg-blue-100'
             }`}
             onClick={() => setActiveTab('vendor')}
           >
@@ -41,7 +41,7 @@ const Inventory = () => {
 
           <button
             className={`px-4 py-2 rounded ${
-              activeTab === 'purchase' ? 'bg-black text-white' : 'bg-gray-200'
+              activeTab === 'purchase' ? 'bg-blue-600 text-white' : 'bg-blue-100'
             }`}
             onClick={() => setActiveTab('purchase')}
           >

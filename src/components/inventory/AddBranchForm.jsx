@@ -5,6 +5,55 @@ import { StateSelect } from "react-country-state-city";
 import "react-country-state-city/dist/react-country-state-city.css";
 import { GetState } from "react-country-state-city";
 
+// ========== GST State Code Mapping ==========
+const INDIAN_STATES_GST = {
+  "Jammu and Kashmir": { code: "JK", gst: "01" },
+  "Himachal Pradesh": { code: "HP", gst: "02" },
+  "Punjab": { code: "PB", gst: "03" },
+  "Chandigarh": { code: "CH", gst: "04" },
+  "Uttarakhand": { code: "UK", gst: "05" },
+  "Haryana": { code: "HR", gst: "06" },
+  "Delhi": { code: "DL", gst: "07" },
+  "Rajasthan": { code: "RJ", gst: "08" },
+  "Uttar Pradesh": { code: "UP", gst: "09" },
+  "Bihar": { code: "BR", gst: "10" },
+  "Sikkim": { code: "SK", gst: "11" },
+  "Arunachal Pradesh": { code: "AR", gst: "12" },
+  "Nagaland": { code: "NL", gst: "13" },
+  "Manipur": { code: "MN", gst: "14" },
+  "Mizoram": { code: "MZ", gst: "15" },
+  "Tripura": { code: "TR", gst: "16" },
+  "Meghalaya": { code: "ML", gst: "17" },
+  "Assam": { code: "AS", gst: "18" },
+  "West Bengal": { code: "WB", gst: "19" },
+  "Jharkhand": { code: "JH", gst: "20" },
+  "Odisha": { code: "OR", gst: "21" },
+  "Chhattisgarh": { code: "CG", gst: "22" },
+  "Madhya Pradesh": { code: "MP", gst: "23" },
+  "Gujarat": { code: "GJ", gst: "24" },
+  "Daman and Diu": { code: "DD", gst: "25" },
+  "Dadra and Nagar Haveli": { code: "DN", gst: "26" },
+  "Maharashtra": { code: "MH", gst: "27" },
+  "Andhra Pradesh": { code: "AP", gst: "28" },
+  "Karnataka": { code: "KA", gst: "29" },
+  "Goa": { code: "GA", gst: "30" },
+  "Lakshadweep": { code: "LD", gst: "31" },
+  "Kerala": { code: "KL", gst: "32" },
+  "Tamil Nadu": { code: "TN", gst: "33" },
+  "Puducherry": { code: "PY", gst: "34" },
+  "Andaman and Nicobar Islands": { code: "AN", gst: "35" },
+  "Telangana": { code: "TG", gst: "36" },
+  "Andhra Pradesh (New)": { code: "AD", gst: "37" },
+  "Ladakh": { code: "LA", gst: "38" }
+};
+
+// Helper function to get state code with GST
+const getStateCode = (stateName) => {
+  const state = INDIAN_STATES_GST[stateName];
+  if (!state) return "";
+  return `${state.code}/${state.gst}`;
+};
+
 export default function AddBranchForm({
   open,
   onClose,
@@ -199,7 +248,9 @@ export default function AddBranchForm({
             onChange={(e) => {
               setStateid(e.id);
               onChange(e.name);
-              setFormData(prev => ({ ...prev, state_code: e.state_code || "" }));
+              // Use our GST code mapping
+              const stateCode = getStateCode(e.name);
+              setFormData(prev => ({ ...prev, state_code: stateCode }));
             }}
             placeHolder="Select State"
           />
