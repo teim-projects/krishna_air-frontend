@@ -14,6 +14,7 @@ export default function PurchaseOrderItems({
   });
 
   const [products, setProducts] = useState(initialProducts || []);
+  const LENGTH_UNITS = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot"];
 
   useEffect(() => {
     setProducts(initialProducts || []);
@@ -33,9 +34,10 @@ export default function PurchaseOrderItems({
     brand: "",
     model: "",
     variant: "",
-    quantity: 1,
-    rate: 0,
-    uom: "Nos"
+    quantity: "",
+    rate: "",
+    uom: "Nos",
+    description: ""
   });
 
   // ===================== LOW SIDE STATES =====================
@@ -52,10 +54,36 @@ export default function PurchaseOrderItems({
     feature: "",
     itemClass: "",
     item: "",
-    quantity: 1,
-    rate: 0,
-    uom: "Meter"
+    quantity: "",
+    rate: "",
+    uom: "Meter",
+    description: ""
   });
+
+
+  const DEFAULT_HIGH_FORM = {
+    acType: "",
+    subType: "",
+    brand: "",
+    model: "",
+    variant: "",
+    quantity: "",
+    rate: "",
+    uom: "Nos",
+    description: ""
+  };
+
+  const DEFAULT_LOW_FORM = {
+    materialType: "",
+    itemType: "",
+    feature: "",
+    itemClass: "",
+    item: "",
+    quantity: "",
+    rate: "",
+    uom: "Meter",
+    description: ""
+  };
 
   // ===================== SECTION STATES =====================
 
@@ -117,27 +145,27 @@ export default function PurchaseOrderItems({
 
   useEffect(() => {
     if (!lowForm.materialType) return;
-    api.get(`/product/item-types/?materialType=${lowForm.materialType}`)
+    api.get(`/product/item-type/`)
       .then(res => setItemTypes(res.data?.results || []));
   }, [lowForm.materialType]);
 
   useEffect(() => {
     if (!lowForm.itemType) return;
-    api.get(`/product/features/?itemType=${lowForm.itemType}`)
+    api.get(`/product/feature-type/`)
       .then(res => setFeatures(res.data?.results || []));
   }, [lowForm.itemType]);
 
   useEffect(() => {
-    if (!lowForm.feature) return;
-    api.get(`/product/item-classes/?feature=${lowForm.feature}`)
+    if (!lowForm.itemType) return;
+    api.get(`/product/item-class/`)
       .then(res => setItemClasses(res.data?.results || []));
-  }, [lowForm.feature]);
+  }, [lowForm.itemType]);
 
   useEffect(() => {
-    if (!lowForm.itemClass) return;
-    api.get(`/product/items/?class=${lowForm.itemClass}`)
+    if (!lowForm.itemType)  return;
+    api.get(`/product/item/?material_type_id=${lowForm.materialType}&item_type_id=${lowForm.itemType}&item_class_id=${lowForm.itemClass}&feature_type_id=${lowForm.feature}`)
       .then(res => setItems(res.data?.results || []));
-  }, [lowForm.itemClass]);
+  }, [lowForm.itemType]);
 
 
 
@@ -204,14 +232,27 @@ export default function PurchaseOrderItems({
       is_section: false,
       section_title: null,
       product_variant: selected.id,
+      variant_sku: selected.variant_sku,
       item: null,
-      description: selected.name,
+      description: highForm.description,
       quantity: parseFloat(highForm.quantity),
       uom: highForm.uom,
       rate: parseFloat(highForm.rate)
     };
 
     updateProducts([...products, newProduct]);
+
+
+    // ✅ RESET FORM
+    setHighForm(DEFAULT_HIGH_FORM);
+
+    // Optional: Clear dependent dropdown data
+    setAcTypes([]);
+    setBrands([]);
+    setSubTypes([]);
+    setModels([]);
+    setVariants([]);
+    loadInitialData();
   };
   // ===================== ADD LOW ITEM =====================
 
@@ -231,13 +272,26 @@ export default function PurchaseOrderItems({
       section_title: null,
       product_variant: null,
       item: selected.id,
-      description: selected.name,
+      item_code: selected.item_code,
+      description: lowForm.description,
       quantity: parseFloat(lowForm.quantity),
       uom: lowForm.uom,
       rate: parseFloat(lowForm.rate)
     };
 
     updateProducts([...products, newProduct]);
+
+    // ✅ RESET FORM
+    setLowForm(DEFAULT_LOW_FORM);
+
+      // Optional: Clear dependent dropdown data
+    setMaterialTypes([]);
+    setItemTypes([]);
+    setFeatures([]);
+    setItemClasses([]);
+    setItems([]);
+    loadInitialData();
+    
   };
 
   // ===================== EDIT ROW =====================
@@ -313,79 +367,198 @@ export default function PurchaseOrderItems({
           High Side Products
         </h4>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setHighForm({ ...highForm, acType: e.target.value })}
-          >
-            <option value="">AC Type</option>
-            {acTypes.map(a => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
+        {/* <div className="space-y-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, acType: e.target.value })}
+            >
+              <option value="">AC Type</option>
+              {acTypes.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setHighForm({ ...highForm, subType: e.target.value })}
-          >
-            <option value="">Sub Type</option>
-            {subTypes.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, subType: e.target.value })}
+            >
+              <option value="">Sub Type</option>
+              {subTypes.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setHighForm({ ...highForm, brand: e.target.value })}
-          >
-            <option value="">Brand</option>
-            {brands.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, brand: e.target.value })}
+            >
+              <option value="">Brand</option>
+              {brands.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setHighForm({ ...highForm, model: e.target.value })}
-          >
-            <option value="">Model</option>
-            {models.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, model: e.target.value })}
+            >
+              <option value="">Model</option>
+              {models.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setHighForm({ ...highForm, variant: e.target.value })}
-          >
-            <option value="">Variant</option>
-            {variants.map(v => (
-              <option key={v.id} value={v.id}>{v.variant_sku}</option>
-            ))}
-          </select>
-        </div>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, variant: e.target.value })}
+            >
+              <option value="">Variant</option>
+              {variants.map(v => (
+                <option key={v.id} value={v.id}>{v.variant_sku}</option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex flex-wrap gap-3 mt-4">
-          <input
-            type="number"
-            placeholder="Qty"
-            className="border rounded-md px-2 py-1 w-24"
-            value={highForm.quantity}
-            onChange={e => setHighForm({ ...highForm, quantity: e.target.value })}
-          />
-          <input
-            type="number"
-            placeholder="Rate"
-            className="border rounded-md px-2 py-1 w-32"
-            value={highForm.rate}
-            onChange={e => setHighForm({ ...highForm, rate: e.target.value })}
-          />
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md"
-            onClick={addHighProduct}
-          >
-            + Add High Product
-          </button>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <input
+              type="number"
+              placeholder="Qty"
+              className="border rounded-md px-2 py-1 w-50"
+              value={highForm.quantity}
+              onChange={e => setHighForm({ ...highForm, quantity: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Rate"
+              className="border rounded-md px-2 py-1 w-50"
+              value={highForm.rate}
+              onChange={e => setHighForm({ ...highForm, rate: e.target.value })}
+            />
+
+            <textarea
+              placeholder="Description"
+              className="border rounded-md px-2 py-1 w-full"
+              value={highForm.description}
+              onChange={e => setHighForm({ ...highForm, description: e.target.value })}
+            />
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md"
+              onClick={addHighProduct}
+            >
+              + Add High Product
+            </button>
+          </div>
+        </div> */}
+
+        <div className="space-y-4">
+
+          {/* Row 1 - 4 dropdowns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, acType: e.target.value })}
+            >
+              <option value="">AC Type</option>
+              {acTypes.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, subType: e.target.value })}
+            >
+              <option value="">Sub Type</option>
+              {subTypes.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, brand: e.target.value })}
+            >
+              <option value="">Brand</option>
+              {brands.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, model: e.target.value })}
+            >
+              <option value="">Model</option>
+              {models.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Row 2 - remaining inputs except description */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setHighForm({ ...highForm, variant: e.target.value })}
+            >
+              <option value="">Variant</option>
+              {variants.map(v => (
+                <option key={v.id} value={v.id}>{v.variant_sku}</option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              placeholder="Qty"
+              className="border rounded-md px-2 py-1"
+              value={highForm.quantity}
+              onChange={e => setHighForm({ ...highForm, quantity: e.target.value })}
+            />
+
+            <input
+              type="number"
+              placeholder="Rate"
+              className="border rounded-md px-2 py-1"
+              value={highForm.rate}
+              onChange={e => setHighForm({ ...highForm, rate: e.target.value })}
+            />
+
+            <select
+              className="border rounded-md px-2 py-1"
+              value={highForm.uom}
+              onChange={e => setHighForm({ ...highForm, uom: e.target.value })}
+            >
+              {LENGTH_UNITS.map((unit, index) => (
+                <option key={index} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
+              onClick={addHighProduct}
+            >
+              + Add
+            </button>
+
+          </div>
+
+          <div className="flex gap-3 items-start">
+
+            <textarea
+              placeholder="Description"
+              className="border rounded-md px-3 py-2 flex-1"
+              rows={2}
+              value={highForm.description}
+              onChange={e => setHighForm({ ...highForm, description: e.target.value })}
+            />
+
+
+
+          </div>
+
         </div>
       </div>
 
@@ -395,79 +568,108 @@ export default function PurchaseOrderItems({
           Low Side Items
         </h4>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setLowForm({ ...lowForm, materialType: e.target.value })}
-          >
-            <option value="">Material Type</option>
-            {materialTypes.map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+        <div className="space-y-4">
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setLowForm({ ...lowForm, itemType: e.target.value })}
-          >
-            <option value="">Item Type</option>
-            {itemTypes.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+          {/* Row 1 - 4 dropdowns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setLowForm({ ...lowForm, materialType: e.target.value })}
+            >
+              <option value="">Material Type</option>
+              {materialTypes.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setLowForm({ ...lowForm, feature: e.target.value })}
-          >
-            <option value="">Feature</option>
-            {features.map(f => (
-              <option key={f.id} value={f.id}>{f.name}</option>
-            ))}
-          </select>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setLowForm({ ...lowForm, itemType: e.target.value })}
+            >
+              <option value="">Item Type</option>
+              {itemTypes.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setLowForm({ ...lowForm, itemClass: e.target.value })}
-          >
-            <option value="">Item Class</option>
-            {itemClasses.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setLowForm({ ...lowForm, feature: e.target.value })}
+            >
+              <option value="">Feature</option>
+              {features.map(f => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
 
-          <select
-            className="border rounded-md px-2 py-1"
-            onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
-          >
-            <option value="">Select Item</option>
-            {items.map(i => (
-              <option key={i.id} value={i.id}>{i.name}</option>
-            ))}
-          </select>
-        </div>
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setLowForm({ ...lowForm, itemClass: e.target.value })}
+            >
+              <option value="">Item Class</option>
+              {itemClasses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex flex-wrap gap-3 mt-4">
-          <input
-            type="number"
-            placeholder="Qty"
-            className="border rounded-md px-2 py-1 w-24"
-            value={lowForm.quantity}
-            onChange={e => setLowForm({ ...lowForm, quantity: e.target.value })}
+          {/* Row 2 - Remaining inputs except description */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <select
+              className="border rounded-md px-2 py-1"
+              onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
+            >
+              <option value="">Select Item</option>
+              {items.map(i => (
+                <option key={i.id} value={i.id}>{i.item_code}</option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              placeholder="Qty"
+              className="border rounded-md px-2 py-1"
+              value={lowForm.quantity}
+              onChange={e => setLowForm({ ...lowForm, quantity: e.target.value })}
+            />
+
+            <input
+              type="number"
+              placeholder="Rate"
+              className="border rounded-md px-2 py-1"
+              value={lowForm.rate}
+              onChange={e => setLowForm({ ...lowForm, rate: e.target.value })}
+            />
+
+            <select
+              className="border rounded-md px-2 py-1"
+              value={lowForm.uom}
+              onChange={e => setLowForm({ ...lowForm, uom: e.target.value })}
+            >
+              {LENGTH_UNITS.map((unit, index) => (
+                <option key={index} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
+              onClick={addLowItem}
+            >
+              + Add
+            </button>
+          </div>
+
+          {/* Row 3 - Description full width */}
+          <textarea
+            placeholder="Description"
+            className="border rounded-md px-3 py-2 w-full"
+            rows={2}
+            value={lowForm.description}
+            onChange={e => setLowForm({ ...lowForm, description: e.target.value })}
           />
-          <input
-            type="number"
-            placeholder="Rate"
-            className="border rounded-md px-2 py-1 w-32"
-            value={lowForm.rate}
-            onChange={e => setLowForm({ ...lowForm, rate: e.target.value })}
-          />
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md"
-            onClick={addLowItem}
-          >
-            + Add Low Item
-          </button>
+
         </div>
       </div>
 
@@ -519,7 +721,11 @@ export default function PurchaseOrderItems({
                   </>
                 ) : (
                   <>
-                    <td className="border px-3 py-2">{p.variants}</td>
+                    <td className="border px-3 py-2">
+                      {p.variant_sku || p.item_code || ""}
+                      <br />
+                      {p.description}
+                    </td>
                     <td className="border px-3 py-2">
                       <input
                         type="number"
