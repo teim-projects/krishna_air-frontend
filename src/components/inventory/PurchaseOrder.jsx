@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdRemoveRedEye, MdDownload, MdHistory, MdEmail } from "react-icons/md";
+import { FaWhatsapp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import AddPoFrom from "./AddPoFrom";
+import Pagination from "../Pagination";
 
 export default function PurchaseOrder({ base_api }) {
   const BASE_API = base_api;
@@ -9,6 +11,12 @@ export default function PurchaseOrder({ base_api }) {
   // State for sites list
   const [po, setPo] = useState([]);
   const [loading, setLoading] = useState(false);
+
+// Pagination state
+const [currentPage, setCurrentPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const [totalCount, setTotalCount] = useState(0);
+const PAGE_SIZE = 10;
 
   // Modal state
   const [showPoForm, setShowPoForm] = useState(false);
@@ -22,34 +30,44 @@ export default function PurchaseOrder({ base_api }) {
     ""
   ), []);
 
-  // Fetch sites from API (will be implemented later)
-  const fetchPO = async () => {
-    setLoading(true);
-    try {
-      // Note: Update this URL when backend is ready
-      const response = await fetch(`${BASE_API}/inventory/purchase-orders/`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}`);
+  // Fetch purchase orders with pagination
+const fetchPO = async (page = 1) => {
+  setLoading(true);
+  try {
+    const response = await fetch(`${BASE_API}/inventory/purchase-orders/?page=${page}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
+    });
 
-      const data = await response.json();
-      setPo(data.results || data);
-    } catch (error) {
-      console.error("Error fetching purchase orders:", error);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
     }
-  };
+
+    const data = await response.json();
+
+    if (data.results) {
+      setPo(data.results);
+      setTotalCount(data.count || 0);
+      setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+    } else {
+      setPo(data);
+      setTotalCount(data.length);
+      setTotalPages(1);
+    }
+
+    setCurrentPage(page);
+  } catch (error) {
+    console.error("Error fetching purchase orders:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch sites on component mount (commented out until backend is ready)
   useEffect(() => {
-    fetchPO();
+    fetchPO(1);
   }, []);
 
   // Handle delete site
@@ -117,6 +135,36 @@ export default function PurchaseOrder({ base_api }) {
     fetchPO();
     setEditingPo(null);
   };
+  // Handle version history
+  const handleVersion = (id) => {
+    console.log("View version history for PO:", id);
+    // TODO: Implement version history modal
+  };
+
+  // Handle view PO
+  const handleView = (id) => {
+    console.log("View PO:", id);
+    // TODO: Implement view PO modal/page
+  };
+
+  // Handle download PO
+  const handleDownload = (id) => {
+    console.log("Download PO:", id);
+    // TODO: Implement download functionality
+  };
+
+  // Handle WhatsApp share
+  const handleWhatsapp = (id) => {
+    console.log("Share via WhatsApp:", id);
+    // TODO: Implement WhatsApp share
+  };
+
+  // Handle email
+  const handleEmail = (id) => {
+    console.log("Send email:", id);
+    // TODO: Implement email functionality
+  };
+
 
   return (
     <div className="space-y-6">
@@ -126,7 +174,7 @@ export default function PurchaseOrder({ base_api }) {
         <div>
           <h2 className="text-lg font-semibold">Purchase Order Management</h2>
           <div className="text-sm text-slate-600">
-            {loading ? "Loading..." : `${po.length} site(s) found`}
+            {loading ? "Loading..." : `${totalCount} purchase order(s) found`}
           </div>
         </div>
         <div>
@@ -165,9 +213,9 @@ export default function PurchaseOrder({ base_api }) {
             ) : (
               po.map((order, index) => (
                 <tr key={order.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium">{order.vendor || "-"}</td>
-                  <td className="px-4 py-3 text-sm">{order.site || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{order.vendor_name || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.site_name || "-"}</td>
                   <td className="px-4 py-3 text-sm">{order.po_date || "-"}</td>
                   <td className="px-4 py-3 text-sm">{order.purchase_order_no || "-"}</td>
                   <td className="px-4 py-3 text-sm">{order.contact_name || "-"}</td>
@@ -176,11 +224,46 @@ export default function PurchaseOrder({ base_api }) {
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleVersion(order.id)}
+                        className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300"
+                        title="Version History"
+                      >
+                        <MdHistory />
+                      </button>
+                      <button
+                        onClick={() => handleView(order.id)}
+                        className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+                        title="View"
+                      >
+                        <MdRemoveRedEye />
+                      </button>
+                      <button
                         onClick={() => handleEdit(order)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
                         title="Edit"
                       >
                         <MdEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDownload(order.id)}
+                        className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300"
+                        title="Download"
+                      >
+                        <MdDownload />
+                      </button>
+                      <button
+                        onClick={() => handleWhatsapp(order.id)}
+                        className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300"
+                        title="WhatsApp"
+                      >
+                        <FaWhatsapp />
+                      </button>
+                      <button
+                        onClick={() => handleEmail(order.id)}
+                        className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300"
+                        title="Email"
+                      >
+                        <MdEmail />
                       </button>
                       <button
                         onClick={() => handleDelete(order.id)}
@@ -196,6 +279,16 @@ export default function PurchaseOrder({ base_api }) {
             )}
           </tbody>
         </table>
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => fetchPO(page)}
+          totalItems={totalCount}
+          showInfo={true}
+          size="md"
+          variant="default"
+        />
       </div>
 
       {/* Add / Edit Site Modal */}
