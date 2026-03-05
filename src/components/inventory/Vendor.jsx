@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 import AddVendorForm from "./AddVendorForm";
 import Pagination from "../Pagination";
 
-export default function Vendor({ base_api }) {
+export default function Vendor({ base_api, filters }) {
   const BASE_API = base_api;
 
   // State for vendors list
@@ -73,10 +73,69 @@ export default function Vendor({ base_api }) {
     }
   };
 
-  // Fetch vendors on component mount
+  // Filter vendors with search
+  const filterVendors = async (filterValues = {}, page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", page);
+
+      // Add search parameter if exists
+      if (filterValues.search && filterValues.search.trim()) {
+        params.set("search", filterValues.search);
+      }
+
+      const url = `${BASE_API}/inventory/vendors/?${params.toString()}`;
+      console.log("🔎 Filter URL:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.results) {
+        setVendors(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setVendors(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error filtering vendors:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to filter vendors"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch vendors on mount and when filters change
   useEffect(() => {
-    fetchVendors(currentPage);
-  }, [currentPage]);
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+
+    if (hasAnyFilter) {
+      filterVendors(filters, 1);  // Reset to page 1 when filters change
+    } else {
+      fetchVendors(1);  // Reset to page 1 when no filters
+    }
+  }, [filters]);
 
   // Handle delete vendor
   const handleDelete = async (id) => {
@@ -110,8 +169,12 @@ export default function Vendor({ base_api }) {
         showConfirmButton: false
       });
 
-      // Refresh vendor list
-      fetchVendors();
+      // Refresh vendor list with current filters
+      const hasAnyFilter = filters && Object.values(filters).some(
+        v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+      );
+      hasAnyFilter ? filterVendors(filters, currentPage) : fetchVendors(currentPage);
+
     } catch (error) {
       console.error("Error deleting vendor:", error);
       Swal.fire({
@@ -137,10 +200,14 @@ export default function Vendor({ base_api }) {
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Vendor saved:", data);
-    // Refresh vendor list
-    fetchVendors();
+    // Refresh vendor list with current filters
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+    hasAnyFilter ? filterVendors(filters, currentPage) : fetchVendors(currentPage);
     setEditingVendor(null);
   };
+
 
   return (
     <div className="space-y-6">
@@ -225,7 +292,13 @@ export default function Vendor({ base_api }) {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={(newPage) => {
+            const hasAnyFilter = filters && Object.values(filters).some(
+              v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+            );
+            hasAnyFilter ? filterVendors(filters, newPage) : fetchVendors(newPage);
+          }}
+
           totalItems={totalCount}
           showInfo={true}
           size="md"

@@ -4,20 +4,20 @@ import Swal from "sweetalert2";
 import AddSiteForm from "./AddSiteForm";
 import Pagination from "../Pagination";
 
-export default function Site({base_api}) {
+export default function Site({ base_api, filters }) {
   const BASE_API = base_api;
-  
+
   // State for sites list
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Pagination state
-const [currentPage, setCurrentPage] = useState(1);
-const [totalPages, setTotalPages] = useState(1);
-const [totalCount, setTotalCount] = useState(0);
-const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 10;
 
-  
+
   // Modal state
   const [showSiteForm, setShowSiteForm] = useState(false);
   const [editingSite, setEditingSite] = useState(null);
@@ -49,16 +49,16 @@ const PAGE_SIZE = 10;
       const data = await response.json();
 
       if (data.results) {
-      setSites(data.results);
-      setTotalCount(data.count || 0);
-      setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
-    } else {
-      setSites(data);
-      setTotalCount(data.length);
-      setTotalPages(1);
-    }
-    
-    setCurrentPage(page);
+        setSites(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setSites(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching sites:", error);
       Swal.fire({
@@ -71,10 +71,69 @@ const PAGE_SIZE = 10;
     }
   };
 
-  // Fetch sites on component mount (commented out until backend is ready)
-  useEffect((currentPage) => {
-    fetchSites();
-  }, [currentPage]);
+  // Filter sites with search
+  const filterSites = async (filterValues = {}, page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", page);
+
+      // Add search parameter if exists
+      if (filterValues.search && filterValues.search.trim()) {
+        params.set("search", filterValues.search);
+      }
+
+      const url = `${BASE_API}/auth/site/?${params.toString()}`;
+      console.log("🔎 Filter URL:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.results) {
+        setSites(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setSites(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error filtering sites:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to filter sites"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch sites on mount and when filters change
+  useEffect(() => {
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+
+    if (hasAnyFilter) {
+      filterSites(filters, 1);
+    } else {
+      fetchSites(1);
+    }
+  }, [filters]);
 
   // Handle delete site
   const handleDelete = async (id) => {
@@ -86,11 +145,11 @@ const PAGE_SIZE = 10;
       confirmButtonText: "Delete",
       confirmButtonColor: "#dc2626",
     });
-    
+
     if (!result.isConfirmed) return;
 
     try {
-      
+
       const response = await fetch(`${BASE_API}/auth/site/${id}/`, {
         method: "DELETE",
         headers: {
@@ -109,8 +168,12 @@ const PAGE_SIZE = 10;
         showConfirmButton: false
       });
 
-      // Refresh site list
-      fetchSites();
+      // Refresh site list with current filters
+      const hasAnyFilter = filters && Object.values(filters).some(
+        v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+      );
+      hasAnyFilter ? filterSites(filters, currentPage) : fetchSites(currentPage);
+
     } catch (error) {
       console.error("Error deleting site:", error);
       Swal.fire({
@@ -133,17 +196,20 @@ const PAGE_SIZE = 10;
     setShowSiteForm(true);
   };
 
-  // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Site saved:", data);
-    // Refresh site list
-    fetchSites();
+    // Refresh site list with current filters
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+    hasAnyFilter ? filterSites(filters, currentPage) : fetchSites(currentPage);
     setEditingSite(null);
   };
 
+
   return (
     <div className="space-y-6">
-      
+
       {/* Header Section */}
       <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
         <div>
@@ -219,12 +285,18 @@ const PAGE_SIZE = 10;
             )}
           </tbody>
         </table>
-        
+
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={(newPage) => {
+            const hasAnyFilter = filters && Object.values(filters).some(
+              v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+            );
+            hasAnyFilter ? filterSites(filters, newPage) : fetchSites(newPage);
+          }}
+
           totalItems={totalCount}
           showInfo={true}
           size="md"

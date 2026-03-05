@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import AddBranchForm from "./AddBranchForm";
 import Pagination from "../Pagination";
 
-export default function Branch({ base_api }) {
+export default function Branch({ base_api, filters }) {
   const BASE_API = base_api;
 
   // State for branches list
@@ -70,10 +70,69 @@ export default function Branch({ base_api }) {
     }
   };
 
-  // Fetch branches on component mount (commented out until backend is ready)
+  // Filter branches with search
+  const filterBranches = async (filterValues = {}, page = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", page);
+
+      // Add search parameter if exists
+      if (filterValues.search && filterValues.search.trim()) {
+        params.set("search", filterValues.search);
+      }
+
+      const url = `${BASE_API}/auth/branch/?${params.toString()}`;
+      console.log("🔎 Filter URL:", url);
+
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.results) {
+        setBranches(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setBranches(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error filtering branches:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to filter branches"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch branches on mount and when filters change
   useEffect(() => {
-    fetchBranches(currentPage);
-  }, [currentPage]);
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+
+    if (hasAnyFilter) {
+      filterBranches(filters, 1);
+    } else {
+      fetchBranches(1);
+    }
+  }, [filters]);
 
   // Handle delete branch
   const handleDelete = async (id) => {
@@ -107,8 +166,12 @@ export default function Branch({ base_api }) {
         showConfirmButton: false
       });
 
-      // Refresh branch list
-      fetchBranches();
+      // Refresh branch list with current filters
+      const hasAnyFilter = filters && Object.values(filters).some(
+        v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+      );
+      hasAnyFilter ? filterBranches(filters, currentPage) : fetchBranches(currentPage);
+
     } catch (error) {
       console.error("Error deleting branch:", error);
       Swal.fire({
@@ -134,10 +197,14 @@ export default function Branch({ base_api }) {
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Branch saved:", data);
-    // Refresh branch list
-    fetchBranches();
+    // Refresh branch list with current filters
+    const hasAnyFilter = filters && Object.values(filters).some(
+      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+    );
+    hasAnyFilter ? filterBranches(filters, currentPage) : fetchBranches(currentPage);
     setEditingBranch(null);
   };
+
 
   return (
     <div className="space-y-6">
@@ -227,7 +294,12 @@ export default function Branch({ base_api }) {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(page) => setCurrentPage(page)}
+          onPageChange={(newPage) => {
+            const hasAnyFilter = filters && Object.values(filters).some(
+              v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+            );
+            hasAnyFilter ? filterBranches(filters, newPage) : fetchBranches(newPage);
+          }}
           totalItems={totalCount}
           showInfo={true}
           size="md"

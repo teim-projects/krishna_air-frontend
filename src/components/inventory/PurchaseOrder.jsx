@@ -5,11 +5,11 @@ import AddPoFrom from "./AddPoFrom";
 
 export default function PurchaseOrder({ base_api }) {
   const BASE_API = base_api;
-  
+
   // State for sites list
   const [po, setPo] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Modal state
   const [showPoForm, setShowPoForm] = useState(false);
   const [editingPo, setEditingPo] = useState(null);
@@ -62,7 +62,7 @@ export default function PurchaseOrder({ base_api }) {
       confirmButtonText: "Delete",
       confirmButtonColor: "#dc2626",
     });
-    
+
     if (!result.isConfirmed) return;
 
     try {
@@ -120,7 +120,7 @@ export default function PurchaseOrder({ base_api }) {
 
   return (
     <div className="space-y-6">
-      
+
       {/* Header Section */}
       <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
         <div>
@@ -145,13 +145,13 @@ export default function PurchaseOrder({ base_api }) {
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Site Name</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Shortcut</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">City</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">State</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Pincode</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Owner Name</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Owner Contact</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Vendor</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Site</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">PO Date</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">PO Number</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Contact Name</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Contact No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Grand Total</th>
               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
@@ -163,27 +163,27 @@ export default function PurchaseOrder({ base_api }) {
                 </td>
               </tr>
             ) : (
-              po.map((site, index) => (
-                <tr key={site.id} className="border-b hover:bg-slate-50">
+              po.map((order, index) => (
+                <tr key={order.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-medium">{site.name}</td>
-                  <td className="px-4 py-3 text-sm">{site.site_shortcut || "-"}</td>
-                  <td className="px-4 py-3 text-sm">{site.city}</td>
-                  <td className="px-4 py-3 text-sm">{site.state}</td>
-                  <td className="px-4 py-3 text-sm">{site.pincode}</td>
-                  <td className="px-4 py-3 text-sm">{site.owner_name}</td>
-                  <td className="px-4 py-3 text-sm">{site.owner_contact}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{order.vendor || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.site || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.po_date || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.purchase_order_no || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.contact_name || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{order.contact_no || "-"}</td>
+                  <td className="px-4 py-3 text-sm">₹{order.grand_total || 0}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => handleEdit(site)}
+                        onClick={() => handleEdit(order)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
                         title="Edit"
                       >
                         <MdEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(site.id)}
+                        onClick={() => handleDelete(order.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
                         title="Delete"
                       >
