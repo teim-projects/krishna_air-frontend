@@ -18,6 +18,12 @@ export default function PurchaseOrderItems({
 
   useEffect(() => {
     setProducts(initialProducts || []);
+
+    // Auto-select first section in edit mode
+    const firstSection = (initialProducts || []).find(p => p.is_section);
+    if (firstSection) {
+      setActiveSection(firstSection.serial_no);
+    }
   }, [initialProducts]);
 
   // ===================== HIGH SIDE STATES =====================
@@ -353,6 +359,7 @@ export default function PurchaseOrderItems({
             onChange={e => setSectionTitle(e.target.value)}
           />
           <button
+            type="button"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
             onClick={addSection}
           >
@@ -537,6 +544,7 @@ export default function PurchaseOrderItems({
             </select>
 
             <button
+              type="button"
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
               onClick={addHighProduct}
             >
@@ -654,6 +662,7 @@ export default function PurchaseOrderItems({
             </select>
 
             <button
+              type="button"
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
               onClick={addLowItem}
             >
@@ -712,6 +721,7 @@ export default function PurchaseOrderItems({
                     </td>
                     <td className="border px-3 py-2 text-center">
                       <button
+                        type="button"
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
@@ -752,6 +762,7 @@ export default function PurchaseOrderItems({
                     </td>
                     <td className="border px-3 py-2 text-center">
                       <button
+                        type="button"
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >

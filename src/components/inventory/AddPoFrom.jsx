@@ -61,6 +61,17 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     // If editing existing PO
     useEffect(() => {
         if (po) {
+
+            const paymentTerms =
+                po.terms_conditions_details
+                    ?.filter(t => t.terms_condition_type_name === "Po Payment")
+                    .map(t => t.id) || [];
+
+            const deliveryTerms =
+                po.terms_conditions_details
+                    ?.filter(t => t.terms_condition_type_name === "Delivery")
+                    .map(t => t.id) || [];
+
             setFormData({
                 vendor: po.vendor || "",
                 branch: po.branch || "",
@@ -71,12 +82,35 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 quotation_date: po.quotation_date || "",
                 contact_name: po.contact_name || "",
                 contact_no: po.contact_no || "",
+                gst_percentage: po.gst_percentage || 18,
+                gst_type: po.gst_type || "exclusive",
+                transport_charges: po.transport_charges || 0,
+                round_off: po.round_off || 0,
                 products: po.products || [],
-                payment_terms: po.payment_terms || [],
-                delivery_terms: po.delivery_terms || [],
+                payment_terms: paymentTerms,
+                delivery_terms: deliveryTerms,
+            });
+        } else {
+            setFormData({
+                vendor: "",
+                branch: "",
+                site: "",
+                book_no: "",
+                po_date: "",
+                quotation_ref_no: "",
+                quotation_date: "",
+                contact_name: "",
+                contact_no: "",
+                gst_percentage: 18,
+                gst_type: "exclusive",
+                transport_charges: 0,
+                round_off: 0,
+                products: [],
+                payment_terms: [],
+                delivery_terms: [],
             });
         }
-    }, [po]);
+    }, [po, open]);
 
     // Fetch vendors, branches, sites for select options (if needed)
     const fetchVendors = async () => {
@@ -97,7 +131,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             setLoading(false);
         }
     }
-   
+
     const fetchBranches = async () => {
         setLoading(true);
         try {
@@ -140,10 +174,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
     useEffect(() => {
         if (open) {
-            fetchVendors(); 
+            fetchVendors();
             fetchBranches();
             fetchSites();
-        }   
+        }
     }, [open]);
 
     // Define form fields configuration
@@ -300,6 +334,58 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
     ];
 
+    // const handleSubmit = async (data) => {
+    //     try {
+    //         setLoading(true);
+
+    //         const payload = {
+    //             vendor: data.vendor,
+    //             branch: data.branch,
+    //             site: data.site,
+    //             book_no: data.book_no,
+    //             po_date: data.po_date,
+    //             quotation_ref_no: data.quotation_ref_no,
+    //             quotation_date: data.quotation_date,
+    //             contact_name: data.contact_name,
+    //             contact_no: data.contact_name,
+
+    //             gst_percentage: data.gst_percentage,
+    //             gst_type: data.gst_type,
+    //             transport_charges: data.transport_charges,
+    //             round_off: data.round_off,
+
+    //             terms_conditions: [
+    //                 ...(data.payment_terms || []),
+    //                 ...(data.delivery_terms || [])
+    //             ],
+
+    //             products: data.products
+    //         };
+
+    //         const config = {
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 ...(token ? { Authorization: `Bearer ${token}` } : {})
+    //             }
+    //         };
+
+    //         if (po) {
+    //             await axios.put(`${baseApi}/inventory/purchase-orders/${po.id}/`, payload, config);
+
+    //         } else {
+    //             await axios.post(`${baseApi}/inventory/purchase-orders/`, payload, config);
+    //         }
+
+    //         onSuccess && onSuccess();
+    //         onClose && onClose();
+
+    //     } catch (error) {
+    //         console.error("Error saving PO:", error.response?.data || error);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
     const handleSubmit = async (data) => {
         try {
             setLoading(true);
@@ -307,13 +393,13 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             const payload = {
                 vendor: data.vendor,
                 branch: data.branch,
-                site: data.site,
+                site: data.site || null,
                 book_no: data.book_no,
                 po_date: data.po_date,
-                quotation_ref_no: data.quotation_ref_no,
-                quotation_date: data.quotation_date,
+                quotation_ref_no: data.quotation_ref_no || null,
+                quotation_date: data.quotation_date || null,
                 contact_name: data.contact_name,
-                contact_no: data.contact_name,
+                contact_no: data.contact_no,
 
                 gst_percentage: data.gst_percentage,
                 gst_type: data.gst_type,
@@ -321,24 +407,35 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 round_off: data.round_off,
 
                 terms_conditions: [
-                    ...(data.payment_terms || []),
-                    ...(data.delivery_terms || [])
+                    ...(data.payment_terms || []).map(t => t.id || t),
+                    ...(data.delivery_terms || []).map(t => t.id || t)
                 ],
 
-                products: data.products
+                products: formData.products
             };
 
+            console.log("PO PAYLOAD:", payload);
+
+            const config = {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+            };
+
+            let response;
+
             if (po) {
-                await axios.put(`${baseApi}/purchase-orders/${po.id}/`, payload);
+                response = await axios.put(`${baseApi}/inventory/purchase-orders/${po.id}/`, payload, config);
             } else {
-                await axios.post(`${baseApi}/purchase-orders/`, payload);
+                response = await axios.post(`${baseApi}/inventory/purchase-orders/`, payload, config);
             }
 
-            onSuccess && onSuccess();
+            onSuccess && onSuccess(response.data);
             onClose && onClose();
 
         } catch (error) {
-            console.error("Error saving PO:", error);
+            console.error("Error saving PO:", error.response?.data || error);
         } finally {
             setLoading(false);
         }

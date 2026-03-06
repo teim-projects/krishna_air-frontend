@@ -112,7 +112,7 @@ const TermsMultiSelect = ({
             >
               <input
                 type="checkbox"
-                checked={Array.isArray(value) && value.includes(term.id)}
+                checked={Array.isArray(value) && value?.includes(term.id)}
                 onChange={() => handleCheckboxChange(term.id)}
                 disabled={disabled}
               />
