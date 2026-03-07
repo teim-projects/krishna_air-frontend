@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
 
-export default function PurchaseOrder({ base_api }) {
+export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
 
   // State for sites list
@@ -70,10 +70,56 @@ export default function PurchaseOrder({ base_api }) {
     }
   };
 
-  // Fetch sites on component mount (commented out until backend is ready)
+  // Filter purchase orders with search
+  const filterPO = async (page = 1) => {
+    setLoading(true);
+    try {
+      let url = `${BASE_API}/inventory/purchase-orders/?page=${page}`;
+
+      // Add search parameter if filter exists
+      if (filters?.search) {
+        url += `&search=${encodeURIComponent(filters.search)}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.results) {
+        setPo(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+      } else {
+        setPo(data);
+        setTotalCount(data.length);
+        setTotalPages(1);
+      }
+
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Error filtering purchase orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch POs on component mount and when filters change
   useEffect(() => {
-    fetchPO(1);
-  }, []);
+    if (filters && Object.keys(filters).length > 0) {
+      filterPO(1);
+    } else {
+      fetchPO(1);
+    }
+  }, [filters]);
 
   // Fetch version history for a specific PO
   const fetchVersionHistory = async (purchase_order_no) => {
@@ -158,14 +204,68 @@ export default function PurchaseOrder({ base_api }) {
         showConfirmButton: false
       });
 
-      // Refresh site list
-      fetchPO();
+      // Refresh PO list with current filters
+      if (filters && Object.keys(filters).length > 0) {
+        filterPO(currentPage);
+      } else {
+        fetchPO(currentPage);
+      }
     } catch (error) {
       console.error("Error deleting site:", error);
       Swal.fire({
         icon: "error",
         title: "Delete failed",
         text: error.message || "Failed to delete site"
+      });
+    }
+  };
+
+  // Handle delete version history
+  const handleDeleteVersion = async (versionId) => {
+    const result = await Swal.fire({
+      title: "Delete this version?",
+      text: "This will delete only this specific version",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete",
+      confirmButtonColor: "#dc2626",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await fetch(`${BASE_API}/inventory/purchase-orders-history/${versionId}/`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      Swal.fire({
+        icon: "success",
+        text: "Version deleted successfully",
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      // Refresh PO list and clear version history cache
+      if (filters && Object.keys(filters).length > 0) {
+        filterPO(currentPage);
+      } else {
+        fetchPO(currentPage);
+      }
+      setExpandedPO(null);
+      setVersionHistory({});
+    } catch (error) {
+      console.error("Error deleting version:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Delete failed",
+        text: error.message || "Failed to delete version"
       });
     }
   };
@@ -186,8 +286,12 @@ export default function PurchaseOrder({ base_api }) {
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Purchase Order saved:", data);
-    // Refresh site list
-    fetchPO();
+    // Refresh PO list with current filters
+    if (filters && Object.keys(filters).length > 0) {
+      filterPO(1);
+    } else {
+      fetchPO(1);
+    }
     setEditingPo(null);
   };
   // Handle version history - toggle expand/collapse
@@ -402,7 +506,7 @@ export default function PurchaseOrder({ base_api }) {
                                 </button>
                                 {!version.is_current && (
                                   <button
-                                    onClick={() => handleDelete(version.id)}
+                                    onClick={() => handleDeleteVersion(version.id)}
                                     className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
                                     title="Delete"
                                   >
@@ -432,7 +536,13 @@ export default function PurchaseOrder({ base_api }) {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(page) => fetchPO(page)}
+          onPageChange={(page) => {
+            if (filters && Object.keys(filters).length > 0) {
+              filterPO(page);
+            } else {
+              fetchPO(page);
+            }
+          }}
           totalItems={totalCount}
           showInfo={true}
           size="md"

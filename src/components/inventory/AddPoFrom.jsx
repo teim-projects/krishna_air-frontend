@@ -254,9 +254,18 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             label: "Contact No",
             type: "text",
             required: false,
-            placeholder: "Enter Contact No",
+            placeholder: "Enter 10-digit Contact No",
+            pattern: "^[0-9]{10}$",
+            minLength: 10,
+            maxLength: 10,
+            validation: (value) => {
+                if (!value) return true; // Optional field
+                if (!/^\d{10}$/.test(value)) {
+                    return "Contact number must be exactly 10 digits";
+                }
+                return true;
+            }
         },
-
         {
             name: "products_section",
             label: "Items",
@@ -449,10 +458,17 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                     max-h-[90vh] flex flex-col">
 
                 {/* Header */}
-                <div className="p-6 border-b">
-                    <h3 className="text-lg font-semibold">
+                <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold">
                         {po ? "Edit Purchase Order" : "Add Purchase Order"}
-                    </h3>
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-xl font-bold hover:text-red-500"
+                        aria-label="Close"
+                    >
+                        ✕
+                    </button>
                 </div>
 
                 {/* Scrollable Body */}
