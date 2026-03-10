@@ -51,7 +51,7 @@ const INDIAN_STATES_GST = {
 const getStateCode = (stateName) => {
   const state = INDIAN_STATES_GST[stateName];
   if (!state) return "";
-  return `${state.code}/${state.gst}`;
+  return `${state.code}-${state.gst}`;
 };
 
 export default function AddVendorForm({
