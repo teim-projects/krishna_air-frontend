@@ -52,7 +52,7 @@ const useTermTypes = ({ baseApi, token }) => {
   // ----------------------------------
   // Get OR Create (Safe Version)
   // ----------------------------------
-  const getOrCreateTermTypeId = async (name) => {
+  const getOrCreateTermTypeId = async (name, display) => {
     // ensure types are loaded
     if (!isFetchedRef.current) {
       await fetchTermTypes();
@@ -64,7 +64,7 @@ const useTermTypes = ({ baseApi, token }) => {
     try {
       const res = await axios.post(
         `${baseApi}/inventory/terms-type/`,
-        { name },
+        { name ,  display_name:display},
         { headers }
       );
 

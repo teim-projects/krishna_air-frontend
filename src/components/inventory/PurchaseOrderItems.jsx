@@ -19,11 +19,11 @@ export default function PurchaseOrderItems({
   useEffect(() => {
     setProducts(initialProducts || []);
 
-    // Auto-select first section in edit mode
-    const firstSection = (initialProducts || []).find(p => p.is_section);
-    if (firstSection) {
-      setActiveSection(firstSection.serial_no);
-    }
+    // // Auto-select first section in edit mode
+    // const firstSection = (initialProducts || []).find(p => p.is_section);
+    // if (firstSection) {
+    //   setActiveSection(firstSection.serial_no);
+    // }
   }, [initialProducts]);
 
   // ===================== HIGH SIDE STATES =====================
@@ -168,7 +168,7 @@ export default function PurchaseOrderItems({
   }, [lowForm.itemType]);
 
   useEffect(() => {
-    if (!lowForm.itemType)  return;
+    if (!lowForm.itemType) return;
     api.get(`/product/item/?material_type_id=${lowForm.materialType}&item_type_id=${lowForm.itemType}&item_class_id=${lowForm.itemClass}&feature_type_id=${lowForm.feature}`)
       .then(res => setItems(res.data?.results || []));
   }, [lowForm.itemType]);
@@ -246,7 +246,20 @@ export default function PurchaseOrderItems({
       rate: parseFloat(highForm.rate)
     };
 
-    updateProducts([...products, newProduct]);
+    const insertIndex = products.reduce((lastIndex, p, i) => {
+      if (p.serial_no.startsWith(activeSection + ".")) {
+        return i + 1;
+      }
+      if (p.serial_no === activeSection) {
+        return i + 1;
+      }
+      return lastIndex;
+    }, products.length);
+
+    const updated = [...products];
+    updated.splice(insertIndex, 0, newProduct);
+
+    updateProducts(updated);
 
 
     // ✅ RESET FORM
@@ -254,7 +267,7 @@ export default function PurchaseOrderItems({
 
     // Optional: Clear dependent dropdown data
     setAcTypes([]);
-    setBrands([]);
+    // setBrands([]);
     setSubTypes([]);
     setModels([]);
     setVariants([]);
@@ -285,19 +298,32 @@ export default function PurchaseOrderItems({
       rate: parseFloat(lowForm.rate)
     };
 
-    updateProducts([...products, newProduct]);
+    const insertIndex = products.reduce((lastIndex, p, i) => {
+      if (p.serial_no.startsWith(activeSection + ".")) {
+        return i + 1;
+      }
+      if (p.serial_no === activeSection) {
+        return i + 1;
+      }
+      return lastIndex;
+    }, products.length);
+
+    const updated = [...products];
+    updated.splice(insertIndex, 0, newProduct);
+
+    updateProducts(updated);
 
     // ✅ RESET FORM
     setLowForm(DEFAULT_LOW_FORM);
 
-      // Optional: Clear dependent dropdown data
+    // Optional: Clear dependent dropdown data
     setMaterialTypes([]);
     setItemTypes([]);
     setFeatures([]);
     setItemClasses([]);
     setItems([]);
     loadInitialData();
-    
+
   };
 
   // ===================== EDIT ROW =====================
@@ -484,7 +510,10 @@ export default function PurchaseOrderItems({
 
             <select
               className="border rounded-md px-2 py-1"
-              onChange={e => setHighForm({ ...highForm, brand: e.target.value })}
+              value={highForm.brand}
+              onChange={e =>
+                setHighForm({ ...highForm, brand: e.target.value })
+              }
             >
               <option value="">Brand</option>
               {brands.map(b => (

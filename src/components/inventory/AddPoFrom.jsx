@@ -22,8 +22,8 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
     useEffect(() => {
         const initTypes = async () => {
-            const paymentId = await getOrCreateTermTypeId("Po Payment");
-            const deliveryId = await getOrCreateTermTypeId("Delivery");
+            const paymentId = await getOrCreateTermTypeId("Po Payment", "Terms of Payment");
+            const deliveryId = await getOrCreateTermTypeId("Delivery", "Terms of Delivery");
 
             setPaymentTypeId(paymentId);
             setDeliveryTypeId(deliveryId);
@@ -40,6 +40,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         vendor: "",
         branch: "",
         site: "",
+        delivery_destination: "",
         book_no: "",
         po_date: "",
         quotation_ref_no: "",
@@ -75,6 +76,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             setFormData({
                 vendor: po.vendor || "",
                 branch: po.branch || "",
+                delivery_destination: po.delivery_destination || "",
                 site: po.site || "",
                 book_no: po.book_no || "",
                 po_date: po.po_date || "",
@@ -94,6 +96,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             setFormData({
                 vendor: "",
                 branch: "",
+                delivery_destination: "",
                 site: "",
                 book_no: "",
                 po_date: "",
@@ -206,6 +209,17 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             })),
         },
         {
+            name: "delivery_destination",
+            label: "Delivery Destination",
+            type: "select",
+            options: [
+                { value: "branch", label: "Branch" },
+                { value: "site", label: "Site" },
+            ],
+            required: true,
+
+        },
+        {
             name: "site",
             label: "Site",
             type: "select",
@@ -266,6 +280,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 return true;
             }
         },
+
         {
             name: "products_section",
             label: "Items",
@@ -322,6 +337,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                     termsType={paymentTypeId}
                     baseApi={baseApi}
                     token={token}
+                    display = "Terms of Payment"
                 />
             ),
             gridCols: 2,
@@ -337,6 +353,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                     termsType={deliveryTypeId}
                     baseApi={baseApi}
                     token={token}
+                    display = "Terms of Delivery"
                 />
             ),
             gridCols: 2,
@@ -402,6 +419,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             const payload = {
                 vendor: data.vendor,
                 branch: data.branch,
+                delivery_destination: data.delivery_destination,
                 site: data.site || null,
                 book_no: data.book_no,
                 po_date: data.po_date,
