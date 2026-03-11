@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import ItemSelectionEngine from "../ItemSelectionEngine";
+import TermsMultiSelect from "../TermsMultiSelect";
+import useTermTypes from "../../hooks/useTermTypes";
 
 
 const BASE_API =
@@ -9,6 +11,8 @@ const BASE_API =
 const api = axios.create({
   baseURL: `${BASE_API}/`,
 });
+
+
 
 api.interceptors.request.use((config) => {
   const token =
@@ -58,9 +62,19 @@ const STATES = [
 
 export default function AddInvoice({ id, onBack }) {
 
+  const { getOrCreateTermTypeId } = useTermTypes({
+    baseApi: BASE_API,
+    token: localStorage.getItem("access")
+  });
+
   const isEdit = !!id;
 
   // ================= COMPANY PROFILE =================
+  const [selectedTerms, setSelectedTerms] = useState([]);
+  const [paymentTerms, setPaymentTerms] = useState([]);
+const [deliveryTerms, setDeliveryTerms] = useState([]);
+const [paymentTypeId, setPaymentTypeId] = useState(null);
+const [deliveryTypeId, setDeliveryTypeId] = useState(null);
   const [companyProfile, setCompanyProfile] = useState(null);
   const [stateSearch, setStateSearch] = useState("");
   const [showStateList, setShowStateList] = useState(false);
@@ -68,6 +82,21 @@ export default function AddInvoice({ id, onBack }) {
     s.name.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
+
+
+  useEffect(() => {
+  const initTypes = async () => {
+
+    const paymentId = await getOrCreateTermTypeId("Invoice Payment");
+    const deliveryId = await getOrCreateTermTypeId("Invoice Delivery");
+
+    setPaymentTypeId(paymentId);
+    setDeliveryTypeId(deliveryId);
+
+  };
+
+  initTypes();
+}, []);
 
   const handleStateChange = (value) => {
   setStateSearch(value);
@@ -103,17 +132,30 @@ export default function AddInvoice({ id, onBack }) {
 
   // ================= INVOICE HEADER =================
   const [form, setForm] = useState({
-    invoice_no: isEdit ? "" : "INV-" + Date.now(),
-    invoice_date: new Date().toISOString().split('T')[0],
-    delivery_note: "",
-    supplier_ref: "",
-    buyer_order_no: "",
-    destination: "",
-    terms_of_delivery: "",
-    site_name: "",
-    work_description: "",
-    gst_type: "CGST_SGST"
-  });
+  invoice_no: isEdit ? "" : "INV-" + Date.now(),
+  invoice_date: new Date().toISOString().split('T')[0],
+
+  delivery_note: "",
+  delivery_note_date: "",
+
+  supplier_ref: "",
+  other_references: "",
+
+  buyer_order_no: "",
+
+  dispatch_doc_no: "",
+  dispatched_through: "",
+
+  destination: "",
+
+  terms_of_payment: "",
+  terms_of_delivery: "",
+
+  site_name: "",
+  work_description: "",
+
+  gst_type: "CGST_SGST"
+});
 
   // ================= BUYER SNAPSHOT =================
   const [buyerSnapshot, setBuyerSnapshot] = useState({
@@ -131,19 +173,25 @@ export default function AddInvoice({ id, onBack }) {
   });
 
   // ================= COMPANY SNAPSHOT =================
+ 
+  
   const [companySnapshot, setCompanySnapshot] = useState({
-    company_name: "",
-    company_address: "",
-    company_gstin: "",
-    company_pan: "",
-    company_email: "",
-    company_msme_number: "",
-    bank_name: "",
-    account_no: "",
-    ifsc_code: "",
-    branch: "",
-    declaration: ""
-  });
+  bank_name: "",
+  account_no: "",
+  ifsc_code: "",
+  declaration: ""
+});
+
+const [branches,setBranches] = useState([])
+
+const [selectedBranch,setSelectedBranch] = useState("")
+
+useEffect(() => {
+  api.get("auth/branch/")
+  .then(res=>{
+     setBranches(normalize(res.data))
+  })
+},[])
 
   // ================= HIGH SIDE ITEMS =================
   const [items,setItems] = useState([]);
@@ -183,7 +231,12 @@ export default function AddInvoice({ id, onBack }) {
           terms_of_delivery: inv.terms_of_delivery || "",
           site_name: inv.site_name || "",
           work_description: inv.work_description || "",
-          gst_type: inv.gst_type
+          gst_type: inv.gst_type,
+          delivery_note_date: inv.delivery_note_date || "",
+          other_references: inv.other_references || "",
+          dispatch_doc_no: inv.dispatch_doc_no || "",
+          dispatched_through: inv.dispatched_through || "",
+          terms_of_payment: inv.terms_of_payment || "",
         });
 
         // Set buyer snapshot
@@ -217,8 +270,8 @@ export default function AddInvoice({ id, onBack }) {
         });
 
         // Set items (you'll need to separate high/low based on your data structure)
-        const highItems = inv.items.filter(item => item.product_variant);
-        const lowItemsList = inv.items.filter(item => item.item);
+        const highItems = inv.high_side_items || [];
+        const lowItemsList = inv.low_side_items || [];
 
         setItems(highItems.map(i => ({
   product_variant: i.product_variant,
@@ -396,32 +449,16 @@ export default function AddInvoice({ id, onBack }) {
   const handleSubmit = async () => {
 
     // Combine high and low items
-    const allItems = [
-      ...items.map(i => ({
-        product_variant: i.product_variant ? Number(i.product_variant) : null,
-        item: null,
-        description: i.description,
-        hsn_sac: i.hsn_sac,
-        gst_percent: Number(i.gst_percent),
-        quantity: Number(i.quantity),
-        unit: i.unit,
-        rate: Number(i.rate)
-      })),
-      ...lowItems.map(l => ({
-        product_variant: null,
-        item: l.item ? Number(l.item) : null,
-        description: l.description,
-        hsn_sac: l.hsn_sac,
-        gst_percent: Number(l.gst_percent),
-        quantity: Number(l.quantity),
-        unit: l.unit,
-        rate: Number(l.rate)
-      }))
-    ].filter(item => item.description || item.product_variant || item.item);
+  
 
     const payload = {
       invoice_no: form.invoice_no,
       customer: customer.id ? Number(customer.id) : null,
+      terms_conditions: [
+  ...paymentTerms,
+  ...deliveryTerms
+],
+
 
       invoice_date: form.invoice_date,
 
@@ -436,16 +473,11 @@ export default function AddInvoice({ id, onBack }) {
       ship_to_address: shipTo.ship_to_address,
 
       // Company snapshot
-      company_name: companySnapshot.company_name,
-      company_address: companySnapshot.company_address,
-      company_gstin: companySnapshot.company_gstin,
-      company_pan: companySnapshot.company_pan,
-      company_email: companySnapshot.company_email,
-      company_msme_number: companySnapshot.company_msme_number,
+      branch: selectedBranch,
       bank_name: companySnapshot.bank_name,
       account_no: companySnapshot.account_no,
       ifsc_code: companySnapshot.ifsc_code,
-      branch: companySnapshot.branch,
+      
       declaration: companySnapshot.declaration,
 
       // Header fields
@@ -456,12 +488,33 @@ export default function AddInvoice({ id, onBack }) {
       terms_of_delivery: form.terms_of_delivery,
       site_name: form.site_name,
       work_description: form.work_description,
+      delivery_note_date: form.delivery_note_date,
+      other_references: form.other_references,
+      dispatch_doc_no: form.dispatch_doc_no,
+      dispatched_through: form.dispatched_through,
+      terms_of_payment: form.terms_of_payment,
 
       // GST Type
       gst_type: form.gst_type,
 
-      // Items
-      items: allItems
+      high_side_items: items.map(i => ({
+  product_variant: Number(i.product_variant),
+  description: i.description,
+  hsn_sac: i.hsn_sac,
+  gst_percent: Number(i.gst_percent),
+  quantity: Number(i.quantity),
+  unit: i.unit,
+  rate: Number(i.rate)
+})),
+
+low_side_items: lowItems.map(l => ({
+  item: Number(l.item),
+  description: l.description,
+  gst_percent: Number(l.gst_percent),
+  quantity: Number(l.quantity),
+  unit: l.unit,
+  rate: Number(l.rate)
+}))
     };
 
     try {
@@ -499,28 +552,6 @@ export default function AddInvoice({ id, onBack }) {
   {isEdit ? "Edit Invoice" : "Create New Invoice"}
 </h2>
 
-{/* ================= INVOICE HEADER ================= */}
-<div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-  <div>
-    <label className="text-sm font-medium">Invoice Number</label>
-    <input
-      className="w-full border rounded-lg px-3 py-2 bg-gray-100"
-      value={form.invoice_no}
-      readOnly
-    />
-  </div>
-
-  <div>
-    <label className="text-sm font-medium">Invoice Date</label>
-    <input
-      type="date"
-      className="w-full border rounded-lg px-3 py-2"
-      value={form.invoice_date}
-      onChange={(e)=>setForm({...form,invoice_date:e.target.value})}
-    />
-  </div>
-</div>
-
 {/* ================= CUSTOMER DETAILS ================= */}
 <div className="space-y-3">
 <h3 className="text-lg font-semibold">Customer Details</h3>
@@ -542,6 +573,78 @@ readOnly
 
 </div>
 </div>
+
+
+{/* ================= INVOICE HEADER ================= */}
+<div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+  {/* <div>
+    <label className="text-sm font-medium">Invoice Number</label>
+    <input
+      className="w-full border rounded-lg px-3 py-2 bg-gray-100"
+      value={form.invoice_no}
+      readOnly
+    />
+  </div> */}
+
+
+  <div className="space-y-2">
+<label className="text-sm font-medium">Select Branch</label>
+
+<select
+className="border rounded-lg px-3 py-2 w-full"
+value={selectedBranch}
+onChange={(e)=>{
+  setSelectedBranch(e.target.value)
+}}
+>
+
+<option value="">Select Branch</option>
+
+{branches.map(b=>(
+<option key={b.id} value={b.id}>
+{b.name}
+</option>
+))}
+
+</select>
+</div>
+
+  <div>
+    <label className="text-sm font-medium">Invoice Date</label>
+    <input
+      type="date"
+      className="w-full border rounded-lg px-3 py-2"
+      value={form.invoice_date}
+      onChange={(e)=>setForm({...form,invoice_date:e.target.value})}
+    />
+  </div>
+</div>
+
+
+{/* <div className="space-y-2">
+<label className="text-sm font-medium">Select Branch</label>
+
+<select
+className="border rounded-lg px-3 py-2 w-full"
+value={selectedBranch}
+onChange={(e)=>{
+  setSelectedBranch(e.target.value)
+}}
+>
+
+<option value="">Select Branch</option>
+
+{branches.map(b=>(
+<option key={b.id} value={b.id}>
+{b.name}
+</option>
+))}
+
+</select>
+</div> */}
+
+
+
 
 {/* ================= BUYER INFO ================= */}
 <div className="space-y-3">
@@ -634,6 +737,7 @@ onChange={(e)=>setForm({...form,gst_type:e.target.value})}
 >
 <option value="CGST_SGST">CGST + SGST</option>
 <option value="IGST">IGST</option>
+<option value="NO_GST">No GST</option>
 </select>
 </div>
 
@@ -648,6 +752,7 @@ onChange={(e)=>setForm({...form,gst_type:e.target.value})}
  lowItems={lowItems}
  setLowItems={setLowItems}
  mode="invoice"
+gstType={form.gst_type}
 />
 
 {/* ================= ADDITIONAL INFO ================= */}
@@ -656,29 +761,82 @@ onChange={(e)=>setForm({...form,gst_type:e.target.value})}
 
 <div className="grid md:grid-cols-3 gap-4">
 
-<input className="border rounded-lg px-3 py-2" placeholder="Delivery Note"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Delivery Note"
 value={form.delivery_note}
-onChange={(e)=>setForm({...form,delivery_note:e.target.value})}/>
+onChange={(e)=>setForm({...form,delivery_note:e.target.value})}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Supplier Ref"
+<input
+type="date"
+className="border rounded-lg px-3 py-2"
+value={form.delivery_note_date}
+onChange={(e)=>setForm({...form,delivery_note_date:e.target.value})}
+/>
+
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Supplier Reference"
 value={form.supplier_ref}
-onChange={(e)=>setForm({...form,supplier_ref:e.target.value})}/>
+onChange={(e)=>setForm({...form,supplier_ref:e.target.value})}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Buyer Order No"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Other References"
+value={form.other_references}
+onChange={(e)=>setForm({...form,other_references:e.target.value})}
+/>
+
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Buyer Order No"
 value={form.buyer_order_no}
-onChange={(e)=>setForm({...form,buyer_order_no:e.target.value})}/>
+onChange={(e)=>setForm({...form,buyer_order_no:e.target.value})}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Destination"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Dispatch Document No"
+value={form.dispatch_doc_no}
+onChange={(e)=>setForm({...form,dispatch_doc_no:e.target.value})}
+/>
+
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Dispatched Through"
+value={form.dispatched_through}
+onChange={(e)=>setForm({...form,dispatched_through:e.target.value})}
+/>
+
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Destination"
 value={form.destination}
-onChange={(e)=>setForm({...form,destination:e.target.value})}/>
+onChange={(e)=>setForm({...form,destination:e.target.value})}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Terms of Delivery"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Terms of Payment / Mode"
+value={form.terms_of_payment}
+onChange={(e)=>setForm({...form,terms_of_payment:e.target.value})}
+/>
+
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Terms of Delivery"
 value={form.terms_of_delivery}
-onChange={(e)=>setForm({...form,terms_of_delivery:e.target.value})}/>
+onChange={(e)=>setForm({...form,terms_of_delivery:e.target.value})}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Site Name"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Site Name"
 value={form.site_name}
-onChange={(e)=>setForm({...form,site_name:e.target.value})}/>
+onChange={(e)=>setForm({...form,site_name:e.target.value})}
+/>
 
 </div>
 
@@ -693,50 +851,36 @@ onChange={(e)=>setForm({...form,work_description:e.target.value})}
 
 {/* ================= COMPANY DETAILS FULL ================= */}
 <div className="space-y-3">
-<h3 className="text-lg font-semibold">Company Details</h3>
+<h3 className="text-lg font-semibold">Company/Bank Details</h3>
 
 <div className="grid md:grid-cols-3 gap-4">
 
-<input className="border rounded-lg px-3 py-2" placeholder="Company Name"
-value={companySnapshot.company_name}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_name:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Company Address"
-value={companySnapshot.company_address}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_address:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Company GSTIN"
-value={companySnapshot.company_gstin}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_gstin:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Company PAN"
-value={companySnapshot.company_pan}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_pan:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Company Email"
-value={companySnapshot.company_email}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_email:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="MSME Number"
-value={companySnapshot.company_msme_number}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,company_msme_number:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Bank Name"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Bank Name"
 value={companySnapshot.bank_name}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,bank_name:e.target.value})}/>
+onChange={(e)=>
+setCompanySnapshot({...companySnapshot,bank_name:e.target.value})
+}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="Account No"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="Account No"
 value={companySnapshot.account_no}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,account_no:e.target.value})}/>
+onChange={(e)=>
+setCompanySnapshot({...companySnapshot,account_no:e.target.value})
+}
+/>
 
-<input className="border rounded-lg px-3 py-2" placeholder="IFSC Code"
+<input
+className="border rounded-lg px-3 py-2"
+placeholder="IFSC Code"
 value={companySnapshot.ifsc_code}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,ifsc_code:e.target.value})}/>
-
-<input className="border rounded-lg px-3 py-2" placeholder="Branch"
-value={companySnapshot.branch}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,branch:e.target.value})}/>
-
+onChange={(e)=>
+setCompanySnapshot({...companySnapshot,ifsc_code:e.target.value})
+}
+/>
 </div>
 
 <textarea
@@ -745,6 +889,33 @@ placeholder="Declaration"
 value={companySnapshot.declaration}
 onChange={(e)=>setCompanySnapshot({...companySnapshot,declaration:e.target.value})}
 />
+</div>
+
+
+
+
+<div className="space-y-4">
+
+<h3 className="text-lg font-semibold">Payment Terms</h3>
+
+<TermsMultiSelect
+  value={paymentTerms}
+  onChange={setPaymentTerms}
+  termsType={paymentTypeId}
+  baseApi={BASE_API}
+  token={localStorage.getItem("access")}
+/>
+
+<h3 className="text-lg font-semibold">Delivery Terms</h3>
+
+<TermsMultiSelect
+  value={deliveryTerms}
+  onChange={setDeliveryTerms}
+  termsType={deliveryTypeId}
+  baseApi={BASE_API}
+  token={localStorage.getItem("access")}
+/>
+
 </div>
 
 {/* ================= SUBMIT ================= */}

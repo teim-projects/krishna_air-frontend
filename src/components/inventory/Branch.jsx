@@ -239,6 +239,8 @@ export default function Branch({ base_api, filters }) {
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">City</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">State</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">GST No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">PAN</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">MSME No</th>
               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Head Office</th>
               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
             </tr>
@@ -246,7 +248,7 @@ export default function Branch({ base_api, filters }) {
           <tbody>
             {branches.length === 0 ? (
               <tr>
-                <td colSpan="9" className="px-4 py-8 text-center text-slate-500">
+                <td colSpan="11" className="px-4 py-8 text-center text-slate-500">
                   No branches found. Click "Add Branch" to create one.
                 </td>
               </tr>
@@ -260,6 +262,8 @@ export default function Branch({ base_api, filters }) {
                   <td className="px-4 py-3 text-sm">{branch.city}</td>
                   <td className="px-4 py-3 text-sm">{branch.state}</td>
                   <td className="px-4 py-3 text-sm">{branch.gst_no || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{branch.company_pan || "-"}</td>
+                  <td className="px-4 py-3 text-sm">{branch.msme_number || "-"}</td>
                   <td className="px-4 py-3 text-center">
                     {branch.is_head_office ? (
                       <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Yes</span>
