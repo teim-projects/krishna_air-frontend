@@ -312,14 +312,11 @@ export default function PurchaseOrder({ base_api, filters }) {
 
   // Handle view PO
   const handleView = (id) => {
-    console.log("View PO:", id);
-    // TODO: Implement view PO modal/page
+    window.open(`${BASE_API}/inventory/purchase-order/${id}/pdf/`, "_blank");
   };
 
-  // Handle download PO
   const handleDownload = (id) => {
-    console.log("Download PO:", id);
-    // TODO: Implement download functionality
+    window.open(`${BASE_API}/inventory/purchase-order/${id}/pdf/?download=1`);
   };
 
   // Handle WhatsApp share
