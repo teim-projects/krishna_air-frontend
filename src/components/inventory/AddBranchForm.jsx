@@ -65,19 +65,21 @@ export default function AddBranchForm({
   const INDIA_ID = 101;
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    secondary_email: "",
-    primary_contact: "",
-    secondary_contact: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    state_code: "",
-    gst_no: "",
-    is_head_office: false,
-  });
+  name: "",
+  email: "",
+  secondary_email: "",
+  primary_contact: "",
+  secondary_contact: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+  state_code: "",
+  gst_no: "",
+  company_pan: "",
+  msme_number: "",
+  is_head_office: false,
+});
 
   const [loading, setLoading] = useState(false);
   const [stateid, setStateid] = useState(0);
@@ -104,6 +106,8 @@ export default function AddBranchForm({
         pincode: "",
         state_code: "",
         gst_no: "",
+        company_pan: "",
+        msme_number: "",
         is_head_office: false,
       });
       setStateid(0);
@@ -122,6 +126,8 @@ export default function AddBranchForm({
       pincode: branch.pincode || "",
       state_code: branch.state_code || "",
       gst_no: branch.gst_no || "",
+      company_pan: branch.company_pan || "",
+      msme_number: branch.msme_number || "",
       is_head_office: branch.is_head_office || false,
     });
 
@@ -260,6 +266,9 @@ export default function AddBranchForm({
     { name: "pincode", label: "Pincode", type: "text", required: true, maxLength: 6, gridCols: 1, placeholder: "123456" },
     { name: "state_code", label: "State Code", type: "text", disabled: true, gridCols: 1, placeholder: "Auto-filled" },
     { name: "gst_no", label: "GST Number", type: "text", maxLength: 15, gridCols: 1, placeholder: "22AAAAA0000A1Z5" },
+    { name: "company_pan",label: "Company PAN",type: "text",maxLength: 10,gridCols: 1,placeholder: "ABCDE1234F"},
+
+    { name: "msme_number",  label: "MSME / Udyam Number", type: "text", gridCols: 1,placeholder: "UDYAM-XX-00-0000000"},
     { name: "is_head_office", label: "Is Head Office", type: "checkbox", gridCols: 2 },
   ];
 

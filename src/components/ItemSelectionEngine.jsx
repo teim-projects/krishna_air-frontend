@@ -8,7 +8,8 @@ export default function ItemSelectionEngine({
   setItems,
   lowItems,
   setLowItems,
-  mode = "quotation"
+  mode = "quotation",
+  gstType
 }) {
 
   const isInvoice = mode === "invoice";
@@ -327,11 +328,13 @@ setLowItems(prev => [...prev, newLow]);
             value={isInvoice ? draftHighItem.rate : draftHighItem.unit_price}
             onChange={e => updateHighDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
 
+           {gstType !== "NO_GST" && (
           <input className="border rounded-lg px-3 py-2"
             type="number"
             placeholder="GST%"
             value={draftHighItem.gst_percent}
             onChange={e => updateHighDraft("gst_percent", e.target.value)} />
+           )}
 
           {!isInvoice && (
 <>
@@ -374,7 +377,9 @@ setLowItems(prev => [...prev, newLow]);
 <th className="border p-2">Brand</th>
 <th className="border p-2">Model</th>
 <th className="border p-2">Variant</th>
-
+{isInvoice && (
+<th className="border p-2">Description</th>
+)}
 {isInvoice && (
 <>
 <th className="border p-2">HSN</th>
@@ -384,7 +389,9 @@ setLowItems(prev => [...prev, newLow]);
 
 <th className="border p-2">Qty</th>
 <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
+{gstType !== "NO_GST" && (
 <th className="border p-2">GST%</th>
+)}
 
 {!isInvoice && (
 <>
@@ -414,7 +421,9 @@ return(
 <td className="border p-2">{brandName}</td>
 <td className="border p-2">{modelName}</td>
 <td className="border p-2">{variantName}</td>
-
+{isInvoice && (
+<td className="border p-2">{row.description}</td>
+)}
 {isInvoice && (
 <>
 <td className="border p-2">
@@ -469,6 +478,7 @@ setItems(copy);
 />
 </td>
 
+{gstType !== "NO_GST" && (
 <td className="border p-2">
 <input
 type="number"
@@ -481,6 +491,7 @@ setItems(copy);
 }}
 />
 </td>
+)}
 
 {!isInvoice && (
 <>
@@ -589,13 +600,28 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
             value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
             onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
 
+
+          {gstType !== "NO_GST" && (
           <input className="border rounded-lg px-3 py-2"
             type="number"
             placeholder="GST%"
             value={draftLowItem.gst_percent}
             onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+          )}
+
+{isInvoice && (
+
+            <input
+className="border rounded-lg px-3 py-2"
+placeholder="Description"
+value={draftLowItem.description}
+onChange={e => updateLowDraft("description", e.target.value)}
+/>
+)}
 
            {!isInvoice && (
+
+            
 <input
   className="border rounded-lg px-3 py-2"
   type="number"
@@ -603,6 +629,9 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
   value={draftLowItem.mathadi_charges}
   onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
 />
+
+
+
 )}
 
         </div>
@@ -625,14 +654,19 @@ onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
 
 {isInvoice && (
 <>
-<th className="border p-2">HSN</th>
+
 <th className="border p-2">Unit</th>
 </>
 )}
 
 <th className="border p-2">Qty</th>
 <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
+{gstType !== "NO_GST" && (
 <th className="border p-2">GST%</th>
+)}
+{isInvoice && (
+<th>Description</th>
+)}
 {!isInvoice && (
 <th className="border p-2">Mathadi</th>
 )}
@@ -654,17 +688,7 @@ return(
 
 {isInvoice && (
 <>
-<td className="border p-2">
-<input
-className="border rounded px-2 py-1"
-value={row.hsn_sac||""}
-onChange={e=>{
-const copy=[...lowItems];
-copy[i].hsn_sac=e.target.value;
-setLowItems(copy);
-}}
-/>
-</td>
+
 
 <td className="border p-2">
 <input
@@ -706,6 +730,7 @@ setLowItems(copy);
 />
 </td>
 
+{gstType !== "NO_GST" && (
 <td className="border p-2">
 <input
 type="number"
@@ -718,6 +743,22 @@ setLowItems(copy);
 }}
 />
 </td>
+)}
+
+{isInvoice && (
+<td className="border p-2">
+<input
+  className="border rounded px-2 py-1 w-[150px]"
+  value={row.description || ""}
+  onChange={e=>{
+    const copy=[...lowItems];
+    copy[i].description = e.target.value;
+    setLowItems(copy);
+  }}
+/>
+</td>
+)}
+
 
 {!isInvoice && (
 <td className="border p-2">
