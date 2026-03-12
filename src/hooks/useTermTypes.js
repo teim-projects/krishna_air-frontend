@@ -53,31 +53,42 @@ const useTermTypes = ({ baseApi, token }) => {
   // Get OR Create (Safe Version)
   // ----------------------------------
   const getOrCreateTermTypeId = async (name, display) => {
-    // ensure types are loaded
-    if (!isFetchedRef.current) {
-      await fetchTermTypes();
+
+  try {
+
+    // 🔎 First check API for existing type
+    const res = await axios.get(
+      `${baseApi}/inventory/terms-type/?search=${name}`,
+      { headers }
+    );
+
+    const list = res.data.results || res.data;
+
+    const existing = list.find(
+      (t) => t.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      return existing.id;
     }
 
-    const existing = getTermTypeId(name);
-    if (existing) return existing;
+    // ➕ Create if not found
+    const createRes = await axios.post(
+      `${baseApi}/inventory/terms-type/`,
+      {
+        name,
+        display_name: display
+      },
+      { headers }
+    );
 
-    try {
-      const res = await axios.post(
-        `${baseApi}/inventory/terms-type/`,
-        { name ,  display_name:display},
-        { headers }
-      );
+    return createRes.data.id;
 
-      const newType = res.data;
-
-      setTermTypes((prev) => [...prev, newType]);
-
-      return newType.id;
-    } catch (error) {
-      console.error("Failed to create term type:", error);
-      return null;
-    }
-  };
+  } catch (error) {
+    console.error("Failed to get/create term type:", error);
+    return null;
+  }
+};
 
   return {
     termTypes,

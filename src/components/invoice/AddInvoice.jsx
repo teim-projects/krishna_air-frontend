@@ -62,10 +62,10 @@ const STATES = [
 
 export default function AddInvoice({ id, onBack }) {
 
-  const { getOrCreateTermTypeId } = useTermTypes({
-    baseApi: BASE_API,
-    token: localStorage.getItem("access")
-  });
+  const { getOrCreateTermTypeId, loading } = useTermTypes({
+  baseApi: BASE_API,
+  token: localStorage.getItem("access")
+});
 
   const isEdit = !!id;
 
@@ -84,19 +84,29 @@ const [deliveryTypeId, setDeliveryTypeId] = useState(null);
 
 
 
-  useEffect(() => {
+useEffect(() => {
+
+  if (loading) return;
+
   const initTypes = async () => {
 
-    const paymentId = await getOrCreateTermTypeId("Invoice Payment");
-    const deliveryId = await getOrCreateTermTypeId("Invoice Delivery");
+    const paymentId = await getOrCreateTermTypeId(
+      "Invoice Payment",
+      "Terms of Payment"
+    );
+
+    const deliveryId = await getOrCreateTermTypeId(
+      "Invoice Delivery",
+      "Terms of Delivery"
+    );
 
     setPaymentTypeId(paymentId);
     setDeliveryTypeId(deliveryId);
-
   };
 
   initTypes();
-}, []);
+
+}, [loading]);
 
   const handleStateChange = (value) => {
   setStateSearch(value);
@@ -202,16 +212,36 @@ useEffect(() => {
   // ================= LOAD MASTERS =================
  
   // ================= EDIT LOAD =================
-  useEffect(() => {
-    if (!isEdit) return;
+useEffect(() => {
 
-    api.get(`invoice/invoice/${id}/`)
-      .then(res => {
-        const inv = res.data;
+  if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
+
+  api.get(`invoice/invoice/${id}/`)
+  .then(res => {
+
+    const inv = res.data;
+    setSelectedBranch(inv.branch);
+    // ---------- Load Terms ----------
+    if (inv.terms_conditions_details) {
+
+      const payment = inv.terms_conditions_details
+        .filter(t => t.terms_condition_type_name === "Invoice Payment")
+        .map(t => t.id);
+
+      const delivery = inv.terms_conditions_details
+        .filter(t => t.terms_condition_type_name === "Invoice Delivery")
+        .map(t => t.id);
+
+      setPaymentTerms(payment);
+      setDeliveryTerms(delivery);
+    }
+
+
+        
 
         // Set customer
         setCustomer({
-          phone: "", // You might need to fetch customer details separately
+          phone: inv.customer_phone || "", // You might need to fetch customer details separately
           name: inv.buyer_name,
           id: inv.customer,
           address: inv.buyer_address,
@@ -305,7 +335,7 @@ useEffect(() => {
   gst_percent: i.gst_percent
 })));
       });
-  }, [id]);
+  }, [id, paymentTypeId, deliveryTypeId]);
 
   // ================= CUSTOMER SEARCH =================
   const handlePhone = async (e) => {
