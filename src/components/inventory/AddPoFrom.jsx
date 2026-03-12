@@ -47,7 +47,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         quotation_date: "",
         contact_name: "",
         contact_no: "",
-
+        note:"",
         gst_percentage: 18,
         gst_type: "exclusive",
         transport_charges: 0,
@@ -88,6 +88,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 gst_type: po.gst_type || "exclusive",
                 transport_charges: po.transport_charges || 0,
                 round_off: po.round_off || 0,
+                note: po.note || "",
                 products: po.products || [],
                 payment_terms: paymentTerms,
                 delivery_terms: deliveryTerms,
@@ -111,6 +112,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 products: [],
                 payment_terms: [],
                 delivery_terms: [],
+                note: "",
             });
         }
     }, [po, open]);
@@ -324,6 +326,12 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             label: "Round Off",
             type: "number",
         },
+        {
+            name: "note",
+            label: "Note",
+            type: "textarea",
+             gridCols: 2,
+        },
 
         // Terms MultiSelects
         {
@@ -427,7 +435,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 quotation_date: data.quotation_date || null,
                 contact_name: data.contact_name,
                 contact_no: data.contact_no,
-
+                note: data.note,
                 gst_percentage: data.gst_percentage,
                 gst_type: data.gst_type,
                 transport_charges: data.transport_charges,
