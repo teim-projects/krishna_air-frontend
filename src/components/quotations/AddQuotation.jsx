@@ -119,6 +119,7 @@ export default function AddQuotation({ id, onBack }) {
         setItems(
           active.high_side_items.map(i => ({
             product_variant: i.product_variant,
+            unit: i.unit || "NOS",
             ac_type_name: i.ac_type_name,
             ac_sub_type_name: i.ac_sub_type_name,
             brand_name: i.brand_name,
@@ -137,6 +138,7 @@ export default function AddQuotation({ id, onBack }) {
           active.low_side_items.map(l => ({
             item: l.item,
             item_code: l.item_code,
+            unit: l.unit || "NOS",
             quantity: l.quantity,
             gst_percent: l.gst_percent || 18,
             unit_price: l.unit_price,
@@ -273,6 +275,8 @@ export default function AddQuotation({ id, onBack }) {
         high_side_items: items.map(i => ({
           product_variant: Number(i.product_variant),
           quantity: Number(i.quantity),
+          unit: i.unit,
+          description: i.description || "",
           unit_price: Number(i.unit_price),
           gst_percent: Number(i.gst_percent),
           mathadi_charges: Number(i.mathadi_charges),
@@ -283,6 +287,8 @@ export default function AddQuotation({ id, onBack }) {
           item: Number(l.item),
           quantity: Number(l.quantity),
           unit_price: Number(l.unit_price),
+          description: l.description || "",
+          unit: l.unit,
           gst_percent: Number(l.gst_percent),
           mathadi_charges: Number(l.mathadi_charges)
         }))

@@ -109,9 +109,16 @@ export default function ItemSelectionEngine({
   };
 
   const loadLowSideItems = async (data) => {
-    const r = await api.get(
-      `product/item/?material_type_id=${data.material_type_id}&item_type_id=${data.item_type_id}&feature_type_id=${data.feature_type_id}&item_class_id=${data.item_class_id}`
-    );
+
+    const params = {};
+
+    if (data.material_type_id) params.material_type_id = data.material_type_id;
+    if (data.item_type_id) params.item_type_id = data.item_type_id;
+    if (data.feature_type_id) params.feature_type_id = data.feature_type_id;
+    if (data.item_class_id) params.item_class_id = data.item_class_id;
+
+    const r = await api.get("product/item/", { params });
+
     setLowItemsMaster(normalize(r.data));
   };
 
@@ -157,12 +164,8 @@ export default function ItemSelectionEngine({
 
     const copy = { ...draftLowItem, [field]: value };
 
-    if (
-      copy.material_type_id &&
-      copy.item_type_id &&
-      copy.feature_type_id &&
-      copy.item_class_id
-    ) {
+    // Only material + item type are required
+    if (copy.material_type_id && copy.item_type_id) {
       loadLowSideItems(copy);
     }
 
@@ -297,23 +300,21 @@ export default function ItemSelectionEngine({
 
         <div className="grid md:grid-cols-5 gap-3">
 
+
+          <input
+            className="border rounded-lg px-3 py-2"
+            placeholder="Unit"
+            value={draftHighItem.unit}
+            onChange={e => updateHighDraft("unit", e.target.value)}
+          />
+
           {isInvoice && (
-            <>
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="Description"
-                value={draftHighItem.description}
-                onChange={e => updateHighDraft("description", e.target.value)} />
-
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="HSN"
-                value={draftHighItem.hsn_sac}
-                onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
-
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="Unit"
-                value={draftHighItem.unit}
-                onChange={e => updateHighDraft("unit", e.target.value)} />
-            </>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="HSN"
+              value={draftHighItem.hsn_sac}
+              onChange={e => updateHighDraft("hsn_sac", e.target.value)}
+            />
           )}
 
           <input className="border rounded-lg px-3 py-2"
@@ -328,13 +329,13 @@ export default function ItemSelectionEngine({
             value={isInvoice ? draftHighItem.rate : draftHighItem.unit_price}
             onChange={e => updateHighDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
 
-           {gstType !== "NO_GST" && (
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="GST%"
-            value={draftHighItem.gst_percent}
-            onChange={e => updateHighDraft("gst_percent", e.target.value)} />
-           )}
+          {gstType !== "NO_GST" && (
+            <input className="border rounded-lg px-3 py-2"
+              type="number"
+              placeholder="GST%"
+              value={draftHighItem.gst_percent}
+              onChange={e => updateHighDraft("gst_percent", e.target.value)} />
+          )}
 
           {!isInvoice && (
             <>
@@ -355,15 +356,15 @@ export default function ItemSelectionEngine({
               />
             </>
           )}
-         <div className="col-span-full">
-  <textarea 
-    className="w-full px-3 py-2 rounded-md border border-black"
-    placeholder="Enter product description..."
-    value={draftHighItem.description}
-    onChange={e => updateHighDraft("description", e.target.value)}
-    rows={2}
-  />
-</div>
+          <div className="col-span-full">
+            <textarea
+              className="w-full px-3 py-2 rounded-md border border-black"
+              placeholder="Enter product description..."
+              value={draftHighItem.description}
+              onChange={e => updateHighDraft("description", e.target.value)}
+              rows={2}
+            />
+          </div>
 
         </div>
 
@@ -387,12 +388,8 @@ export default function ItemSelectionEngine({
                   <th className="border p-2">Model</th>
                   <th className="border p-2">Variant</th>
 
-                  {isInvoice && (
-                    <>
-                      <th className="border p-2">HSN</th>
-                      <th className="border p-2">Unit</th>
-                    </>
-                  )}
+                  {isInvoice && <th className="border p-2">HSN</th>}
+                  <th className="border p-2">Unit</th>
 
                   <th className="border p-2">Qty</th>
                   <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
@@ -429,32 +426,30 @@ export default function ItemSelectionEngine({
                       <td className="border p-2">{variantName}</td>
 
                       {isInvoice && (
-                        <>
-                          <td className="border p-2">
-                            <input
-                              className="border rounded px-2 py-1 w-[90px]"
-                              value={row.hsn_sac || ""}
-                              onChange={e => {
-                                const copy = [...items];
-                                copy[i].hsn_sac = e.target.value;
-                                setItems(copy);
-                              }}
-                            />
-                          </td>
-
-                          <td className="border p-2">
-                            <input
-                              className="border rounded px-2 py-1 w-[70px]"
-                              value={row.unit || "NOS"}
-                              onChange={e => {
-                                const copy = [...items];
-                                copy[i].unit = e.target.value;
-                                setItems(copy);
-                              }}
-                            />
-                          </td>
-                        </>
+                        <td className="border p-2">
+                          <input
+                            className="border rounded px-2 py-1 w-[90px]"
+                            value={row.hsn_sac || ""}
+                            onChange={e => {
+                              const copy = [...items];
+                              copy[i].hsn_sac = e.target.value;
+                              setItems(copy);
+                            }}
+                          />
+                        </td>
                       )}
+
+                      <td className="border p-2">
+                        <input
+                          className="border rounded px-2 py-1 w-[70px]"
+                          value={row.unit || "NOS"}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i].unit = e.target.value;
+                            setItems(copy);
+                          }}
+                        />
+                      </td>
 
                       <td className="border p-2">
                         <input
@@ -522,20 +517,21 @@ export default function ItemSelectionEngine({
                               }}
                             />
                           </td>
-                          <td className="border p-2">
-                            <textarea
-                              className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
-                              value={row.description || ""}
-                              onChange={e => {
-                                const copy = [...items];
-                                copy[i].description = e.target.value;
-                                setItems(copy);
-                              }}
-                              rows={2}
-                            />
-                          </td>
                         </>
                       )}
+
+                      <td className="border p-2">
+                        <textarea
+                          className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
+                          value={row.description || ""}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i].description = e.target.value;
+                            setItems(copy);
+                          }}
+                          rows={2}
+                        />
+                      </td>
 
                       <td className="border p-2">
                         <button
@@ -602,6 +598,14 @@ export default function ItemSelectionEngine({
 
         <div className="grid md:grid-cols-6 gap-3">
 
+
+          <input
+            className="border rounded-lg px-3 py-2"
+            placeholder="Unit"
+            value={draftLowItem.unit}
+            onChange={e => updateLowDraft("unit", e.target.value)}
+          />
+
           <input className="border rounded-lg px-3 py-2"
             type="number"
             placeholder="Qty"
@@ -616,22 +620,14 @@ export default function ItemSelectionEngine({
 
 
           {gstType !== "NO_GST" && (
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="GST%"
-            value={draftLowItem.gst_percent}
-            onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+            <input className="border rounded-lg px-3 py-2"
+              type="number"
+              placeholder="GST%"
+              value={draftLowItem.gst_percent}
+              onChange={e => updateLowDraft("gst_percent", e.target.value)} />
           )}
 
-{isInvoice && (
 
-            <input
-className="border rounded-lg px-3 py-2"
-placeholder="Description"
-value={draftLowItem.description}
-onChange={e => updateLowDraft("description", e.target.value)}
-/>
-)}
 
           {!isInvoice && (
             <input
@@ -670,12 +666,7 @@ onChange={e => updateLowDraft("description", e.target.value)}
                   <th className="border p-2">#</th>
                   <th className="border p-2">Item</th>
 
-                  {isInvoice && (
-                    <>
-                      
-                      <th className="border p-2">Unit</th>
-                    </>
-                  )}
+                  <th className="border p-2">Unit</th>
 
                   <th className="border p-2">Qty</th>
                   <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
@@ -700,23 +691,17 @@ onChange={e => updateLowDraft("description", e.target.value)}
                       <td className="border p-2">{i + 1}</td>
                       <td className="border p-2">{itemName}</td>
 
-{isInvoice && (
-<>
-
-
-                          <td className="border p-2">
-                            <input
-                              className="border rounded px-2 py-1"
-                              value={row.unit || "NOS"}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].unit = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
-                        </>
-                      )}
+                      <td className="border p-2">
+                        <input
+                          className="border rounded px-2 py-1"
+                          value={row.unit || "NOS"}
+                          onChange={e => {
+                            const copy = [...lowItems];
+                            copy[i].unit = e.target.value;
+                            setLowItems(copy);
+                          }}
+                        />
+                      </td>
 
                       <td className="border p-2">
                         <input
