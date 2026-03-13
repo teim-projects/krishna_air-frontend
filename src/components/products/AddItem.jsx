@@ -5,7 +5,7 @@ import ManageItemTypes from "./ManageItemTypes";
 
 const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null }) => {
   // Unit options arrays
-  const LENGTH_UNITS = ["mm", "cm", "inch", "Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot", "km", "yd", "mile"]; 
+  const LENGTH_UNITS = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot"];
   const DENSITY_UNITS = ["g/cm³", "kg/m³"];
 
   const [showManageModal, setShowManageModal] = useState(false);
@@ -130,22 +130,6 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // Validate numeric fields (size, thickness, density)
-    if (name === 'size' || name === 'thickness' || name === 'density') {
-      // Allow empty string, or numbers >= 0 (including decimals)
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        // Additional check: if it's a valid number, ensure it's >= 0
-        if (value !== '' && parseFloat(value) < 0) {
-          return; // Don't update if negative
-        }
-        setFormData(prev => ({ ...prev, [name]: value }));
-      }
-      // If validation fails, don't update the field
-      return;
-    }
-    
-    // For non-numeric fields, update normally
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -170,7 +154,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Save item (Add or Edit)
   const handleSave = async () => {
     try {
-      if (!formData.material_type_id || !formData.item_type_id || !formData.feature_type_id || !formData.item_class_id || !formData.brand) {
+      if (!formData.material_type_id || !formData.item_type_id) {
         alert("Please fill all required fields");
         return;
       }
@@ -179,15 +163,15 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
       const payload = {
         material_type_id: parseInt(formData.material_type_id),
         item_type_id: parseInt(formData.item_type_id),
-        feature_type_id: parseInt(formData.feature_type_id),
-        item_class_id: parseInt(formData.item_class_id),
+        feature_type_id: formData.feature_type_id ? parseInt(formData.feature_type_id) : null,
+        item_class_id: formData.item_class_id ? parseInt(formData.item_class_id) : null,
         size: formData.size,
         size_unit: formData.size_unit,
         thickness: formData.thickness,
         thickness_unit: formData.thickness_unit,
         density: formData.density,
         density_unit: formData.density_unit,
-        brand: parseInt(formData.brand),
+        brand: formData.brand ? parseInt(formData.brand) : null,
         description: formData.description
       };
 
@@ -238,7 +222,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
           </button>
 
           <h1 className="text-2xl font-bold mb-1">
-            {editMode ? "Edit AC Accessory Item" : "Add AC Accessory Item"}
+            {editMode ? "Edit Item" : "Add Item"}
           </h1>
           <p className="text-sm text-gray-500 mb-6">Item Master Management System</p>
 
@@ -270,7 +254,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                   <label className="text-sm font-normal text-gray-600">
                     Material Type <span className="text-red-500">*</span>
                   </label>
-                  <select 
+                  <select
                     name="material_type_id"
                     value={formData.material_type_id}
                     onChange={handleChange}
@@ -288,7 +272,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                   <label className="text-sm font-normal text-gray-600">
                     Item Type <span className="text-red-500">*</span>
                   </label>
-                  <select 
+                  <select
                     name="item_type_id"
                     value={formData.item_type_id}
                     onChange={handleChange}
@@ -308,9 +292,8 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-normal text-gray-600">
-                    Feature Type <span className="text-red-500">*</span>
-                  </label>
-                  <select 
+                    Feature Type</label>
+                  <select
                     name="feature_type_id"
                     value={formData.feature_type_id}
                     onChange={handleChange}
@@ -325,8 +308,8 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-normal text-gray-600">Class <span className="text-red-500">*</span></label>
-                  <select 
+                  <label className="text-sm font-normal text-gray-600">Class</label>
+                  <select
                     name="item_class_id"
                     value={formData.item_class_id}
                     onChange={handleChange}
@@ -355,7 +338,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                       placeholder="Enter size"
                       className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
                     />
-                    <select 
+                    <select
                       name="size_unit"
                       value={formData.size_unit}
                       onChange={handleChange}
@@ -378,7 +361,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                       placeholder="Enter thickness"
                       className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
                     />
-                    <select 
+                    <select
                       name="thickness_unit"
                       value={formData.thickness_unit}
                       onChange={handleChange}
@@ -404,7 +387,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
                     placeholder="Enter density"
                     className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
                   />
-                  <select 
+                  <select
                     name="density_unit"
                     value={formData.density_unit}
                     onChange={handleChange}
@@ -420,9 +403,9 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
               {/* Row 5: Brand */}
               <div>
                 <label className="text-sm font-normal text-gray-600">
-                  Brand <span className="text-red-500">*</span>
+                  Brand
                 </label>
-                <select 
+                <select
                   name="brand"
                   value={formData.brand}
                   onChange={handleChange}
@@ -470,7 +453,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800"
+                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 {editMode ? "Update Item" : "Save Item"}
               </button>

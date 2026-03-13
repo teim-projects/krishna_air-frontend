@@ -15,6 +15,7 @@ const allItems = [
   { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotation" },
   { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice" },
   { key: "item_master", label: "Item Master", icon: BoxIcon, path: "/item_master" },
+  { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory"},
   
   
 ];
@@ -158,6 +159,14 @@ function InvoiceIcon(props) {
     <svg {...props} viewBox="0 0 24 24" fill="none">
       <rect x="3" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
       <path d="M7 7h8M7 11h8M7 15h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+function InventoryIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

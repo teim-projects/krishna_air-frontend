@@ -12,9 +12,13 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
 
   // Add input states for adding new items
   const [materialInput, setMaterialInput] = useState("");
+  const [materialShortcutInput, setMaterialShortcutInput] = useState("");
   const [itemInput, setItemInput] = useState("");
+  const [itemShortcutInput, setItemShortcutInput] = useState("");
   const [featureInput, setFeatureInput] = useState("");
+  const [featureShortcutInput, setFeatureShortcutInput] = useState("");
   const [classInput, setClassInput] = useState("");
+  const [classShortcutInput, setClassShortcutInput] = useState("");
 
   // Add editing states
   const [editingMaterialId, setEditingMaterialId] = useState(null);
@@ -99,17 +103,18 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       if (editingMaterialId) {
         await axios.patch(
           `${base_api}/product/material-type/${editingMaterialId}/`,
-          { name: materialInput },
+          { name: materialInput, shortcut: materialShortcutInput },
           authHeaders()
         );
       } else {
         await axios.post(
           `${base_api}/product/material-type/`,
-          { name: materialInput },
+          { name: materialInput, shortcut: materialShortcutInput },
           authHeaders()
         );
       }
       setMaterialInput("");
+      setMaterialShortcutInput("");
       setEditingMaterialId(null);
       setMaterialSearchTerm(''); // Clear search when adding
       fetchMaterialTypes(materialPage);
@@ -134,17 +139,18 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       if (editingItemId) {
         await axios.patch(
           `${base_api}/product/item-type/${editingItemId}/`,
-          { name: itemInput },
+          { name: itemInput, shortcut: itemShortcutInput },
           authHeaders()
         );
       } else {
         await axios.post(
           `${base_api}/product/item-type/`,
-          { name: itemInput },
+          { name: itemInput, shortcut: itemShortcutInput },
           authHeaders()
         );
       }
       setItemInput("");
+      setItemShortcutInput("");
       setEditingItemId(null);
       setItemSearchTerm('');
       fetchItemTypes(itemPage);
@@ -169,17 +175,18 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       if (editingFeatureId) {
         await axios.patch(
           `${base_api}/product/feature-type/${editingFeatureId}/`,
-          { name: featureInput },
+          { name: featureInput, shortcut: featureShortcutInput },
           authHeaders()
         );
       } else {
         await axios.post(
           `${base_api}/product/feature-type/`,
-          { name: featureInput },
+          { name: featureInput, shortcut: featureShortcutInput },
           authHeaders()
         );
       }
       setFeatureInput("");
+      setFeatureShortcutInput("");
       setEditingFeatureId(null);
       setFeatureSearchTerm('');
       fetchFeatureTypes(featurePage);
@@ -204,17 +211,18 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       if (editingClassId) {
         await axios.patch(
           `${base_api}/product/item-class/${editingClassId}/`,
-          { name: classInput },
+          { name: classInput, shortcut: classShortcutInput },
           authHeaders()
         );
       } else {
         await axios.post(
           `${base_api}/product/item-class/`,
-          { name: classInput },
+          { name: classInput, shortcut: classShortcutInput },
           authHeaders()
         );
       }
       setClassInput("");
+      setClassShortcutInput("");
       setEditingClassId(null);
       setClassSearchTerm('');
       fetchClasses(classPage);
@@ -226,21 +234,25 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
 
   const handleEditMaterial = (item) => {
     setMaterialInput(item.name);
+    setMaterialShortcutInput(item.shortcut || "");
     setEditingMaterialId(item.id);
   };
 
   const handleEditItem = (item) => {
     setItemInput(item.name);
+    setItemShortcutInput(item.shortcut || "");
     setEditingItemId(item.id);
   };
 
   const handleEditFeature = (item) => {
     setFeatureInput(item.name);
+    setFeatureShortcutInput(item.shortcut || "");
     setEditingFeatureId(item.id);
   };
 
   const handleEditClass = (item) => {
     setClassInput(item.name);
+    setClassShortcutInput(item.shortcut || "");
     setEditingClassId(item.id);
   };
 
@@ -322,20 +334,26 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
   }, [open, base_api]);
 
 
-  // Detect if Material Type input matches existing item
-  useEffect(() => {
-    if (!materialInput.trim()) {
-      setMaterialButtonMode('idle');
-      setMaterialSearchTerm('');
-      return;
-    }
+// Detect if Material Type input matches existing item
+useEffect(() => {
+  if (!materialInput.trim()) {
+    setMaterialButtonMode('idle');
+    setMaterialSearchTerm('');
+    return;
+  }
 
-    const exactMatch = materialTypes.some(
-      m => m.name.toLowerCase() === materialInput.trim().toLowerCase()
-    );
+  // If we're editing, don't switch to search mode
+  if (editingMaterialId) {
+    setMaterialButtonMode('add'); // Keep it in add/update mode
+    return;
+  }
 
-    setMaterialButtonMode(exactMatch ? 'search' : 'add');
-  }, [materialInput, materialTypes]);
+  const exactMatch = materialTypes.some(
+    m => m.name.toLowerCase() === materialInput.trim().toLowerCase()
+  );
+
+  setMaterialButtonMode(exactMatch ? 'search' : 'add');
+}, [materialInput, materialShortcutInput, materialTypes, editingMaterialId]);
 
   // Detect if Item Type input matches existing item
   useEffect(() => {
@@ -345,12 +363,17 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       return;
     }
 
+    if (editingItemId) {
+      setItemButtonMode('add');
+      return;
+    }
+
     const exactMatch = itemTypes.some(
       i => i.name.toLowerCase() === itemInput.trim().toLowerCase()
     );
 
     setItemButtonMode(exactMatch ? 'search' : 'add');
-  }, [itemInput, itemTypes]);
+  }, [itemInput, itemShortcutInput, itemTypes, editingItemId]);
 
   // Detect if Feature Type input matches existing item
   useEffect(() => {
@@ -360,12 +383,17 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       return;
     }
 
+    if (editingFeatureId) {
+      setFeatureButtonMode('add');
+      return;
+    }
+
     const exactMatch = featureTypes.some(
       f => f.name.toLowerCase() === featureInput.trim().toLowerCase()
     );
 
     setFeatureButtonMode(exactMatch ? 'search' : 'add');
-  }, [featureInput, featureTypes]);
+  }, [featureInput, featureShortcutInput, featureTypes, editingFeatureId]);
 
   // Detect if Class input matches existing item
   useEffect(() => {
@@ -375,12 +403,17 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       return;
     }
 
+    if (editingClassId) {
+      setClassButtonMode('add');
+      return;
+    }
+
     const exactMatch = classes.some(
       c => c.name.toLowerCase() === classInput.trim().toLowerCase()
     );
 
     setClassButtonMode(exactMatch ? 'search' : 'add');
-  }, [classInput, classes]);
+  }, [classInput, classShortcutInput, classes, editingClassId]);
 
 
   // Pagination State
@@ -441,311 +474,351 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
             {/* Material Types */}
             <div>
               <h3 className="font-semibold mb-3 text-gray-700">Material Types</h3>
-              <div className="flex gap-2 mb-4">
+              <div className="space-y-2 mb-4">
                 <input
                   type="text"
-                  placeholder="Enter material type"
+                  placeholder="Enter material type (e.g., Aluminium)"
                   value={materialInput}
                   onChange={(e) => setMaterialInput(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
                 />
-                <button
-                  onClick={handleAddOrUpdateMaterial}
-                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${materialButtonMode === 'search'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-black text-white'
-                    }`}
-                  title={
-                    materialButtonMode === 'idle'
-                      ? 'Type to add or search'
-                      : materialButtonMode === 'search'
-                        ? `Found! Click to filter "${materialInput}"`
-                        : `Click to add "${materialInput}"`
-                  }
-                >
-                  {materialButtonMode === 'search' ? (
-                    <>
-                      <FiSearch /> 
-                    </>
-                  ) : (
-                    <>
-                      <FiPlus /> {editingMaterialId ? 'Update' : materialButtonMode === 'idle' ? 'Add' : 'Add New'}
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Shortcut (e.g., AL)"
+                    value={materialShortcutInput}
+                    onChange={(e) => setMaterialShortcutInput(e.target.value)}
+                    maxLength={10}
+                    className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleAddOrUpdateMaterial}
+                    className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${materialButtonMode === 'search'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-black text-white'
+                      }`}
+                    title={
+                      materialButtonMode === 'idle'
+                        ? 'Type to add or search'
+                        : materialButtonMode === 'search'
+                          ? `Found! Click to filter "${materialInput}"`
+                          : `Click to add "${materialInput}"`
+                    }
+                  >
+                    {materialButtonMode === 'search' ? (
+                      <>
+                        <FiSearch />
+                      </>
+                    ) : (
+                      <>
+                        <FiPlus /> {editingMaterialId ? 'Update' : materialButtonMode === 'idle' ? 'Add' : 'Add New'}
+                      </>
+                    )}
+                  </button>
+                    </div>
+                </div>
 
-              </div>
-
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">MATERIAL TYPE</th>
-                      <th className="px-4 py-3 text-right">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginate(filteredMaterialTypes, materialPage).map((item, index) => (
-                      <tr key={item.id} className="border-b border-gray-200">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-x-4">
-                            <FiEdit
-                              onClick={() => handleEditMaterial(item)}
-                              className="text-yellow-600 cursor-pointer hover:text-yellow-700"
-                            />
-                            <FiTrash2
-                              onClick={() => handleDeleteMaterial(item.id)}
-                              className="text-red-600 cursor-pointer hover:text-red-700"
-                            />
-                          </div>
-                        </td>
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left">MATERIAL TYPE</th>
+                        <th className="px-4 py-3 text-left">SHORTCUT</th>
+                        <th className="px-4 py-3 text-right">ACTIONS</th>
                       </tr>
-                    ))}
+                    </thead>
+                    <tbody>
+                      {paginate(filteredMaterialTypes, materialPage).map((item, index) => (
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="px-4 py-3">{item.name}</td>
+                          <td className="px-4 py-3 font-mono text-blue-600">{item.shortcut || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-x-4">
+                              <FiEdit
+                                onClick={() => handleEditMaterial(item)}
+                                className="text-yellow-600 cursor-pointer hover:text-yellow-700"
+                              />
+                              <FiTrash2
+                                onClick={() => handleDeleteMaterial(item.id)}
+                                className="text-red-600 cursor-pointer hover:text-red-700"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
 
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
+
+                <PaginationControls
+                  page={materialPage}
+                  setPage={setMaterialPage}
+                  total={materialTypes.length}
+                />
               </div>
 
-              <PaginationControls
-                page={materialPage}
-                setPage={setMaterialPage}
-                total={materialTypes.length}
-              />
+              {/* Item Types */}
+              <div>
+                <h3 className="font-semibold mb-3 text-gray-700">Item Types</h3>
+                <div className="space-y-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Enter item type"
+                    value={itemInput}
+                    onChange={(e) => setItemInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Shortcut"
+                      value={itemShortcutInput}
+                      onChange={(e) => setItemShortcutInput(e.target.value.toUpperCase())}
+                      maxLength={10}
+                      className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={handleAddOrUpdateItem}
+                      className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${itemButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                        }`}
+                      title={
+                        itemButtonMode === 'idle' ? 'Type to add or search'
+                          : itemButtonMode === 'search' ? `Found! Click to filter "${itemInput}"`
+                            : `Click to add "${itemInput}"`
+                      }
+                    >
+                      {itemButtonMode === 'search' ? (
+                        <>
+                          <FiSearch />
+                        </>
+                      ) : (
+                        <><FiPlus /> {editingItemId ? 'Update' : itemButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left">ITEM TYPE</th>
+                        <th className="px-4 py-3 text-left">SHORTCUT</th>
+                        <th className="px-4 py-3 text-right">ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginate(filteredItemTypes, itemPage).map((item, index) => (
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="px-4 py-3">{item.name}</td>
+                          <td className="px-4 py-3 font-mono text-blue-600">{item.shortcut || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-x-4">
+                              <FiEdit
+                                onClick={() => handleEditItem(item)}
+                                className="text-yellow-600 cursor-pointer hover:text-yellow-700"
+                              />
+                              <FiTrash2
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="text-red-600 cursor-pointer hover:text-red-700"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                    </tbody>
+                  </table>
+                </div>
+
+                <PaginationControls
+                  page={itemPage}
+                  setPage={setItemPage}
+                  total={itemTypes.length}
+                />
+              </div>
             </div>
 
-            {/* Item Types */}
-            <div>
-              <h3 className="font-semibold mb-3 text-gray-700">Item Types</h3>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  placeholder="Enter item type"
-                  value={itemInput}
-                  onChange={(e) => setItemInput(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={handleAddOrUpdateItem}
-                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${itemButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
-                    }`}
-                  title={
-                    itemButtonMode === 'idle' ? 'Type to add or search'
-                      : itemButtonMode === 'search' ? `Found! Click to filter "${itemInput}"`
-                        : `Click to add "${itemInput}"`
-                  }
-                >
-                  {itemButtonMode === 'search' ? (
-                    <>
-                      <FiSearch /> 
-                    </>
-                  ) : (
-                    <><FiPlus /> {editingItemId ? 'Update' : itemButtonMode === 'idle' ? 'Add' : 'Add New'}</>
-                  )}
-                </button>
+            {/* SECTION 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+              {/* Feature Types */}
+              <div>
+                <h3 className="font-semibold mb-3 text-gray-700">Feature Types</h3>
+                <div className="space-y-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Enter feature type"
+                    value={featureInput}
+                    onChange={(e) => setFeatureInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Shortcut"
+                      value={featureShortcutInput}
+                      onChange={(e) => setFeatureShortcutInput(e.target.value.toUpperCase())}
+                      maxLength={10}
+                      className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={handleAddOrUpdateFeature}
+                      className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${featureButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                        }`}
+                      title={
+                        featureButtonMode === 'idle' ? 'Type to add or search'
+                          : featureButtonMode === 'search' ? `Found! Click to filter "${featureInput}"`
+                            : `Click to add "${featureInput}"`
+                      }
+                    >
+                      {featureButtonMode === 'search' ? (
+                        <>
+                          <FiSearch />
+                        </>
+                      ) : (
+                        <><FiPlus /> {editingFeatureId ? 'Update' : featureButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-              </div>
-
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">ITEM TYPE</th>
-                      <th className="px-4 py-3 text-right">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginate(filteredItemTypes, itemPage).map((item, index) => (
-                      <tr key={item.id} className="border-b border-gray-200">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-x-4">
-                            <FiEdit
-                              onClick={() => handleEditItem(item)}
-                              className="text-yellow-600 cursor-pointer hover:text-yellow-700"
-                            />
-                            <FiTrash2
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="text-red-600 cursor-pointer hover:text-red-700"
-                            />
-                          </div>
-                        </td>
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left">FEATURE TYPE</th>
+                        <th className="px-4 py-3 text-left">SHORTCUT</th>
+                        <th className="px-4 py-3 text-right">ACTIONS</th>
                       </tr>
-                    ))}
+                    </thead>
+                    <tbody>
+                      {paginate(filteredFeatureTypes, featurePage).map((item, index) => (
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="px-4 py-3">{item.name}</td>
+                          <td className="px-4 py-3 font-mono text-blue-600">{item.shortcut || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-x-4">
+                              <FiEdit
+                                onClick={() => handleEditFeature(item)}
+                                className="text-yellow-600 cursor-pointer hover:text-yellow-700"
+                              />
+                              <FiTrash2
+                                onClick={() => handleDeleteFeature(item.id)}
+                                className="text-red-600 cursor-pointer hover:text-red-700"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
 
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
+
+                <PaginationControls
+                  page={featurePage}
+                  setPage={setFeaturePage}
+                  total={featureTypes.length}
+                />
               </div>
 
-              <PaginationControls
-                page={itemPage}
-                setPage={setItemPage}
-                total={itemTypes.length}
-              />
+              {/* Classes */}
+              <div>
+                <h3 className="font-semibold mb-3 text-gray-700">Classes</h3>
+                <div className="space-y-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Enter class"
+                    value={classInput}
+                    onChange={(e) => setClassInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Shortcut"
+                      value={classShortcutInput}
+                      onChange={(e) => setClassShortcutInput(e.target.value.toUpperCase())}
+                      maxLength={10}
+                      className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={handleAddOrUpdateClass}
+                      className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${classButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
+                        }`}
+                      title={
+                        classButtonMode === 'idle' ? 'Type to add or search'
+                          : classButtonMode === 'search' ? `Found! Click to filter "${classInput}"`
+                            : `Click to add "${classInput}"`
+                      }
+                    >
+                      {classButtonMode === 'search' ? (
+                        <>
+                          <FiSearch />
+                        </>
+                      ) : (
+                        <><FiPlus /> {editingClassId ? 'Update' : classButtonMode === 'idle' ? 'Add' : 'Add New'}</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left">CLASS</th>
+                        <th className="px-4 py-3 text-left">SHORTCUT</th>
+                        <th className="px-4 py-3 text-right">ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginate(filteredClasses, classPage).map((item, index) => (
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="px-4 py-3">{item.name}</td>
+                          <td className="px-4 py-3 font-mono text-blue-600">{item.shortcut || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-x-4">
+                              <FiEdit
+                                onClick={() => handleEditClass(item)}
+                                className="text-yellow-600 cursor-pointer hover:text-yellow-700"
+                              />
+                              <FiTrash2
+                                onClick={() => handleDeleteClass(item.id)}
+                                className="text-red-600 cursor-pointer hover:text-red-700"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                    </tbody>
+                  </table>
+                </div>
+
+                <PaginationControls
+                  page={classPage}
+                  setPage={setClassPage}
+                  total={classes.length}
+                />
+              </div>
             </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
-
-          {/* SECTION 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Feature Types */}
-            <div>
-              <h3 className="font-semibold mb-3 text-gray-700">Feature Types</h3>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  placeholder="Enter feature type"
-                  value={featureInput}
-                  onChange={(e) => setFeatureInput(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={handleAddOrUpdateFeature}
-                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${featureButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
-                    }`}
-                  title={
-                    featureButtonMode === 'idle' ? 'Type to add or search'
-                      : featureButtonMode === 'search' ? `Found! Click to filter "${featureInput}"`
-                        : `Click to add "${featureInput}"`
-                  }
-                >
-                  {featureButtonMode === 'search' ? (
-                    <>
-                    <FiSearch />
-                    </>
-                  ) : (
-                    <><FiPlus /> {editingFeatureId ? 'Update' : featureButtonMode === 'idle' ? 'Add' : 'Add New'}</>
-                  )}
-                </button>
-
-
-
-              </div>
-
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">FEATURE TYPE</th>
-                      <th className="px-4 py-3 text-right">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginate(filteredFeatureTypes, featurePage).map((item, index) => (
-                      <tr key={item.id} className="border-b border-gray-200">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-x-4">
-                            <FiEdit
-                              onClick={() => handleEditFeature(item)}
-                              className="text-yellow-600 cursor-pointer hover:text-yellow-700"
-                            />
-                            <FiTrash2
-                              onClick={() => handleDeleteFeature(item.id)}
-                              className="text-red-600 cursor-pointer hover:text-red-700"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-
-                  </tbody>
-                </table>
-              </div>
-
-              <PaginationControls
-                page={featurePage}
-                setPage={setFeaturePage}
-                total={featureTypes.length}
-              />
-            </div>
-
-            {/* Classes */}
-            <div>
-              <h3 className="font-semibold mb-3 text-gray-700">Classes</h3>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  placeholder="Enter class"
-                  value={classInput}
-                  onChange={(e) => setClassInput(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  onClick={handleAddOrUpdateClass}
-                  className={`flex items-center gap-2 px-4 py-2 rounded hover:opacity-90 transition-all ${classButtonMode === 'search' ? 'bg-blue-600 text-white' : 'bg-black text-white'
-                    }`}
-                  title={
-                    classButtonMode === 'idle' ? 'Type to add or search'
-                      : classButtonMode === 'search' ? `Found! Click to filter "${classInput}"`
-                        : `Click to add "${classInput}"`
-                  }
-                >
-                  {classButtonMode === 'search' ? (
-                    <>
-                    <FiSearch />
-                    </>
-                  ) : (
-                    <><FiPlus /> {editingClassId ? 'Update' : classButtonMode === 'idle' ? 'Add' : 'Add New'}</>
-                  )}
-                </button>
-
-
-              </div>
-
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left">CLASS</th>
-                      <th className="px-4 py-3 text-right">ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginate(filteredClasses, classPage).map((item, index) => (
-                      <tr key={item.id} className="border-b border-gray-200">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-x-4">
-                            <FiEdit
-                              onClick={() => handleEditClass(item)}
-                              className="text-yellow-600 cursor-pointer hover:text-yellow-700"
-                            />
-                            <FiTrash2
-                              onClick={() => handleDeleteClass(item.id)}
-                              className="text-red-600 cursor-pointer hover:text-red-700"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-
-                  </tbody>
-                </table>
-              </div>
-
-              <PaginationControls
-                page={classPage}
-                setPage={setClassPage}
-                total={classes.length}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800"
-            >
-              Close
-            </button>
-          </div>
-
         </div>
       </div>
-    </div>
-  );
+      );
 };
 
-export default ManageItemTypes;
+      export default ManageItemTypes;

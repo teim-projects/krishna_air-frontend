@@ -153,7 +153,9 @@ export default function AddLeadForm({
     const controller = new AbortController();
     setLoadingReference(true);
 
-    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all`;
+    const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all/`;
+
+    console.log("url:",url);
 
     fetch(url, {
       method: "GET",
@@ -331,16 +333,16 @@ export default function AddLeadForm({
     if (lead && Array.isArray(lead.product_details)) {
       const mappedProducts = lead.product_details.map(p => ({
         id: p.id,
-        ac_type: "",
-        ac_type_name: p.ac_type || "",
-        ac_sub_type: "",
-        ac_sub_type_name: p.ac_sub_type || "",
-        brand: "",
-        brand_name: p.brand || "",
-        product_model: "",
-        product_model_name: p.product_model || "",
-        variant: "",
-        variant_name: p.variant || "",
+        ac_type: p.ac_type_id || "",
+        ac_type_name: p.ac_type_name || "",
+        ac_sub_type: p.ac_sub_type_id || "",
+        ac_sub_type_name: p.ac_sub_type_name || "",
+        brand: p.brand_id || "",
+        brand_name: p.brand_name || "",
+        product_model: p.product_model_id || "",
+        product_model_name: p.product_model_name || "",
+        variant: p.variant_id || "",
+        variant_name: p.variant_name || "",
         quantity: p.quantity || 1,
         expected_price: p.expected_price || "",
         remarks: p.remarks || "",

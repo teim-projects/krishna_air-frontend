@@ -83,7 +83,7 @@ const ItemMaster = () => {
             <div className="p-4">
                 <div className="item-sections flex gap-4 mb-4">
                     <button
-                        className={`px-4 py-2 rounded ${activeSide === 'high' ? 'bg-black text-white' : 'bg-gray-200'
+                        className={`px-4 py-2 rounded ${activeSide === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-100'
                             }`}
                         onClick={() => setActiveSide('high')}
                     >
@@ -91,7 +91,7 @@ const ItemMaster = () => {
                     </button>
 
                     <button
-                        className={`px-4 py-2 rounded ${activeSide === 'low' ? 'bg-black text-white' : 'bg-gray-200'
+                        className={`px-4 py-2 rounded ${activeSide === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-100'
                             }`}
                         onClick={() => setActiveSide('low')}
                     >
