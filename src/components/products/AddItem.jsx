@@ -130,22 +130,6 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Validate numeric fields (size, thickness, density)
-    if (name === 'size' || name === 'thickness' || name === 'density') {
-      // Allow empty string, or numbers >= 0 (including decimals)
-      if (value === '' || /^\d*\.?\d*$/.test(value)) {
-        // Additional check: if it's a valid number, ensure it's >= 0
-        if (value !== '' && parseFloat(value) < 0) {
-          return; // Don't update if negative
-        }
-        setFormData(prev => ({ ...prev, [name]: value }));
-      }
-      // If validation fails, don't update the field
-      return;
-    }
-
-    // For non-numeric fields, update normally
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -170,7 +154,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Save item (Add or Edit)
   const handleSave = async () => {
     try {
-      if (!formData.material_type_id || !formData.item_type_id || !formData.brand) {
+      if (!formData.material_type_id || !formData.item_type_id) {
         alert("Please fill all required fields");
         return;
       }
@@ -187,7 +171,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
         thickness_unit: formData.thickness_unit,
         density: formData.density,
         density_unit: formData.density_unit,
-        brand: parseInt(formData.brand),
+        brand: formData.brand ? parseInt(formData.brand) : null,
         description: formData.description
       };
 
@@ -419,7 +403,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
               {/* Row 5: Brand */}
               <div>
                 <label className="text-sm font-normal text-gray-600">
-                  Brand <span className="text-red-500">*</span>
+                  Brand
                 </label>
                 <select
                   name="brand"
