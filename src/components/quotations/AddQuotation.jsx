@@ -440,18 +440,19 @@ export default function AddQuotation({ id, onBack }) {
               />
             </div> */}
         </div>
+
+        {/* Save Button at the bottom */}
+        <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
+          <button
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            onClick={handleSubmit}
+          >
+            Save Quotation
+          </button>
+        </div>
+      </div>
       </div>
 
-      <div className="flex justify-end">
-        <button
-          className="px-5 py-2 bg-blue-600 text-white rounded-md"
-          onClick={handleSubmit}
-        >
-          Save Quotation
-        </button>
-      </div>
-
-    </div>
     // </div >
   );
 
