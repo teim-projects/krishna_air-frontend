@@ -13,7 +13,7 @@ export default function ItemSelectionEngine({
 }) {
 
   const isInvoice = mode === "invoice";
-  
+
   const api = axios.create({ baseURL: `${baseApi}/` });
 
   api.interceptors.request.use(config => {
@@ -173,45 +173,45 @@ export default function ItemSelectionEngine({
 
   const addHighItem = () => {
 
-  if (!draftHighItem.product_variant) {
-    alert("Select Product Variant");
-    return;
-  }
+    if (!draftHighItem.product_variant) {
+      alert("Select Product Variant");
+      return;
+    }
 
-  const selectedVariant = variants.find(
-    v => String(v.id) === String(draftHighItem.product_variant)
-  );
+    const selectedVariant = variants.find(
+      v => String(v.id) === String(draftHighItem.product_variant)
+    );
 
-  const newRow = {
-    ...draftHighItem,
+    const newRow = {
+      ...draftHighItem,
 
-    // ⭐ inject display fields
-    ac_type_name: selectedVariant?.ac_type_name,
-    ac_sub_type_name: selectedVariant?.ac_sub_type_name,
-    brand_name: selectedVariant?.brand_name,
-    model_no: selectedVariant?.model_no,
-    variant_sku: selectedVariant?.variant_sku,
+      // ⭐ inject display fields
+      ac_type_name: selectedVariant?.ac_type_name,
+      ac_sub_type_name: selectedVariant?.ac_sub_type_name,
+      brand_name: selectedVariant?.brand_name,
+      model_no: selectedVariant?.model_no,
+      variant_sku: selectedVariant?.variant_sku,
+    };
+
+    setItems(prev => [...prev, newRow]);
+
+    setDraftHighItem({
+      acType: "",
+      subType: "",
+      brand: "",
+      model: "",
+      product_variant: "",
+      description: "",
+      hsn_sac: "",
+      unit: "NOS",
+      quantity: 1,
+      unit_price: 0,
+      rate: 0,
+      gst_percent: 18,
+      mathadi_charges: 0,
+      transportation_charges: 0
+    });
   };
-
-  setItems(prev => [...prev, newRow]);
-
-  setDraftHighItem({
-    acType: "",
-    subType: "",
-    brand: "",
-    model: "",
-    product_variant: "",
-    description: "",
-    hsn_sac: "",
-    unit: "NOS",
-    quantity: 1,
-    unit_price: 0,
-    rate: 0,
-    gst_percent: 18,
-    mathadi_charges: 0,
-    transportation_charges: 0
-  });
-};
 
   const addLowItem = () => {
 
@@ -221,15 +221,15 @@ export default function ItemSelectionEngine({
     }
 
     const selectedItem = lowItemsMaster.find(
-  i => String(i.id) === String(draftLowItem.item)
-);
+      i => String(i.id) === String(draftLowItem.item)
+    );
 
-const newLow = {
-  ...draftLowItem,
-  item_code: selectedItem?.item_code
-};
+    const newLow = {
+      ...draftLowItem,
+      item_code: selectedItem?.item_code
+    };
 
-setLowItems(prev => [...prev, newLow]);
+    setLowItems(prev => [...prev, newLow]);
     setDraftLowItem({
       material_type_id: "",
       item_type_id: "",
@@ -337,24 +337,33 @@ setLowItems(prev => [...prev, newLow]);
            )}
 
           {!isInvoice && (
-<>
-<input
-  className="border rounded-lg px-3 py-2"
-  type="number"
-  placeholder="Mathadi Charges"
-  value={draftHighItem.mathadi_charges}
-  onChange={e => updateHighDraft("mathadi_charges", e.target.value)}
-/>
+            <>
+              <input
+                className="border rounded-lg px-3 py-2"
+                type="number"
+                placeholder="Mathadi Charges"
+                value={draftHighItem.mathadi_charges}
+                onChange={e => updateHighDraft("mathadi_charges", e.target.value)}
+              />
 
-<input
-  className="border rounded-lg px-3 py-2"
-  type="number"
-  placeholder="Transportation Charges"
-  value={draftHighItem.transportation_charges}
-  onChange={e => updateHighDraft("transportation_charges", e.target.value)}
-/>
-</>
-)}
+              <input
+                className="border rounded-lg px-3 py-2"
+                type="number"
+                placeholder="Transportation Charges"
+                value={draftHighItem.transportation_charges}
+                onChange={e => updateHighDraft("transportation_charges", e.target.value)}
+              />
+            </>
+          )}
+         <div className="col-span-full">
+  <textarea 
+    className="w-full px-3 py-2 rounded-md border border-black"
+    placeholder="Enter product description..."
+    value={draftHighItem.description}
+    onChange={e => updateHighDraft("description", e.target.value)}
+    rows={2}
+  />
+</div>
 
         </div>
 
@@ -366,180 +375,185 @@ setLowItems(prev => [...prev, newLow]);
         </div>
 
         {items.length > 0 && (
-<div className="overflow-x-auto border rounded-lg">
-<table className="w-full text-sm border-collapse">
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-sm border-collapse">
 
-<thead className="bg-gray-200">
-<tr>
-<th className="border p-2">#</th>
-<th className="border p-2">AC Type</th>
-<th className="border p-2">AC Sub Type</th>
-<th className="border p-2">Brand</th>
-<th className="border p-2">Model</th>
-<th className="border p-2">Variant</th>
-{isInvoice && (
-<th className="border p-2">Description</th>
-)}
-{isInvoice && (
-<>
-<th className="border p-2">HSN</th>
-<th className="border p-2">Unit</th>
-</>
-)}
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="border p-2">#</th>
+                  <th className="border p-2">AC Type</th>
+                  <th className="border p-2">AC Sub Type</th>
+                  <th className="border p-2">Brand</th>
+                  <th className="border p-2">Model</th>
+                  <th className="border p-2">Variant</th>
 
-<th className="border p-2">Qty</th>
-<th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
-{gstType !== "NO_GST" && (
-<th className="border p-2">GST%</th>
-)}
+                  {isInvoice && (
+                    <>
+                      <th className="border p-2">HSN</th>
+                      <th className="border p-2">Unit</th>
+                    </>
+                  )}
 
-{!isInvoice && (
-<>
-<th className="border p-2">Mathadi</th>
-<th className="border p-2">Transport</th>
-</>
-)}
-<th className="border p-2">Action</th>
-</tr>
-</thead>
+                  <th className="border p-2">Qty</th>
+                  <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
+                  <th className="border p-2">GST%</th>
 
-<tbody>
+                  {!isInvoice && (
+                    <>
+                      <th className="border p-2">Mathadi</th>
+                      <th className="border p-2">Transport</th>
+                    </>
+                  )}
+                  <th className="border p-2">Description</th>
+                  <th className="border p-2">Action</th>
+                </tr>
+              </thead>
 
-{items.map((row,i)=>{
+              <tbody>
 
-const acName = row.ac_type_name || "-";
-const subName = row.ac_sub_type_name || "-";
-const brandName = row.brand_name || "-";
-const modelName = row.model_no || "-";
-const variantName = row.variant_sku || row.product_variant;
-return(
-<tr key={i} className="text-center bg-white">
+                {items.map((row, i) => {
 
-<td className="border p-2">{i+1}</td>
-<td className="border p-2">{acName}</td>
-<td className="border p-2">{subName}</td>
-<td className="border p-2">{brandName}</td>
-<td className="border p-2">{modelName}</td>
-<td className="border p-2">{variantName}</td>
-{isInvoice && (
-<td className="border p-2">{row.description}</td>
-)}
-{isInvoice && (
-<>
-<td className="border p-2">
-<input
-className="border rounded px-2 py-1 w-[90px]"
-value={row.hsn_sac||""}
-onChange={e=>{
-const copy=[...items];
-copy[i].hsn_sac=e.target.value;
-setItems(copy);
-}}
-/>
-</td>
+                  const acName = row.ac_type_name || "-";
+                  const subName = row.ac_sub_type_name || "-";
+                  const brandName = row.brand_name || "-";
+                  const modelName = row.model_no || "-";
+                  const variantName = row.variant_sku || row.product_variant;
+                  return (
+                    <tr key={i} className="text-center bg-white">
 
-<td className="border p-2">
-<input
-className="border rounded px-2 py-1 w-[70px]"
-value={row.unit||"NOS"}
-onChange={e=>{
-const copy=[...items];
-copy[i].unit=e.target.value;
-setItems(copy);
-}}
-/>
-</td>
-</>
-)}
+                      <td className="border p-2">{i + 1}</td>
+                      <td className="border p-2">{acName}</td>
+                      <td className="border p-2">{subName}</td>
+                      <td className="border p-2">{brandName}</td>
+                      <td className="border p-2">{modelName}</td>
+                      <td className="border p-2">{variantName}</td>
 
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[70px]"
-value={row.quantity}
-onChange={e=>{
-const copy=[...items];
-copy[i].quantity=e.target.value;
-setItems(copy);
-}}
-/>
-</td>
+                      {isInvoice && (
+                        <>
+                          <td className="border p-2">
+                            <input
+                              className="border rounded px-2 py-1 w-[90px]"
+                              value={row.hsn_sac || ""}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].hsn_sac = e.target.value;
+                                setItems(copy);
+                              }}
+                            />
+                          </td>
 
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[90px]"
-value={isInvoice?row.rate:row.unit_price}
-onChange={e=>{
-const copy=[...items];
-copy[i][isInvoice?"rate":"unit_price"]=e.target.value;
-setItems(copy);
-}}
-/>
-</td>
+                          <td className="border p-2">
+                            <input
+                              className="border rounded px-2 py-1 w-[70px]"
+                              value={row.unit || "NOS"}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].unit = e.target.value;
+                                setItems(copy);
+                              }}
+                            />
+                          </td>
+                        </>
+                      )}
 
-{gstType !== "NO_GST" && (
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[60px]"
-value={row.gst_percent}
-onChange={e=>{
-const copy=[...items];
-copy[i].gst_percent=e.target.value;
-setItems(copy);
-}}
-/>
-</td>
-)}
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[70px]"
+                          value={row.quantity}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i].quantity = e.target.value;
+                            setItems(copy);
+                          }}
+                        />
+                      </td>
 
-{!isInvoice && (
-<>
-<td className="border p-2">
-<input
-  type="number"
-  className="border rounded px-2 py-1 w-[80px]"
-  value={row.mathadi_charges || 0}
-  onChange={e=>{
-    const copy=[...items];
-    copy[i].mathadi_charges=e.target.value;
-    setItems(copy);
-  }}
-/>
-</td>
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[90px]"
+                          value={isInvoice ? row.rate : row.unit_price}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
+                            setItems(copy);
+                          }}
+                        />
+                      </td>
 
-<td className="border p-2">
-<input
-  type="number"
-  className="border rounded px-2 py-1 w-[80px]"
-  value={row.transportation_charges || 0}
-  onChange={e=>{
-    const copy=[...items];
-    copy[i].transportation_charges=e.target.value;
-    setItems(copy);
-  }}
-/>
-</td>
-</>
-)}
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[60px]"
+                          value={row.gst_percent}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i].gst_percent = e.target.value;
+                            setItems(copy);
+                          }}
+                        />
+                      </td>
 
-<td className="border p-2">
-<button
-className="text-red-500 font-bold"
-onClick={()=>setItems(items.filter((_,idx)=>idx!==i))}
->
-✕
-</button>
-</td>
+                      {!isInvoice && (
+                        <>
+                          <td className="border p-2">
+                            <input
+                              type="number"
+                              className="border rounded px-2 py-1 w-[80px]"
+                              value={row.mathadi_charges || 0}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].mathadi_charges = e.target.value;
+                                setItems(copy);
+                              }}
+                            />
+                          </td>
 
-</tr>
-);
-})}
+                          <td className="border p-2">
+                            <input
+                              type="number"
+                              className="border rounded px-2 py-1 w-[80px]"
+                              value={row.transportation_charges || 0}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].transportation_charges = e.target.value;
+                                setItems(copy);
+                              }}
+                            />
+                          </td>
+                          <td className="border p-2">
+                            <textarea
+                              className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
+                              value={row.description || ""}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].description = e.target.value;
+                                setItems(copy);
+                              }}
+                              rows={2}
+                            />
+                          </td>
+                        </>
+                      )}
 
-</tbody>
-</table>
-</div>
-)}
+                      <td className="border p-2">
+                        <button
+                          className="text-red-500 font-bold"
+                          onClick={() => setItems(items.filter((_, idx) => idx !== i))}
+                        >
+                          ✕
+                        </button>
+                      </td>
+
+                    </tr>
+                  );
+                })}
+
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* ================= LOW SIDE ================= */}
@@ -619,21 +633,25 @@ onChange={e => updateLowDraft("description", e.target.value)}
 />
 )}
 
-           {!isInvoice && (
+          {!isInvoice && (
+            <input
+              className="border rounded-lg px-3 py-2"
+              type="number"
+              placeholder="Mathadi Charges"
+              value={draftLowItem.mathadi_charges}
+              onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+            />
+          )}
 
-            
-<input
-  className="border rounded-lg px-3 py-2"
-  type="number"
-  placeholder="Mathadi Charges"
-  value={draftLowItem.mathadi_charges}
-  onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-/>
-
-
-
-)}
-
+          <div className="col-span-full">
+            <textarea
+              className="w-full px-3 py-2 rounded-md border border-black"
+              placeholder="Enter item description..."
+              value={draftLowItem.description}
+              onChange={e => updateLowDraft("description", e.target.value)}
+              rows={2}
+            />
+          </div>
         </div>
 
         <div className="flex justify-end">
@@ -644,154 +662,147 @@ onChange={e => updateLowDraft("description", e.target.value)}
         </div>
 
         {lowItems.length > 0 && (
-<div className="overflow-x-auto border rounded-lg">
-<table className="w-full text-sm border-collapse">
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="w-full text-sm border-collapse">
 
-<thead className="bg-gray-200">
-<tr>
-<th className="border p-2">#</th>
-<th className="border p-2">Item</th>
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="border p-2">#</th>
+                  <th className="border p-2">Item</th>
 
-{isInvoice && (
-<>
+                  {isInvoice && (
+                    <>
+                      
+                      <th className="border p-2">Unit</th>
+                    </>
+                  )}
 
-<th className="border p-2">Unit</th>
-</>
-)}
+                  <th className="border p-2">Qty</th>
+                  <th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
+                  <th className="border p-2">GST%</th>
+                  {!isInvoice && (
+                    <th className="border p-2">Mathadi</th>
+                  )}
+                  <th className="border p-2">Description</th>
+                  <th className="border p-2">Action</th>
+                </tr>
+              </thead>
 
-<th className="border p-2">Qty</th>
-<th className="border p-2">{isInvoice ? "Rate" : "Price"}</th>
-{gstType !== "NO_GST" && (
-<th className="border p-2">GST%</th>
-)}
-{isInvoice && (
-<th>Description</th>
-)}
-{!isInvoice && (
-<th className="border p-2">Mathadi</th>
-)}
-<th className="border p-2">Action</th>
-</tr>
-</thead>
+              <tbody>
 
-<tbody>
+                {lowItems.map((row, i) => {
 
-{lowItems.map((row,i)=>{
+                  const itemName = row.item_code || row.item;
 
-const itemName = row.item_code || row.item;
+                  return (
+                    <tr key={i} className="text-center bg-white">
 
-return(
-<tr key={i} className="text-center bg-white">
-
-<td className="border p-2">{i+1}</td>
-<td className="border p-2">{itemName}</td>
+                      <td className="border p-2">{i + 1}</td>
+                      <td className="border p-2">{itemName}</td>
 
 {isInvoice && (
 <>
 
 
-<td className="border p-2">
-<input
-className="border rounded px-2 py-1"
-value={row.unit||"NOS"}
-onChange={e=>{
-const copy=[...lowItems];
-copy[i].unit=e.target.value;
-setLowItems(copy);
-}}
-/>
-</td>
-</>
-)}
+                          <td className="border p-2">
+                            <input
+                              className="border rounded px-2 py-1"
+                              value={row.unit || "NOS"}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].unit = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
+                        </>
+                      )}
 
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[70px]"
-value={row.quantity}
-onChange={e=>{
-const copy=[...lowItems];
-copy[i].quantity=e.target.value;
-setLowItems(copy);
-}}
-/>
-</td>
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[70px]"
+                          value={row.quantity}
+                          onChange={e => {
+                            const copy = [...lowItems];
+                            copy[i].quantity = e.target.value;
+                            setLowItems(copy);
+                          }}
+                        />
+                      </td>
 
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[90px]"
-value={isInvoice?row.rate:row.unit_price}
-onChange={e=>{
-const copy=[...lowItems];
-copy[i][isInvoice?"rate":"unit_price"]=e.target.value;
-setLowItems(copy);
-}}
-/>
-</td>
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[90px]"
+                          value={isInvoice ? row.rate : row.unit_price}
+                          onChange={e => {
+                            const copy = [...lowItems];
+                            copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
+                            setLowItems(copy);
+                          }}
+                        />
+                      </td>
 
-{gstType !== "NO_GST" && (
-<td className="border p-2">
-<input
-type="number"
-className="border rounded px-2 py-1 w-[60px]"
-value={row.gst_percent}
-onChange={e=>{
-const copy=[...lowItems];
-copy[i].gst_percent=e.target.value;
-setLowItems(copy);
-}}
-/>
-</td>
-)}
+                      <td className="border p-2">
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 w-[60px]"
+                          value={row.gst_percent}
+                          onChange={e => {
+                            const copy = [...lowItems];
+                            copy[i].gst_percent = e.target.value;
+                            setLowItems(copy);
+                          }}
+                        />
+                      </td>
 
-{isInvoice && (
-<td className="border p-2">
-<input
-  className="border rounded px-2 py-1 w-[150px]"
-  value={row.description || ""}
-  onChange={e=>{
-    const copy=[...lowItems];
-    copy[i].description = e.target.value;
-    setLowItems(copy);
-  }}
-/>
-</td>
-)}
+                      {!isInvoice && (
+                        <td className="border p-2">
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 w-[80px]"
+                            value={row.mathadi_charges || 0}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].mathadi_charges = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          />
+                        </td>
+                      )}
+
+                      <td className="border p-2">
+                        <textarea
+                          className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
+                          value={row.description || ""}
+                          onChange={e => {
+                            const copy = [...lowItems];
+                            copy[i].description = e.target.value;
+                            setLowItems(copy);
+                          }}
+                          rows={2}
+                        />
+                      </td>
 
 
-{!isInvoice && (
-<td className="border p-2">
-<input
-  type="number"
-  className="border rounded px-2 py-1 w-[80px]"
-  value={row.mathadi_charges || 0}
-  onChange={e=>{
-    const copy=[...lowItems];
-    copy[i].mathadi_charges=e.target.value;
-    setLowItems(copy);
-  }}
-/>
-</td>
-)}
+                      <td className="border p-2">
+                        <button
+                          className="text-red-500 font-bold"
+                          onClick={() => setLowItems(lowItems.filter((_, idx) => idx !== i))}
+                        >
+                          ✕
+                        </button>
+                      </td>
 
-<td className="border p-2">
-<button
-className="text-red-500 font-bold"
-onClick={()=>setLowItems(lowItems.filter((_,idx)=>idx!==i))}
->
-✕
-</button>
-</td>
+                    </tr>
+                  );
+                })}
 
-</tr>
-);
-})}
-
-</tbody>
-</table>
-</div>
-)}
+              </tbody>
+            </table>
+          </div>
+        )}
 
       </div>
 
