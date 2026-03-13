@@ -5,7 +5,7 @@ import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
 
 const BASE_API =
-  import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  import.meta.env.VITE_BASE_API_URL;
 
 const api = axios.create({
   baseURL: `${BASE_API}/`,
@@ -70,8 +70,8 @@ export default function AddQuotation({ id, onBack }) {
   // Initialize term types when component opens
   useEffect(() => {
     const initTypes = async () => {
-      const paymentId = await getOrCreateTermTypeId("Quotation Payment");
-      const deliveryId = await getOrCreateTermTypeId("Quotation Delivery");
+      const paymentId = await getOrCreateTermTypeId("Quotation Payment", "Terms of Payment");
+      const deliveryId = await getOrCreateTermTypeId("Quotation Delivery", "Terms of Delivery");
 
       setPaymentTypeId(paymentId);
       setDeliveryTypeId(deliveryId);
@@ -413,13 +413,14 @@ export default function AddQuotation({ id, onBack }) {
         {/* ================= TERMS AND CONDITIONS ================= */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">Terms & Conditions</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+
             {/* Payment Terms */}
-            <div>
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment Terms <span className="text-red-500">*</span>
               </label>
+
               <TermsMultiSelect
                 value={paymentTerms}
                 onChange={setPaymentTerms}
@@ -429,8 +430,10 @@ export default function AddQuotation({ id, onBack }) {
               />
             </div>
 
-            {/* Delivery Terms */}
-            <div>
+          </div>
+
+          {/* Delivery Terms */}
+          {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Delivery Terms <span className="text-red-500">*</span>
               </label>
@@ -441,21 +444,22 @@ export default function AddQuotation({ id, onBack }) {
                 baseApi={BASE_API}
                 token={token}
               />
-            </div>
-          </div>
+            </div> */}
         </div>
 
-        <div className="flex justify-end">
+        {/* Save Button at the bottom */}
+        <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
           <button
-            className="px-5 py-2 bg-blue-600 text-white rounded-md"
+            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             onClick={handleSubmit}
           >
             Save Quotation
           </button>
         </div>
-
       </div>
-    </div>
+      </div>
+
+    // </div >
   );
 
 }
