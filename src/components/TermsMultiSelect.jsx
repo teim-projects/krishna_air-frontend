@@ -49,7 +49,7 @@ const TermsMultiSelect = ({
   };
 
   // -----------------------------
-  // Handle Checkbox Change
+  // Handle Checkbox Change       
   // -----------------------------
   const handleCheckboxChange = (id) => {
     if (!Array.isArray(value)) return;
