@@ -6,7 +6,7 @@ import { FiMail } from "react-icons/fi";
 import { FiEye, FiDownload, FiTrash2, FiEdit } from "react-icons/fi";
 
 const BASE_API =
-  import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  import.meta.env.VITE_BASE_API_URL;
 
 const api = axios.create({
   baseURL: `${BASE_API}/`,
@@ -39,7 +39,7 @@ export default function InvoiceList({ onAdd, onEdit }) {
   const handleViewPDF = async (invoiceId) => {
     try {
       const response = await api.get(
-        `invoice/invoice/${invoiceId}/pdf/`,
+        `/invoice/${invoiceId}/pdf/`,
         { responseType: "blob" }
       );
 
@@ -62,7 +62,7 @@ export default function InvoiceList({ onAdd, onEdit }) {
   const handleDownloadPDF = async (invoiceId) => {
   try {
     const response = await api.get(
-      `invoice/invoice/${invoiceId}/pdf/`,
+      `/invoice/${invoiceId}/pdf/`,
       {
         responseType: "blob",
       }
