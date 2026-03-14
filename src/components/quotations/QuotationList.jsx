@@ -74,13 +74,15 @@ export default function QuotationList({ onAdd, onEdit }) {
         : `quotation/quotation/${quotationId}/pdf/`;
 
       const response = await api.get(url, { responseType: "blob" });
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url_blob = window.URL.createObjectURL(blob);
-      window.open(url_blob, "_blank");
-      setTimeout(() => window.URL.revokeObjectURL(url_blob), 1000);
+
+      const file = new Blob([response.data], { type: "application/pdf" });
+      const fileURL = URL.createObjectURL(file);
+
+      window.open(fileURL);
+
     } catch (err) {
       console.error(err);
-      alert("Failed to view PDF");
+      alert("Failed to open PDF");
     }
   };
 
@@ -272,36 +274,36 @@ export default function QuotationList({ onAdd, onEdit }) {
 
                                   <td style={tdSmall}>
                                     <div style={actionWrapSmall}>
-  <button
-    onClick={() => handleViewPDF(q.id, v.id)}
-    style={iconBtnSmall}
-  >
-    <FiEye size={14} />
-  </button>
+                                      <button
+                                        onClick={() => handleViewPDF(q.id, v.id)}
+                                        style={iconBtnSmall}
+                                      >
+                                        <FiEye size={14} />
+                                      </button>
 
-  <button
-    onClick={() => handleDownloadPDF(q.id, v.id)}
-    style={iconBtnSmall}
-  >
-    <FiDownload size={14} />
-  </button>
+                                      <button
+                                        onClick={() => handleDownloadPDF(q.id, v.id)}
+                                        style={iconBtnSmall}
+                                      >
+                                        <FiDownload size={14} />
+                                      </button>
 
-  <button style={iconBtnSmall}>
-    <FaWhatsapp size={14} color="#25D366" />
-  </button>
+                                      <button style={iconBtnSmall}>
+                                        <FaWhatsapp size={14} color="#25D366" />
+                                      </button>
 
-  <button style={iconBtnSmall}>
-    <FiMail size={14} />
-  </button>
+                                      <button style={iconBtnSmall}>
+                                        <FiMail size={14} />
+                                      </button>
 
-  {/* ✅ DELETE BACK AGAIN */}
-  <button
-    onClick={() => handleDeleteVersion(q.id, v.id)}
-    style={iconBtnSmall}
-  >
-    <FiTrash2 size={14} color="#e74c3c" />
-  </button>
-</div>
+                                      {/* ✅ DELETE BACK AGAIN */}
+                                      <button
+                                        onClick={() => handleDeleteVersion(q.id, v.id)}
+                                        style={iconBtnSmall}
+                                      >
+                                        <FiTrash2 size={14} color="#e74c3c" />
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}

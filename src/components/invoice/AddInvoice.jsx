@@ -63,18 +63,21 @@ const STATES = [
 export default function AddInvoice({ id, onBack }) {
 
   const { getOrCreateTermTypeId, loading } = useTermTypes({
-  baseApi: BASE_API,
-  token: localStorage.getItem("access")
-});
+    baseApi: BASE_API,
+    token: localStorage.getItem("access")
+  });
 
   const isEdit = !!id;
 
   // ================= COMPANY PROFILE =================
+
+  const [sites, setSites] = useState([])
+  const [selectedSite, setSelectedSite] = useState("")
   const [selectedTerms, setSelectedTerms] = useState([]);
   const [paymentTerms, setPaymentTerms] = useState([]);
-const [deliveryTerms, setDeliveryTerms] = useState([]);
-const [paymentTypeId, setPaymentTypeId] = useState(null);
-const [deliveryTypeId, setDeliveryTypeId] = useState(null);
+  const [deliveryTerms, setDeliveryTerms] = useState([]);
+  const [paymentTypeId, setPaymentTypeId] = useState(null);
+  const [deliveryTypeId, setDeliveryTypeId] = useState(null);
   const [companyProfile, setCompanyProfile] = useState(null);
   const [stateSearch, setStateSearch] = useState("");
   const [showStateList, setShowStateList] = useState(false);
@@ -83,52 +86,65 @@ const [deliveryTypeId, setDeliveryTypeId] = useState(null);
   );
 
 
+  // site
 
-useEffect(() => {
+  useEffect(() => {
+  api.get("auth/site/")
+    .then(res => {
+      setSites(normalize(res.data))
+    })
+}, [])
 
-  if (loading) return;
 
-  const initTypes = async () => {
 
-    const paymentId = await getOrCreateTermTypeId(
-      "Invoice Payment",
-      "Terms of Payment"
-    );
 
-    const deliveryId = await getOrCreateTermTypeId(
-      "Invoice Delivery",
-      "Terms of Delivery"
-    );
+  // terms and codition
 
-    setPaymentTypeId(paymentId);
-    setDeliveryTypeId(deliveryId);
-  };
+  useEffect(() => {
 
-  initTypes();
+    if (loading) return;
 
-}, [loading]);
+    const initTypes = async () => {
+
+      const paymentId = await getOrCreateTermTypeId(
+        "Invoice Payment",
+        "Terms of Payment"
+      );
+
+      const deliveryId = await getOrCreateTermTypeId(
+        "Invoice Delivery",
+        "Terms of Delivery"
+      );
+
+      setPaymentTypeId(paymentId);
+      setDeliveryTypeId(deliveryId);
+    };
+
+    initTypes();
+
+  }, [loading]);
 
   const handleStateChange = (value) => {
-  setStateSearch(value);
+    setStateSearch(value);
 
-  setBuyerSnapshot(prev => ({
-    ...prev,
-    buyer_state: value
-  }));
-
-  const found = STATES.find(
-    s => s.name.toLowerCase() === value.toLowerCase()
-  );
-
-  if (found) {
     setBuyerSnapshot(prev => ({
       ...prev,
-      buyer_state: found.name,
-      buyer_state_code: found.code
+      buyer_state: value
     }));
-  }
-};
-  
+
+    const found = STATES.find(
+      s => s.name.toLowerCase() === value.toLowerCase()
+    );
+
+    if (found) {
+      setBuyerSnapshot(prev => ({
+        ...prev,
+        buyer_state: found.name,
+        buyer_state_code: found.code
+      }));
+    }
+  };
+
   // ================= CUSTOMER =================
   const [customer, setCustomer] = useState({
     phone: "",
@@ -142,30 +158,29 @@ useEffect(() => {
 
   // ================= INVOICE HEADER =================
   const [form, setForm] = useState({
-  invoice_no: isEdit ? "" : "INV-" + Date.now(),
-  invoice_date: new Date().toISOString().split('T')[0],
+    invoice_no: isEdit ? "" : "INV-" + Date.now(),
+    invoice_date: new Date().toISOString().split('T')[0],
 
-  delivery_note: "",
-  delivery_note_date: "",
+    delivery_note: "",
+    delivery_note_date: "",
 
-  supplier_ref: "",
-  other_references: "",
+    supplier_ref: "",
+    other_references: "",
 
-  buyer_order_no: "",
+    buyer_order_no: "",
 
-  dispatch_doc_no: "",
-  dispatched_through: "",
+    dispatch_doc_no: "",
+    dispatched_through: "",
 
-  destination: "",
+    destination: "",
 
-  terms_of_payment: "",
-  terms_of_delivery: "",
 
-  site_name: "",
-  work_description: "",
 
-  gst_type: "CGST_SGST"
-});
+
+    work_description: "",
+
+    gst_type: "CGST_SGST"
+  });
 
   // ================= BUYER SNAPSHOT =================
   const [buyerSnapshot, setBuyerSnapshot] = useState({
@@ -183,61 +198,62 @@ useEffect(() => {
   });
 
   // ================= COMPANY SNAPSHOT =================
- 
-  
+
+
   const [companySnapshot, setCompanySnapshot] = useState({
-  bank_name: "",
-  account_no: "",
-  ifsc_code: "",
-  declaration: ""
-});
+    bank_name: "",
+    account_no: "",
+    ifsc_code: "",
+    declaration: ""
+  });
 
-const [branches,setBranches] = useState([])
+  const [branches, setBranches] = useState([])
 
-const [selectedBranch,setSelectedBranch] = useState("")
+  const [selectedBranch, setSelectedBranch] = useState("")
 
-useEffect(() => {
-  api.get("auth/branch/")
-  .then(res=>{
-     setBranches(normalize(res.data))
-  })
-},[])
+  useEffect(() => {
+    api.get("auth/branch/")
+      .then(res => {
+        setBranches(normalize(res.data))
+      })
+  }, [])
 
   // ================= HIGH SIDE ITEMS =================
-  const [items,setItems] = useState([]);
+  const [items, setItems] = useState([]);
 
   // ================= LOW SIDE ITEMS =================
-  const [lowItems,setLowItems] = useState([]);
+  const [lowItems, setLowItems] = useState([]);
 
   // ================= LOAD MASTERS =================
- 
+
   // ================= EDIT LOAD =================
-useEffect(() => {
+  useEffect(() => {
 
-  if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
+    if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
 
-  api.get(`invoice/invoice/${id}/`)
-  .then(res => {
+    api.get(`invoice/invoice/${id}/`)
+      .then(res => {
 
-    const inv = res.data;
-    setSelectedBranch(inv.branch);
-    // ---------- Load Terms ----------
-    if (inv.terms_conditions_details) {
+        const inv = res.data;
+        setSelectedBranch(inv.branch);
+        setSelectedSite(inv.site) 
+        // ---------- Load Terms ----------
+        if (inv.terms_conditions_details) {
 
-      const payment = inv.terms_conditions_details
-        .filter(t => t.terms_condition_type_name === "Invoice Payment")
-        .map(t => t.id);
+          const payment = inv.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Invoice Payment")
+            .map(t => t.id);
 
-      const delivery = inv.terms_conditions_details
-        .filter(t => t.terms_condition_type_name === "Invoice Delivery")
-        .map(t => t.id);
+          const delivery = inv.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Invoice Delivery")
+            .map(t => t.id);
 
-      setPaymentTerms(payment);
-      setDeliveryTerms(delivery);
-    }
+          setPaymentTerms(payment);
+          setDeliveryTerms(delivery);
+        }
 
 
-        
+
 
         // Set customer
         setCustomer({
@@ -258,15 +274,15 @@ useEffect(() => {
           supplier_ref: inv.supplier_ref || "",
           buyer_order_no: inv.buyer_order_no || "",
           destination: inv.destination || "",
-          terms_of_delivery: inv.terms_of_delivery || "",
-          site_name: inv.site_name || "",
+
+          
           work_description: inv.work_description || "",
           gst_type: inv.gst_type,
           delivery_note_date: inv.delivery_note_date || "",
           other_references: inv.other_references || "",
           dispatch_doc_no: inv.dispatch_doc_no || "",
           dispatched_through: inv.dispatched_through || "",
-          terms_of_payment: inv.terms_of_payment || "",
+
         });
 
         // Set buyer snapshot
@@ -304,36 +320,36 @@ useEffect(() => {
         const lowItemsList = inv.low_side_items || [];
 
         setItems(highItems.map(i => ({
-  product_variant: i.product_variant,
+          product_variant: i.product_variant,
 
-  // ⭐ ADD THESE
-  ac_type_name: i.ac_type_name,
-  ac_sub_type_name: i.ac_sub_type_name,
-  brand_name: i.brand_name,
-  model_no: i.model_no,
-  variant_sku: i.variant_sku,
+          // ⭐ ADD THESE
+          ac_type_name: i.ac_type_name,
+          ac_sub_type_name: i.ac_sub_type_name,
+          brand_name: i.brand_name,
+          model_no: i.model_no,
+          variant_sku: i.variant_sku,
 
-  description: i.description,
-  hsn_sac: i.hsn_sac,
-  quantity: i.quantity,
-  unit: i.unit,
-  rate: i.rate,
-  gst_percent: i.gst_percent
-})));
+          description: i.description,
+          hsn_sac: i.hsn_sac,
+          quantity: i.quantity,
+          unit: i.unit,
+          rate: i.rate,
+          gst_percent: i.gst_percent
+        })));
 
-       setLowItems(lowItemsList.map(i => ({
-  item: i.item,
+        setLowItems(lowItemsList.map(i => ({
+          item: i.item,
 
-  // ⭐ ADD THIS
-  item_code: i.item_code,
+          // ⭐ ADD THIS
+          item_code: i.item_code,
 
-  description: i.description,
-  hsn_sac: i.hsn_sac,
-  quantity: i.quantity,
-  unit: i.unit,
-  rate: i.rate,
-  gst_percent: i.gst_percent
-})));
+          description: i.description,
+          hsn_sac: i.hsn_sac,
+          quantity: i.quantity,
+          unit: i.unit,
+          rate: i.rate,
+          gst_percent: i.gst_percent
+        })));
       });
   }, [id, paymentTypeId, deliveryTypeId]);
 
@@ -378,8 +394,8 @@ useEffect(() => {
     }
   };
 
-  
- 
+
+
 
 
 
@@ -394,6 +410,8 @@ useEffect(() => {
 
   // ================= RESET FORM =================
   const resetForm = () => {
+
+    setSelectedSite("")
     setCustomer({
       phone: "",
       name: "",
@@ -411,8 +429,8 @@ useEffect(() => {
       supplier_ref: "",
       buyer_order_no: "",
       destination: "",
-      terms_of_delivery: "",
-      site_name: "",
+
+      
       work_description: "",
       gst_type: "CGST_SGST"
     });
@@ -472,22 +490,23 @@ useEffect(() => {
       gst_percent: 18
     }]);
 
-   
+
   };
 
   // ================= SUBMIT =================
   const handleSubmit = async () => {
 
     // Combine high and low items
-  
+
 
     const payload = {
       invoice_no: form.invoice_no,
       customer: customer.id ? Number(customer.id) : null,
+      site: selectedSite,
       terms_conditions: [
-  ...paymentTerms,
-  ...deliveryTerms
-],
+        ...paymentTerms,
+        ...deliveryTerms
+      ],
 
 
       invoice_date: form.invoice_date,
@@ -507,7 +526,7 @@ useEffect(() => {
       bank_name: companySnapshot.bank_name,
       account_no: companySnapshot.account_no,
       ifsc_code: companySnapshot.ifsc_code,
-      
+
       declaration: companySnapshot.declaration,
 
       // Header fields
@@ -515,36 +534,36 @@ useEffect(() => {
       supplier_ref: form.supplier_ref,
       buyer_order_no: form.buyer_order_no,
       destination: form.destination,
-      terms_of_delivery: form.terms_of_delivery,
-      site_name: form.site_name,
+
+      
       work_description: form.work_description,
       delivery_note_date: form.delivery_note_date,
       other_references: form.other_references,
       dispatch_doc_no: form.dispatch_doc_no,
       dispatched_through: form.dispatched_through,
-      terms_of_payment: form.terms_of_payment,
+
 
       // GST Type
       gst_type: form.gst_type,
 
       high_side_items: items.map(i => ({
-  product_variant: Number(i.product_variant),
-  description: i.description,
-  hsn_sac: i.hsn_sac,
-  gst_percent: Number(i.gst_percent),
-  quantity: Number(i.quantity),
-  unit: i.unit,
-  rate: Number(i.rate)
-})),
+        product_variant: Number(i.product_variant),
+        description: i.description,
+        hsn_sac: i.hsn_sac,
+        gst_percent: Number(i.gst_percent),
+        quantity: Number(i.quantity),
+        unit: i.unit,
+        rate: Number(i.rate)
+      })),
 
-low_side_items: lowItems.map(l => ({
-  item: Number(l.item),
-  description: l.description,
-  gst_percent: Number(l.gst_percent),
-  quantity: Number(l.quantity),
-  unit: l.unit,
-  rate: Number(l.rate)
-}))
+      low_side_items: lowItems.map(l => ({
+        item: Number(l.item),
+        description: l.description,
+        gst_percent: Number(l.gst_percent),
+        quantity: Number(l.quantity),
+        unit: l.unit,
+        rate: Number(l.rate)
+      }))
     };
 
     try {
@@ -567,47 +586,47 @@ low_side_items: lowItems.map(l => ({
 
   // ================= UI =================
   return (
-<div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
+    <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
 
-<div className="relative w-full max-w-2xl text-[13.5px] p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto space-y-6">
+      <div className="relative w-full max-w-2xl text-[13.5px] p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto space-y-6">
 
-<button
-  onClick={onBack}
-  className="absolute top-3 right-4 text-gray-500 hover:text-black text-lg font-bold"
->
-  ✕
-</button>
+        <button
+          onClick={onBack}
+          className="absolute top-3 right-4 text-gray-500 hover:text-black text-lg font-bold"
+        >
+          ✕
+        </button>
 
-<h2 className="text-xl font-bold text-center mb-2">
-  {isEdit ? "Edit Invoice" : "Create New Invoice"}
-</h2>
+        <h2 className="text-xl font-bold text-center mb-2">
+          {isEdit ? "Edit Invoice" : "Create New Invoice"}
+        </h2>
 
-{/* ================= CUSTOMER DETAILS ================= */}
-<div className="space-y-3">
-<h3 className="text-lg font-semibold">Customer Details</h3>
+        {/* ================= CUSTOMER DETAILS ================= */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Customer Details</h3>
 
-<div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
 
-<input
-className="w-full px-3 py-2 rounded-md border border-slate-300"
-placeholder="Customer Phone"
-value={customer.phone}
-onChange={handlePhone}
-/>
+            <input
+              className="w-full px-3 py-2 rounded-md border border-slate-300"
+              placeholder="Customer Phone"
+              value={customer.phone}
+              onChange={handlePhone}
+            />
 
-<input
-className="w-full px-3 py-2 rounded-md border border-slate-300 bg-gray-100"
-value={customer.name}
-readOnly
-/>
+            <input
+              className="w-full px-3 py-2 rounded-md border border-slate-300 bg-gray-100"
+              value={customer.name}
+              readOnly
+            />
 
-</div>
-</div>
+          </div>
+        </div>
 
 
-{/* ================= INVOICE HEADER ================= */}
-<div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-  {/* <div>
+        {/* ================= INVOICE HEADER ================= */}
+        <div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+          {/* <div>
     <label className="text-sm font-medium">Invoice Number</label>
     <input
       className="w-full border rounded-lg px-3 py-2 bg-gray-100"
@@ -617,41 +636,41 @@ readOnly
   </div> */}
 
 
-  <div className="space-y-2">
-<label className="text-sm font-medium">Select Branch</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Branch</label>
 
-<select
-className="border rounded-lg px-3 py-2 w-full"
-value={selectedBranch}
-onChange={(e)=>{
-  setSelectedBranch(e.target.value)
-}}
->
+            <select
+              className="border rounded-lg px-3 py-2 w-full"
+              value={selectedBranch}
+              onChange={(e) => {
+                setSelectedBranch(e.target.value)
+              }}
+            >
 
-<option value="">Select Branch</option>
+              <option value="">Select Branch</option>
 
-{branches.map(b=>(
-<option key={b.id} value={b.id}>
-{b.name}
-</option>
-))}
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
 
-</select>
-</div>
+            </select>
+          </div>
 
-  <div>
-    <label className="text-sm font-medium">Invoice Date</label>
-    <input
-      type="date"
-      className="w-full border rounded-lg px-3 py-2"
-      value={form.invoice_date}
-      onChange={(e)=>setForm({...form,invoice_date:e.target.value})}
-    />
-  </div>
-</div>
+          <div>
+            <label className="text-sm font-medium">Invoice Date</label>
+            <input
+              type="date"
+              className="w-full border rounded-lg px-3 py-2"
+              value={form.invoice_date}
+              onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+            />
+          </div>
+        </div>
 
 
-{/* <div className="space-y-2">
+        {/* <div className="space-y-2">
 <label className="text-sm font-medium">Select Branch</label>
 
 <select
@@ -676,289 +695,291 @@ onChange={(e)=>{
 
 
 
-{/* ================= BUYER INFO ================= */}
-<div className="space-y-3">
-<h3 className="text-lg font-semibold">Buyer Information</h3>
+        {/* ================= BUYER INFO ================= */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Buyer Information</h3>
 
-<textarea
-className="w-full border rounded-lg px-3 py-2"
-rows="2"
-value={buyerSnapshot.buyer_address}
-onChange={(e)=>setBuyerSnapshot({...buyerSnapshot,buyer_address:e.target.value})}
-/>
+          <textarea
+            className="w-full border rounded-lg px-3 py-2"
+            rows="2"
+            value={buyerSnapshot.buyer_address}
+            onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_address: e.target.value })}
+          />
 
-<div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
 
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="GSTIN"
-value={buyerSnapshot.buyer_gstin}
-onChange={(e)=>setBuyerSnapshot({...buyerSnapshot,buyer_gstin:e.target.value})}
-/>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="GSTIN"
+              value={buyerSnapshot.buyer_gstin}
+              onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_gstin: e.target.value })}
+            />
 
-<div className="relative">
-<input
-  className="border rounded-lg px-3 py-2 w-full"
-  placeholder="State"
-  value={stateSearch || buyerSnapshot.buyer_state}
-  onChange={(e)=>{
-    handleStateChange(e.target.value);
-    setShowStateList(true);
-  }}
-  onFocus={()=>setShowStateList(true)}
-/>
+            <div className="relative">
+              <input
+                className="border rounded-lg px-3 py-2 w-full"
+                placeholder="State"
+                value={stateSearch || buyerSnapshot.buyer_state}
+                onChange={(e) => {
+                  handleStateChange(e.target.value);
+                  setShowStateList(true);
+                }}
+                onFocus={() => setShowStateList(true)}
+              />
 
-{showStateList && filteredStates.length > 0 && (
-  <div className="absolute z-20 bg-white border w-full max-h-40 overflow-y-auto rounded-md shadow">
-    {filteredStates.map((s,i)=>(
-      <div
-        key={i}
-        className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-        onClick={()=>{
-          setStateSearch(s.name);
-          setBuyerSnapshot(prev=>({
-            ...prev,
-            buyer_state:s.name,
-            buyer_state_code:s.code
-          }));
-          setShowStateList(false);
-        }}
-      >
-        {s.name}
-      </div>
-    ))}
-  </div>
-)}
-</div>
+              {showStateList && filteredStates.length > 0 && (
+                <div className="absolute z-20 bg-white border w-full max-h-40 overflow-y-auto rounded-md shadow">
+                  {filteredStates.map((s, i) => (
+                    <div
+                      key={i}
+                      className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                      onClick={() => {
+                        setStateSearch(s.name);
+                        setBuyerSnapshot(prev => ({
+                          ...prev,
+                          buyer_state: s.name,
+                          buyer_state_code: s.code
+                        }));
+                        setShowStateList(false);
+                      }}
+                    >
+                      {s.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="State Code"
-value={buyerSnapshot.buyer_state_code}
-onChange={(e)=>setBuyerSnapshot({...buyerSnapshot,buyer_state_code:e.target.value})}
-/>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="State Code"
+              value={buyerSnapshot.buyer_state_code}
+              onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_state_code: e.target.value })}
+            />
 
-</div>
-</div>
+          </div>
+        </div>
 
-{/* ================= SHIP TO ================= */}
-<div className="space-y-3">
-<label className="flex items-center gap-2">
-<input type="checkbox" checked={shipTo.same_as_buyer} onChange={handleShipToToggle}/>
-Same as Buyer Address
-</label>
+        {/* ================= SHIP TO ================= */}
+        <div className="space-y-3">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={shipTo.same_as_buyer} onChange={handleShipToToggle} />
+            Same as Buyer Address
+          </label>
 
-<textarea
-className="w-full border rounded-lg px-3 py-2"
-rows="2"
-value={shipTo.ship_to_address}
-onChange={(e)=>setShipTo({ship_to_address:e.target.value,same_as_buyer:false})}
-disabled={shipTo.same_as_buyer}
-/>
-</div>
+          <textarea
+            className="w-full border rounded-lg px-3 py-2"
+            rows="2"
+            value={shipTo.ship_to_address}
+            onChange={(e) => setShipTo({ ship_to_address: e.target.value, same_as_buyer: false })}
+            disabled={shipTo.same_as_buyer}
+          />
+        </div>
 
-{/* ================= GST TYPE ================= */}
-<div className="flex items-center gap-3">
-<label className="font-medium">GST Type :</label>
+        {/* ================= GST TYPE ================= */}
+        <div className="flex items-center gap-3">
+          <label className="font-medium">GST Type :</label>
+          <select
+            className="border rounded-md px-3 py-2"
+            value={form.gst_type}
+            onChange={(e) => setForm({ ...form, gst_type: e.target.value })}
+          >
+            <option value="CGST_SGST">CGST + SGST</option>
+            <option value="IGST">IGST</option>
+            <option value="NO_GST">No GST</option>
+          </select>
+        </div>
+
+        {/* ================= HIGH SIDE PRODUCTS (FULL ORIGINAL) ================= */}
+        {/* ================= HIGH SIDE PRODUCTS ================= */}
+
+        <ItemSelectionEngine
+          baseApi={BASE_API}
+          authToken={localStorage.getItem("access")}
+          items={items}
+          setItems={setItems}
+          lowItems={lowItems}
+          setLowItems={setLowItems}
+          mode="invoice"
+          gstType={form.gst_type}
+        />
+
+        {/* ================= ADDITIONAL INFO ================= */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Additional Information</h3>
+
+          <div className="grid md:grid-cols-3 gap-4">
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Delivery Note"
+              value={form.delivery_note}
+              onChange={(e) => setForm({ ...form, delivery_note: e.target.value })}
+            />
+
+            <input
+              type="date"
+              className="border rounded-lg px-3 py-2"
+              value={form.delivery_note_date}
+              onChange={(e) => setForm({ ...form, delivery_note_date: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Supplier Reference"
+              value={form.supplier_ref}
+              onChange={(e) => setForm({ ...form, supplier_ref: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Other References"
+              value={form.other_references}
+              onChange={(e) => setForm({ ...form, other_references: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Buyer Order No"
+              value={form.buyer_order_no}
+              onChange={(e) => setForm({ ...form, buyer_order_no: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Dispatch Document No"
+              value={form.dispatch_doc_no}
+              onChange={(e) => setForm({ ...form, dispatch_doc_no: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Dispatched Through"
+              value={form.dispatched_through}
+              onChange={(e) => setForm({ ...form, dispatched_through: e.target.value })}
+            />
+
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Destination"
+              value={form.destination}
+              onChange={(e) => setForm({ ...form, destination: e.target.value })}
+            />
+
+
+
+           <div>
+<label className="text-sm font-medium">Select Site</label>
+
 <select
-className="border rounded-md px-3 py-2"
-value={form.gst_type}
-onChange={(e)=>setForm({...form,gst_type:e.target.value})}
+className="border rounded-lg px-3 py-2 w-full"
+value={selectedSite}
+onChange={(e)=>setSelectedSite(e.target.value)}
 >
-<option value="CGST_SGST">CGST + SGST</option>
-<option value="IGST">IGST</option>
-<option value="NO_GST">No GST</option>
+
+<option value="">Select Site</option>
+
+{sites.map(site => (
+<option key={site.id} value={site.id}>
+{site.name}
+</option>
+))}
+
 </select>
-</div>
-
-{/* ================= HIGH SIDE PRODUCTS (FULL ORIGINAL) ================= */}
-{/* ================= HIGH SIDE PRODUCTS ================= */}
-
-<ItemSelectionEngine
- baseApi={BASE_API}
- authToken={localStorage.getItem("access")}
- items={items}
- setItems={setItems}
- lowItems={lowItems}
- setLowItems={setLowItems}
- mode="invoice"
-gstType={form.gst_type}
-/>
-
-{/* ================= ADDITIONAL INFO ================= */}
-<div className="space-y-3">
-<h3 className="text-lg font-semibold">Additional Information</h3>
-
-<div className="grid md:grid-cols-3 gap-4">
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Delivery Note"
-value={form.delivery_note}
-onChange={(e)=>setForm({...form,delivery_note:e.target.value})}
-/>
-
-<input
-type="date"
-className="border rounded-lg px-3 py-2"
-value={form.delivery_note_date}
-onChange={(e)=>setForm({...form,delivery_note_date:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Supplier Reference"
-value={form.supplier_ref}
-onChange={(e)=>setForm({...form,supplier_ref:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Other References"
-value={form.other_references}
-onChange={(e)=>setForm({...form,other_references:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Buyer Order No"
-value={form.buyer_order_no}
-onChange={(e)=>setForm({...form,buyer_order_no:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Dispatch Document No"
-value={form.dispatch_doc_no}
-onChange={(e)=>setForm({...form,dispatch_doc_no:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Dispatched Through"
-value={form.dispatched_through}
-onChange={(e)=>setForm({...form,dispatched_through:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Destination"
-value={form.destination}
-onChange={(e)=>setForm({...form,destination:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Terms of Payment / Mode"
-value={form.terms_of_payment}
-onChange={(e)=>setForm({...form,terms_of_payment:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Terms of Delivery"
-value={form.terms_of_delivery}
-onChange={(e)=>setForm({...form,terms_of_delivery:e.target.value})}
-/>
-
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Site Name"
-value={form.site_name}
-onChange={(e)=>setForm({...form,site_name:e.target.value})}
-/>
 
 </div>
 
-<textarea
-className="w-full border rounded-lg px-3 py-2"
-rows="3"
-placeholder="Work Description"
-value={form.work_description}
-onChange={(e)=>setForm({...form,work_description:e.target.value})}
-/>
-</div>
+          </div>
 
-{/* ================= COMPANY DETAILS FULL ================= */}
-<div className="space-y-3">
-<h3 className="text-lg font-semibold">Company/Bank Details</h3>
+          <textarea
+            className="w-full border rounded-lg px-3 py-2"
+            rows="3"
+            placeholder="Work Description"
+            value={form.work_description}
+            onChange={(e) => setForm({ ...form, work_description: e.target.value })}
+          />
+        </div>
 
-<div className="grid md:grid-cols-3 gap-4">
+        {/* ================= COMPANY DETAILS FULL ================= */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Company/Bank Details</h3>
 
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Bank Name"
-value={companySnapshot.bank_name}
-onChange={(e)=>
-setCompanySnapshot({...companySnapshot,bank_name:e.target.value})
-}
-/>
+          <div className="grid md:grid-cols-3 gap-4">
 
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="Account No"
-value={companySnapshot.account_no}
-onChange={(e)=>
-setCompanySnapshot({...companySnapshot,account_no:e.target.value})
-}
-/>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Bank Name"
+              value={companySnapshot.bank_name}
+              onChange={(e) =>
+                setCompanySnapshot({ ...companySnapshot, bank_name: e.target.value })
+              }
+            />
 
-<input
-className="border rounded-lg px-3 py-2"
-placeholder="IFSC Code"
-value={companySnapshot.ifsc_code}
-onChange={(e)=>
-setCompanySnapshot({...companySnapshot,ifsc_code:e.target.value})
-}
-/>
-</div>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="Account No"
+              value={companySnapshot.account_no}
+              onChange={(e) =>
+                setCompanySnapshot({ ...companySnapshot, account_no: e.target.value })
+              }
+            />
 
-<textarea
-className="w-full border rounded-lg px-3 py-2"
-placeholder="Declaration"
-value={companySnapshot.declaration}
-onChange={(e)=>setCompanySnapshot({...companySnapshot,declaration:e.target.value})}
-/>
-</div>
+            <input
+              className="border rounded-lg px-3 py-2"
+              placeholder="IFSC Code"
+              value={companySnapshot.ifsc_code}
+              onChange={(e) =>
+                setCompanySnapshot({ ...companySnapshot, ifsc_code: e.target.value })
+              }
+            />
+          </div>
+
+          <textarea
+            className="w-full border rounded-lg px-3 py-2"
+            placeholder="Declaration"
+            value={companySnapshot.declaration}
+            onChange={(e) => setCompanySnapshot({ ...companySnapshot, declaration: e.target.value })}
+          />
+        </div>
 
 
 
 
-<div className="space-y-4">
+        <div className="space-y-4">
 
-<h3 className="text-lg font-semibold">Payment Terms</h3>
+          <h3 className="text-lg font-semibold">Payment Terms</h3>
 
-<TermsMultiSelect
-  value={paymentTerms}
-  onChange={setPaymentTerms}
-  termsType={paymentTypeId}
-  baseApi={BASE_API}
-  token={localStorage.getItem("access")}
-/>
+          <TermsMultiSelect
+            value={paymentTerms}
+            onChange={setPaymentTerms}
+            termsType={paymentTypeId}
+            baseApi={BASE_API}
+            token={localStorage.getItem("access")}
+          />
 
-<h3 className="text-lg font-semibold">Delivery Terms</h3>
+          <h3 className="text-lg font-semibold">Delivery Terms</h3>
 
-<TermsMultiSelect
-  value={deliveryTerms}
-  onChange={setDeliveryTerms}
-  termsType={deliveryTypeId}
-  baseApi={BASE_API}
-  token={localStorage.getItem("access")}
-/>
+          <TermsMultiSelect
+            value={deliveryTerms}
+            onChange={setDeliveryTerms}
+            termsType={deliveryTypeId}
+            baseApi={BASE_API}
+            token={localStorage.getItem("access")}
+          />
 
-</div>
+        </div>
 
-{/* ================= SUBMIT ================= */}
-<div className="flex justify-end">
-<button
-className="px-5 py-2 bg-blue-600 text-white rounded-md"
-onClick={handleSubmit}
->
-{isEdit ? "Update Invoice" : "Save Invoice"}
-</button>
-</div>
+        {/* ================= SUBMIT ================= */}
+        <div className="flex justify-end">
+          <button
+            className="px-5 py-2 bg-blue-600 text-white rounded-md"
+            onClick={handleSubmit}
+          >
+            {isEdit ? "Update Invoice" : "Save Invoice"}
+          </button>
+        </div>
 
-</div>
-</div>
-);
+      </div>
+    </div>
+  );
 }
