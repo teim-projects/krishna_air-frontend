@@ -120,7 +120,7 @@ export default function PurchaseOrderItems({
   // Subtypes depend on AC Type
   useEffect(() => {
     if (!highForm.acType) return;
-    api.get(`/product/ac-subtypes/?ac_type_id__id=${highForm.acType}`)
+    api.get(`/product/ac-subtypes/?ac_type_id=${highForm.acType}`)
       .then(res => setSubTypes(res.data?.results || []));
   }, [highForm.acType]);
 
