@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { MdDelete } from "react-icons/md";
 
 export default function ItemSelectionEngine({
   baseApi,
@@ -34,12 +35,12 @@ export default function ItemSelectionEngine({
     description: "",
     hsn_sac: "",
     unit: "NOS",
-    quantity: 1,
-    unit_price: 0,
-    rate: 0,
-    gst_percent: 18,
-    mathadi_charges: 0,
-    transportation_charges: 0
+    quantity: "",
+    unit_price: "",
+    rate: "",
+    gst_percent: "",
+    mathadi_charges: "",
+    transportation_charges: ""
   });
 
   const [draftLowItem, setDraftLowItem] = useState({
@@ -51,11 +52,11 @@ export default function ItemSelectionEngine({
     description: "",
     hsn_sac: "",
     unit: "NOS",
-    quantity: 1,
-    unit_price: 0,
-    rate: 0,
-    gst_percent: 18,
-    mathadi_charges: 0
+    quantity: "",
+    unit_price: "",
+    rate: "",
+    gst_percent: "",
+    mathadi_charges: ""
   });
 
 
@@ -184,6 +185,12 @@ export default function ItemSelectionEngine({
 
     const newRow = {
       ...draftHighItem,
+      quantity: draftHighItem.quantity || 1,
+      unit_price: draftHighItem.unit_price || 0,
+      rate: draftHighItem.rate || 0,
+      gst_percent: draftHighItem.gst_percent || 18,
+      mathadi_charges: draftHighItem.mathadi_charges || 0,
+      transportation_charges: draftHighItem.transportation_charges || 0,
 
       // ⭐ inject display fields
       ac_type_name: selectedVariant?.ac_type_name,
@@ -204,12 +211,12 @@ export default function ItemSelectionEngine({
       description: "",
       hsn_sac: "",
       unit: "NOS",
-      quantity: 1,
-      unit_price: 0,
-      rate: 0,
-      gst_percent: 18,
-      mathadi_charges: 0,
-      transportation_charges: 0
+      quantity: "",
+      unit_price: "",
+      rate: "",
+      gst_percent: "",
+      mathadi_charges: "",
+      transportation_charges: ""
     });
   };
 
@@ -226,6 +233,11 @@ export default function ItemSelectionEngine({
 
     const newLow = {
       ...draftLowItem,
+      quantity: draftLowItem.quantity || 1,
+      unit_price: draftLowItem.unit_price || 0,
+      rate: draftLowItem.rate || 0,
+      gst_percent: draftLowItem.gst_percent || 18,
+      mathadi_charges: draftLowItem.mathadi_charges || 0,
       item_code: selectedItem?.item_code
     };
 
@@ -239,11 +251,11 @@ export default function ItemSelectionEngine({
       description: "",
       hsn_sac: "",
       unit: "NOS",
-      quantity: 1,
-      unit_price: 0,
-      rate: 0,
-      gst_percent: 18,
-      mathadi_charges: 0
+      quantity: "",
+      unit_price: "",
+      rate: "",
+      gst_percent: "",
+      mathadi_charges: ""
     });
   };
 
@@ -251,95 +263,97 @@ export default function ItemSelectionEngine({
 
   return (
     <div className="space-y-6">
+      <style>
+        {`
+          /* Hide number input spinners */
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
 
       {/* ================= HIGH SIDE ================= */}
+      <div className="border rounded-xl p-5 shadow-sm bg-white">
+        <h3 className="font-semibold text-gray-700 mb-4 border-b pb-2">High Side Products</h3>
 
-      <div className="space-y-3">
-        <h3 className="font-semibold">High Side Products</h3>
+        <div className="space-y-4">
+          {/* Row 1 - 4 dropdowns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftHighItem.acType}
+              onChange={e => updateHighDraft("acType", e.target.value)}>
+              <option>AC Type</option>
+              {acTypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
 
-        <div className="grid md:grid-cols-5 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftHighItem.subType}
+              onChange={e => updateHighDraft("subType", e.target.value)}>
+              <option>SubType</option>
+              {subTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftHighItem.acType}
-            onChange={e => updateHighDraft("acType", e.target.value)}>
-            <option>AC Type</option>
-            {acTypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+            <select className="border rounded-md px-2 py-1"
+              value={draftHighItem.brand}
+              onChange={e => updateHighDraft("brand", e.target.value)}>
+              <option>Brand</option>
+              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftHighItem.subType}
-            onChange={e => updateHighDraft("subType", e.target.value)}>
-            <option>SubType</option>
-            {subTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+            <select className="border rounded-md px-2 py-1"
+              value={draftHighItem.model}
+              onChange={e => updateHighDraft("model", e.target.value)}>
+              <option>Model</option>
+              {models.map(m => <option key={m.id} value={m.id}>{m.model_no}</option>)}
+            </select>
+          </div>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftHighItem.brand}
-            onChange={e => updateHighDraft("brand", e.target.value)}>
-            <option>Brand</option>
-            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          {/* Row 2 - remaining inputs with Add button */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftHighItem.product_variant}
+              onChange={e => updateHighDraft("product_variant", e.target.value)}>
+              <option>Variant</option>
+              {variants.map(v => <option key={v.id} value={v.id}>{v.sku}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftHighItem.model}
-            onChange={e => updateHighDraft("model", e.target.value)}>
-            <option>Model</option>
-            {models.map(m => <option key={m.id} value={m.id}>{m.model_no}</option>)}
-          </select>
+            <input className="border rounded-md px-2 py-1"
+              type="number"
+              placeholder="Qty"
+              value={draftHighItem.quantity}
+              onChange={e => updateHighDraft("quantity", e.target.value)} />
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftHighItem.product_variant}
-            onChange={e => updateHighDraft("product_variant", e.target.value)}>
-            <option>Variant</option>
-            {variants.map(v => <option key={v.id} value={v.id}>{v.sku}</option>)}
-          </select>
-        </div>
+            <input className="border rounded-md px-2 py-1"
+              type="number"
+              placeholder={isInvoice ? "Rate" : "Price"}
+              value={isInvoice ? draftHighItem.rate : draftHighItem.unit_price}
+              onChange={e => updateHighDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
 
-        <div className="grid md:grid-cols-5 gap-3">
+            {gstType !== "NO_GST" && (
+              <input className="border rounded-md px-2 py-1"
+                type="number"
+                placeholder="GST%"
+                value={draftHighItem.gst_percent}
+                onChange={e => updateHighDraft("gst_percent", e.target.value)} />
+            )}
 
-          {isInvoice && (
-            <>
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="Description"
-                value={draftHighItem.description}
-                onChange={e => updateHighDraft("description", e.target.value)} />
+            <button onClick={addHighItem}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap">
+              + Add
+            </button>
+          </div>
 
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="HSN"
-                value={draftHighItem.hsn_sac}
-                onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
-
-              <input className="border rounded-lg px-3 py-2"
-                placeholder="Unit"
-                value={draftHighItem.unit}
-                onChange={e => updateHighDraft("unit", e.target.value)} />
-            </>
-          )}
-
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="Qty"
-            value={draftHighItem.quantity}
-            onChange={e => updateHighDraft("quantity", e.target.value)} />
-
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder={isInvoice ? "Rate" : "Price"}
-            value={isInvoice ? draftHighItem.rate : draftHighItem.unit_price}
-            onChange={e => updateHighDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
-
-           {gstType !== "NO_GST" && (
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="GST%"
-            value={draftHighItem.gst_percent}
-            onChange={e => updateHighDraft("gst_percent", e.target.value)} />
-           )}
-
+          {/* Row 3 - Additional fields for non-invoice mode */}
           {!isInvoice && (
-            <>
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
               <input
-                className="border rounded-lg px-3 py-2"
+                className="border rounded-md px-2 py-1"
                 type="number"
                 placeholder="Mathadi Charges"
                 value={draftHighItem.mathadi_charges}
@@ -347,31 +361,40 @@ export default function ItemSelectionEngine({
               />
 
               <input
-                className="border rounded-lg px-3 py-2"
+                className="border rounded-md px-2 py-1"
                 type="number"
                 placeholder="Transportation Charges"
                 value={draftHighItem.transportation_charges}
                 onChange={e => updateHighDraft("transportation_charges", e.target.value)}
               />
-            </>
+            </div>
           )}
-         <div className="col-span-full">
-  <textarea 
-    className="w-full px-3 py-2 rounded-md border border-black"
-    placeholder="Enter product description..."
-    value={draftHighItem.description}
-    onChange={e => updateHighDraft("description", e.target.value)}
-    rows={2}
-  />
-</div>
 
-        </div>
+          {/* Row 4 - Invoice specific fields */}
+          {isInvoice && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <input className="border rounded-md px-2 py-1"
+                placeholder="HSN"
+                value={draftHighItem.hsn_sac}
+                onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
 
-        <div className="flex justify-end">
-          <button onClick={addHighItem}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg">
-            + Add High Product
-          </button>
+              <input className="border rounded-md px-2 py-1"
+                placeholder="Unit"
+                value={draftHighItem.unit}
+                onChange={e => updateHighDraft("unit", e.target.value)} />
+            </div>
+          )}
+
+          {/* Row 5 - Description full width */}
+          <div className="flex gap-3 items-start">
+            <textarea 
+              className="border rounded-md px-3 py-2 flex-1"
+              placeholder="Enter product description..."
+              value={draftHighItem.description}
+              onChange={e => updateHighDraft("description", e.target.value)}
+              rows={2}
+            />
+          </div>
         </div>
 
         {items.length > 0 && (
@@ -381,10 +404,6 @@ export default function ItemSelectionEngine({
               <thead className="bg-gray-200">
                 <tr>
                   <th className="border p-2">#</th>
-                  <th className="border p-2">AC Type</th>
-                  <th className="border p-2">AC Sub Type</th>
-                  <th className="border p-2">Brand</th>
-                  <th className="border p-2">Model</th>
                   <th className="border p-2">Variant</th>
 
                   {isInvoice && (
@@ -413,19 +432,11 @@ export default function ItemSelectionEngine({
 
                 {items.map((row, i) => {
 
-                  const acName = row.ac_type_name || "-";
-                  const subName = row.ac_sub_type_name || "-";
-                  const brandName = row.brand_name || "-";
-                  const modelName = row.model_no || "-";
                   const variantName = row.variant_sku || row.product_variant;
                   return (
                     <tr key={i} className="text-center bg-white">
 
                       <td className="border p-2">{i + 1}</td>
-                      <td className="border p-2">{acName}</td>
-                      <td className="border p-2">{subName}</td>
-                      <td className="border p-2">{brandName}</td>
-                      <td className="border p-2">{modelName}</td>
                       <td className="border p-2">{variantName}</td>
 
                       {isInvoice && (
@@ -522,27 +533,29 @@ export default function ItemSelectionEngine({
                               }}
                             />
                           </td>
-                          <td className="border p-2">
-                            <textarea
-                              className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
-                              value={row.description || ""}
-                              onChange={e => {
-                                const copy = [...items];
-                                copy[i].description = e.target.value;
-                                setItems(copy);
-                              }}
-                              rows={2}
-                            />
-                          </td>
                         </>
                       )}
 
                       <td className="border p-2">
+                        <textarea
+                          className="w-full px-2 py-1 rounded border border-slate-300 text-xs"
+                          value={row.description || ""}
+                          onChange={e => {
+                            const copy = [...items];
+                            copy[i].description = e.target.value;
+                            setItems(copy);
+                          }}
+                          rows={2}
+                        />
+                      </td>
+
+                      <td className="border p-2">
                         <button
-                          className="text-red-500 font-bold"
+                          className="text-red-500 hover:text-red-700 p-1"
                           onClick={() => setItems(items.filter((_, idx) => idx !== i))}
+                          title="Delete"
                         >
-                          ✕
+                          <MdDelete />
                         </button>
                       </td>
 
@@ -557,108 +570,99 @@ export default function ItemSelectionEngine({
       </div>
 
       {/* ================= LOW SIDE ================= */}
+      <div className="border rounded-xl p-5 shadow-sm bg-white">
+        <h3 className="font-semibold text-gray-700 mb-4 border-b pb-2">Low Side Items</h3>
 
-      <div className="space-y-3">
-        <h3 className="font-semibold">Low Side Items</h3>
+        <div className="space-y-4">
+          {/* Row 1 - 4 dropdowns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftLowItem.material_type_id}
+              onChange={e => updateLowDraft("material_type_id", e.target.value)}>
+              <option>Material Type</option>
+              {materialTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
 
-        <div className="grid md:grid-cols-5 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftLowItem.item_type_id}
+              onChange={e => updateLowDraft("item_type_id", e.target.value)}>
+              <option>Item Type</option>
+              {itemTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftLowItem.material_type_id}
-            onChange={e => updateLowDraft("material_type_id", e.target.value)}>
-            <option>Material Type</option>
-            {materialTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
+            <select className="border rounded-md px-2 py-1"
+              value={draftLowItem.feature_type_id}
+              onChange={e => updateLowDraft("feature_type_id", e.target.value)}>
+              <option>Feature</option>
+              {featureTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftLowItem.item_type_id}
-            onChange={e => updateLowDraft("item_type_id", e.target.value)}>
-            <option>Item Type</option>
-            {itemTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
+            <select className="border rounded-md px-2 py-1"
+              value={draftLowItem.item_class_id}
+              onChange={e => updateLowDraft("item_class_id", e.target.value)}>
+              <option>Item Class</option>
+              {itemClasses.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </div>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftLowItem.feature_type_id}
-            onChange={e => updateLowDraft("feature_type_id", e.target.value)}>
-            <option>Feature</option>
-            {featureTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
+          {/* Row 2 - remaining inputs with Add button */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <select className="border rounded-md px-2 py-1"
+              value={draftLowItem.item}
+              onChange={e => updateLowDraft("item", e.target.value)}>
+              <option>Select Item</option>
+              {lowItemsMaster.map(i => <option key={i.id} value={i.id}>{i.item_code}</option>)}
+            </select>
 
-          <select className="border rounded-lg px-3 py-2"
-            value={draftLowItem.item_class_id}
-            onChange={e => updateLowDraft("item_class_id", e.target.value)}>
-            <option>Item Class</option>
-            {itemClasses.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
-
-          <select className="border rounded-lg px-3 py-2"
-            value={draftLowItem.item}
-            onChange={e => updateLowDraft("item", e.target.value)}>
-            <option>Select Item</option>
-            {lowItemsMaster.map(i => <option key={i.id} value={i.id}>{i.item_code}</option>)}
-          </select>
-
-        </div>
-
-        <div className="grid md:grid-cols-6 gap-3">
-
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="Qty"
-            value={draftLowItem.quantity}
-            onChange={e => updateLowDraft("quantity", e.target.value)} />
-
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder={isInvoice ? "Rate" : "Price"}
-            value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
-            onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
-
-
-          {gstType !== "NO_GST" && (
-          <input className="border rounded-lg px-3 py-2"
-            type="number"
-            placeholder="GST%"
-            value={draftLowItem.gst_percent}
-            onChange={e => updateLowDraft("gst_percent", e.target.value)} />
-          )}
-
-{isInvoice && (
-
-            <input
-className="border rounded-lg px-3 py-2"
-placeholder="Description"
-value={draftLowItem.description}
-onChange={e => updateLowDraft("description", e.target.value)}
-/>
-)}
-
-          {!isInvoice && (
-            <input
-              className="border rounded-lg px-3 py-2"
+            <input className="border rounded-md px-2 py-1"
               type="number"
-              placeholder="Mathadi Charges"
-              value={draftLowItem.mathadi_charges}
-              onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-            />
+              placeholder="Qty"
+              value={draftLowItem.quantity}
+              onChange={e => updateLowDraft("quantity", e.target.value)} />
+
+            <input className="border rounded-md px-2 py-1"
+              type="number"
+              placeholder={isInvoice ? "Rate" : "Price"}
+              value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
+              onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
+
+            {gstType !== "NO_GST" && (
+              <input className="border rounded-md px-2 py-1"
+                type="number"
+                placeholder="GST%"
+                value={draftLowItem.gst_percent}
+                onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+            )}
+
+            <button onClick={addLowItem}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap">
+              + Add
+            </button>
+          </div>
+
+          {/* Row 3 - Additional fields for non-invoice mode */}
+          {!isInvoice && (
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                className="border rounded-md px-2 py-1"
+                type="number"
+                placeholder="Mathadi Charges"
+                value={draftLowItem.mathadi_charges}
+                onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+              />
+            </div>
           )}
 
-          <div className="col-span-full">
+          {/* Row 4 - Description full width */}
+          <div className="flex gap-3 items-start">
             <textarea
-              className="w-full px-3 py-2 rounded-md border border-black"
+              className="border rounded-md px-3 py-2 flex-1"
               placeholder="Enter item description..."
               value={draftLowItem.description}
               onChange={e => updateLowDraft("description", e.target.value)}
               rows={2}
             />
           </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button onClick={addLowItem}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg">
-            + Add Low Item
-          </button>
         </div>
 
         {lowItems.length > 0 && (
@@ -700,13 +704,11 @@ onChange={e => updateLowDraft("description", e.target.value)}
                       <td className="border p-2">{i + 1}</td>
                       <td className="border p-2">{itemName}</td>
 
-{isInvoice && (
-<>
-
-
+                      {isInvoice && (
+                        <>
                           <td className="border p-2">
                             <input
-                              className="border rounded px-2 py-1"
+                              className="border rounded px-2 py-1 w-[70px]"
                               value={row.unit || "NOS"}
                               onChange={e => {
                                 const copy = [...lowItems];
@@ -788,10 +790,11 @@ onChange={e => updateLowDraft("description", e.target.value)}
 
                       <td className="border p-2">
                         <button
-                          className="text-red-500 font-bold"
+                          className="text-red-500 hover:text-red-700 p-1"
                           onClick={() => setLowItems(lowItems.filter((_, idx) => idx !== i))}
+                          title="Delete"
                         >
-                          ✕
+                          <MdDelete />
                         </button>
                       </td>
 
@@ -803,7 +806,6 @@ onChange={e => updateLowDraft("description", e.target.value)}
             </table>
           </div>
         )}
-
       </div>
 
     </div>

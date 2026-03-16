@@ -203,7 +203,6 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             name: "branch",
             label: "Branch",
             type: "select",
-            required: true,
             placeholder: "Select Branch",
             options: branches.map(branch => ({
                 value: branch.id,
@@ -426,7 +425,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
             const payload = {
                 vendor: data.vendor,
-                branch: data.branch,
+                branch: data.branch || null,
                 delivery_destination: data.delivery_destination,
                 site: data.site || null,
                 book_no: data.book_no,

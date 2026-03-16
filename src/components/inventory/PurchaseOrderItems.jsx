@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { MdDelete } from "react-icons/md";
 
 export default function PurchaseOrderItems({
   baseApi,
@@ -372,6 +373,20 @@ export default function PurchaseOrderItems({
 
   return (
     <div className="space-y-8">
+      <style>
+        {`
+          /* Hide number input spinners */
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
       {/* ================= ADD SECTION ================= */}
       <div className="border rounded-xl p-4 bg-gray-50 shadow-sm">
         <h4 className="font-semibold mb-2">Add Section</h4>
@@ -754,7 +769,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        Delete
+                        <MdDelete/>
                       </button>
                     </td>
                   </>
@@ -795,7 +810,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        Delete
+                        <MdDelete/>
                       </button>
                     </td>
                   </>
