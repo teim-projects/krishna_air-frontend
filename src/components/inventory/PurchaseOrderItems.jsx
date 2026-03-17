@@ -589,7 +589,7 @@ export default function PurchaseOrderItems({
 
             <button
               type="button"
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
               onClick={addHighProduct}
             >
               + Add
@@ -707,7 +707,7 @@ export default function PurchaseOrderItems({
 
             <button
               type="button"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
               onClick={addLowItem}
             >
               + Add

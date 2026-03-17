@@ -395,7 +395,8 @@ export default function AddQuotation({ id, onBack }) {
       gridCols: 1,
       options: [
         { value: "CGST_SGST", label: "CGST + SGST" },
-        { value: "IGST", label: "IGST" }
+        { value: "IGST", label: "IGST" },
+        { value: "NO_GST", label: "No GST" }
       ]
     },
     {
