@@ -297,7 +297,8 @@ export default function AddQuotation({ id, onBack }) {
           unit_price: Number(i.unit_price),
           gst_percent: Number(i.gst_percent),
           mathadi_charges: Number(i.mathadi_charges),
-          transportation_charges: Number(i.transportation_charges)
+          transportation_charges: Number(i.transportation_charges),
+          hsn_sac: i.hsn_sac || ""
         })),
 
         low_side_items: lowItems.map(l => ({
@@ -307,7 +308,8 @@ export default function AddQuotation({ id, onBack }) {
           description: l.description || "",
           unit: l.unit,
           gst_percent: Number(l.gst_percent),
-          mathadi_charges: Number(l.mathadi_charges)
+          mathadi_charges: Number(l.mathadi_charges),
+          hsn_sac: l.hsn_sac || ""
         }))
       }]
     };

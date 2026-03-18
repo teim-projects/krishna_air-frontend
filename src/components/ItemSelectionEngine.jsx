@@ -282,22 +282,6 @@ export default function ItemSelectionEngine({
               {acTypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
 
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Unit"
-              value={draftHighItem.unit}
-              onChange={e => updateHighDraft("unit", e.target.value)}
-            />
-
-            {isInvoice && (
-              <input
-                className="border rounded-lg px-3 py-2"
-                placeholder="HSN"
-                value={draftHighItem.hsn_sac}
-                onChange={e => updateHighDraft("hsn_sac", e.target.value)}
-              />
-            )}
             <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={draftHighItem.subType}
               onChange={e => updateHighDraft("subType", e.target.value)}>
@@ -369,29 +353,29 @@ export default function ItemSelectionEngine({
               />
             </div>
           )}
-          <div className="col-span-full">
-            <textarea
-              className="w-full px-3 py-2 rounded-md border border-black"
-              placeholder="Enter product description..."
-              value={draftHighItem.description}
-              onChange={e => updateHighDraft("description", e.target.value)}
-              rows={2}
-            />
-          </div>
           {/* Row 4 - Invoice specific fields */}
-          {isInvoice && (
-            <div className="grid grid-cols-2 gap-3">
-              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="HSN"
-                value={draftHighItem.hsn_sac}
-                onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
 
-              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Unit"
-                value={draftHighItem.unit}
-                onChange={e => updateHighDraft("unit", e.target.value)} />
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-3">
+            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="HSN"
+              value={draftHighItem.hsn_sac}
+              onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
+            {/* <div className="col-span-full">
+              <textarea
+                className="w-full px-3 py-2 rounded-md border border-black"
+                placeholder="Enter product description..."
+                value={draftHighItem.description}
+                onChange={e => updateHighDraft("description", e.target.value)}
+                rows={2}
+              />
+            </div> */}
+
+            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Unit"
+              value={draftHighItem.unit}
+              onChange={e => updateHighDraft("unit", e.target.value)} />
+          </div>
+
 
           {/* Row 5 - Description full width */}
           <div className="flex gap-3 items-start">
@@ -406,72 +390,56 @@ export default function ItemSelectionEngine({
         </div>
         {items.length > 0 && (
           <div className="p-4">
-            <div className="border border-gray-200 rounded-lg">
-              <table className="w-full text-sm border-collapse table-fixed">
+            <div className="overflow-x-auto">
+              <table className="min-w-[900px] table-fixed text-sm border-collapse">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-12">#</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-32">Variant</th>
-
-                    {isInvoice && (
-                      <>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">HSN</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">Unit</th>
-                      </>
-                    )}
-
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">Qty</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">{isInvoice ? "Rate" : "Price"}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">GST%</th>
+                    <th className="w-12 px-2 py-2 border-r">#</th>
+                    <th className="w-40 px-2 py-2 border-r">Variant</th>
+                    <th className="w-24 px-2 py-2 border-r">HSN</th>
+                    <th className="w-20 px-2 py-2 border-r">Unit</th>
+                    <th className="w-20 px-2 py-2 border-r">Qty</th>
+                    <th className="w-28 px-2 py-2 border-r">{isInvoice ? "Rate" : "Price"}</th>
+                    <th className="w-20 px-2 py-2 border-r">GST%</th>
 
                     {!isInvoice && (
                       <>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Mathadi</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Transport</th>
+                        <th className="w-28 px-2 py-2 border-r">Mathadi</th>
+                        <th className="w-28 px-2 py-2 border-r">Transport</th>
                       </>
                     )}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Description</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Action</th>
+
+                    <th className="px-2 py-2 border-r">Description</th>
+                    <th className="w-16 px-2 py-2">Action</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white">
+
+                {/* ✅ REQUIRED */}
+                <tbody>
                   {items.map((row, i) => {
                     const variantName = row.variant_sku || row.product_variant;
+
                     return (
-                      <tr key={i} className="hover:bg-gray-50 border-b border-gray-200">
-                        <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200 truncate" title={variantName}>{variantName}</td>
+                      <tr key={i} className="border-b">
+                        <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
 
-                        {isInvoice && (
-                          <>
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                value={row.hsn_sac || ""}
-                                onChange={e => {
-                                  const copy = [...items];
-                                  copy[i].hsn_sac = e.target.value;
-                                  setItems(copy);
-                                }}
-                              />
-                            </td>
+                        <td className="w-40 px-2 py-2 border-r truncate">
+                          {variantName}
+                        </td>
 
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                value={row.unit || "NOS"}
-                                onChange={e => {
-                                  const copy = [...items];
-                                  copy[i].unit = e.target.value;
-                                  setItems(copy);
-                                }}
-                              />
-                            </td>
-                          </>
-                        )}
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            className="border rounded px-2 py-1 w-[70px]"
+                        <td className="w-24 px-2 py-2 border-r">
+                          <input className="w-full border rounded px-1 py-1"
+                            value={row.hsn_sac || ""}
+                            onChange={e => {
+                              const copy = [...items];
+                              copy[i].hsn_sac = e.target.value;
+                              setItems(copy);
+                            }}
+                          />
+                        </td>
+
+                        <td className="w-20 px-2 py-2 border-r">
+                          <input className="w-full border rounded px-1 py-1"
                             value={row.unit || "NOS"}
                             onChange={e => {
                               const copy = [...items];
@@ -481,10 +449,9 @@ export default function ItemSelectionEngine({
                           />
                         </td>
 
-                        <td className="border p-2">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        <td className="w-20 px-2 py-2 border-r">
+                          <input type="number"
+                            className="w-full border rounded px-1 py-1"
                             value={row.quantity}
                             onChange={e => {
                               const copy = [...items];
@@ -494,10 +461,9 @@ export default function ItemSelectionEngine({
                           />
                         </td>
 
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        <td className="w-28 px-2 py-2 border-r">
+                          <input type="number"
+                            className="w-full border rounded px-1 py-1"
                             value={isInvoice ? row.rate : row.unit_price}
                             onChange={e => {
                               const copy = [...items];
@@ -507,10 +473,9 @@ export default function ItemSelectionEngine({
                           />
                         </td>
 
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        <td className="w-20 px-2 py-2 border-r">
+                          <input type="number"
+                            className="w-full border rounded px-1 py-1"
                             value={row.gst_percent}
                             onChange={e => {
                               const copy = [...items];
@@ -519,12 +484,12 @@ export default function ItemSelectionEngine({
                             }}
                           />
                         </td>
+
                         {!isInvoice && (
                           <>
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                type="number"
-                                className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            <td className="w-28 px-2 py-2 border-r">
+                              <input type="number"
+                                className="w-full border rounded px-1 py-1"
                                 value={row.mathadi_charges || 0}
                                 onChange={e => {
                                   const copy = [...items];
@@ -534,10 +499,9 @@ export default function ItemSelectionEngine({
                               />
                             </td>
 
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                type="number"
-                                className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            <td className="w-28 px-2 py-2 border-r">
+                              <input type="number"
+                                className="w-full border rounded px-1 py-1"
                                 value={row.transportation_charges || 0}
                                 onChange={e => {
                                   const copy = [...items];
@@ -549,25 +513,22 @@ export default function ItemSelectionEngine({
                           </>
                         )}
 
-                        <td className="px-4 py-3 border-r border-gray-200">
+                        <td className="px-2 py-2 border-r">
                           <textarea
-                            className="border border-gray-300 rounded px-2 py-1 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full border rounded px-1 py-1 text-xs"
                             value={row.description || ""}
                             onChange={e => {
                               const copy = [...items];
                               copy[i].description = e.target.value;
                               setItems(copy);
                             }}
-                            rows={2}
                           />
                         </td>
 
-                        <td className="px-4 py-3">
-                          <button
-                            className="text-red-500 hover:text-red-700 p-1"
-                            onClick={() => setItems(items.filter((_, idx) => idx !== i))}
-                            title="Delete"
-                          >
+                        <td className="w-16 px-2 py-2 text-center">
+                          <button onClick={() =>
+                            setItems(prev => prev.filter((_, idx) => idx !== i))
+                          }>
                             <MdDelete />
                           </button>
                         </td>
@@ -663,20 +624,26 @@ export default function ItemSelectionEngine({
               />
             </div>
           )}
+          {/* {gstType !== "NO_GST" && (
+            <input className="border rounded-lg px-3 py-2"
+              type="number"
+              placeholder="GST%"
+              value={draftLowItem.gst_percent}
+              onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+          )} */}
           {/* Row 4 - Invoice specific fields */}
-          {isInvoice && (
-            <div className="grid grid-cols-2 gap-3">
-              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="HSN"
-                value={draftLowItem.hsn_sac}
-                onChange={e => updateLowDraft("hsn_sac", e.target.value)} />
 
-              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Unit"
-                value={draftLowItem.unit}
-                onChange={e => updateLowDraft("unit", e.target.value)} />
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-3">
+            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="HSN"
+              value={draftLowItem.hsn_sac}
+              onChange={e => updateLowDraft("hsn_sac", e.target.value)} />
+
+            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Unit"
+              value={draftLowItem.unit}
+              onChange={e => updateLowDraft("unit", e.target.value)} />
+          </div >
 
           {/* Row 5 - Description full width */}
           <div className="flex gap-3 items-start">
@@ -688,153 +655,159 @@ export default function ItemSelectionEngine({
               rows={2}
             />
           </div>
-        </div>
-        {lowItems.length > 0 && (
-          <div className="p-4">
-            <div className="border border-gray-200 rounded-lg">
-              <table className="w-full text-sm border-collapse table-fixed">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-12">#</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-32">Item</th>
+        </div >
+        {
+          lowItems.length > 0 && (
+            <div className="p-4">
+              <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
 
-                    {isInvoice && (
-                      <>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">HSN</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">Unit</th>
-                      </>
-                    )}
+                <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
 
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">Qty</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">{isInvoice ? "Rate" : "Price"}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-16">GST%</th>
-                    {!isInvoice && (
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 w-20">Mathadi</th>
-                    )}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Description</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white">
-                  {lowItems.map((row, i) => {
-                    const itemName = row.item_code || row.item;
-                    return (
-                      <tr key={i} className="hover:bg-gray-50 border-b border-gray-200">
-                        <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200 truncate" title={itemName}>{itemName}</td>
+                  <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="w-12 px-2 py-2 border-r">#</th>
+                      <th className="w-40 px-2 py-2 border-r">Item</th>
 
-                        {isInvoice && (
-                          <>
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                value={row.hsn_sac || ""}
-                                onChange={e => {
-                                  const copy = [...lowItems];
-                                  copy[i].hsn_sac = e.target.value;
-                                  setLowItems(copy);
-                                }}
-                              />
-                            </td>
+                      <th className="w-24 px-2 py-2 border-r">HSN</th>
+                      <th className="w-20 px-2 py-2 border-r">Unit</th>
 
-                            <td className="px-4 py-3 border-r border-gray-200">
-                              <input
-                                className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                value={row.unit || "NOS"}
-                                onChange={e => {
-                                  const copy = [...lowItems];
-                                  copy[i].unit = e.target.value;
-                                  setLowItems(copy);
-                                }}
-                              />
-                            </td>
-                          </>
-                        )}
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            value={row.quantity}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].quantity = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
+                      <th className="w-20 px-2 py-2 border-r">Qty</th>
+                      <th className="w-28 px-2 py-2 border-r">
+                        {isInvoice ? "Rate" : "Price"}
+                      </th>
+                      <th className="w-20 px-2 py-2 border-r">GST%</th>
 
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            value={isInvoice ? row.rate : row.unit_price}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
+                      {!isInvoice && (
+                        <th className="w-28 px-2 py-2 border-r">Mathadi</th>
+                      )}
 
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-16 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            value={row.gst_percent}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].gst_percent = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
-                        {!isInvoice && (
-                          <td className="px-4 py-3 border-r border-gray-200">
+                      <th className="px-2 py-2 border-r">Description</th>
+                      <th className="w-16 px-2 py-2">Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="bg-white">
+                    {lowItems.map((row, i) => {
+                      const itemName = row.item_code || row.item;
+
+                      return (
+                        <tr key={i} className="border-b hover:bg-gray-50">
+                          <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
+
+                          <td className="w-40 px-2 py-2 border-r truncate">
+                            {itemName}
+                          </td>
+
+                          <td className="w-24 px-2 py-2 border-r">
                             <input
-                              type="number"
-                              className="border border-gray-300 rounded px-2 py-1 w-20 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              value={row.mathadi_charges || 0}
+                              className="w-full border rounded px-1 py-1"
+                              value={row.hsn_sac || ""}
                               onChange={e => {
                                 const copy = [...lowItems];
-                                copy[i].mathadi_charges = e.target.value;
+                                copy[i].hsn_sac = e.target.value;
                                 setLowItems(copy);
                               }}
                             />
                           </td>
-                        )}
 
-                        <td className="px-4 py-3 border-r border-gray-200">
-                          <textarea
-                            className="border border-gray-300 rounded px-2 py-1 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            value={row.description || ""}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].description = e.target.value;
-                              setLowItems(copy);
-                            }}
-                            rows={2}
-                          />
-                        </td>
+                          <td className="w-20 px-2 py-2 border-r">
+                            <input
+                              className="w-full border rounded px-1 py-1"
+                              value={row.unit || "NOS"}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].unit = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
 
-                        <td className="px-4 py-3">
-                          <button
-                            className="text-red-500 hover:text-red-700 p-1"
-                            onClick={() => setLowItems(lowItems.filter((_, idx) => idx !== i))}
-                            title="Delete"
-                          >
-                            <MdDelete />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <td className="w-20 px-2 py-2 border-r">
+                            <input
+                              type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={row.quantity}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].quantity = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
+
+                          <td className="w-28 px-2 py-2 border-r">
+                            <input
+                              type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={isInvoice ? row.rate : row.unit_price}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
+
+                          <td className="w-20 px-2 py-2 border-r">
+                            <input
+                              type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={row.gst_percent}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].gst_percent = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
+
+                          {!isInvoice && (
+                            <td className="w-28 px-2 py-2 border-r">
+                              <input
+                                type="number"
+                                className="w-full border rounded px-1 py-1"
+                                value={row.mathadi_charges || 0}
+                                onChange={e => {
+                                  const copy = [...lowItems];
+                                  copy[i].mathadi_charges = e.target.value;
+                                  setLowItems(copy);
+                                }}
+                              />
+                            </td>
+                          )}
+
+                          <td className="px-2 py-2 border-r">
+                            <textarea
+                              className="w-full border rounded px-1 py-1 text-xs"
+                              value={row.description || ""}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].description = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            />
+                          </td>
+
+                          <td className="w-16 px-2 py-2 text-center">
+                            <button
+                              onClick={() =>
+                                setLowItems(prev => prev.filter((_, idx) => idx !== i))
+                              }
+                            >
+                              <MdDelete />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+
+                </table>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+      </div >
 
-    </div>
+    </div >
   );
 }
