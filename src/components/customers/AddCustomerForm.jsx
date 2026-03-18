@@ -12,14 +12,14 @@ export default function AddCustomerForm({
   baseApi,
   customer = null
 }) {
-  const DEFAULT_API = "http://127.0.0.1:8000";
-  const BASE_API = baseApi ?? DEFAULT_API;
+  // const DEFAULT_API = "http://127.0.0.1:8000";
+  const BASE_API = baseApi;
 
   const [name, setName] = useState(customer?.name ?? "");
   const [contactNumber, setContactNumber] = useState(customer?.contact_number ?? "");
   const [landLineNumber, setLandLineNumber] = useState(customer?.land_line_no ?? "");
   const [email, setEmail] = useState(customer?.email ?? "");
-  const [secondary_email , setSecondary_email] = useState(customer?.secondary_email ?? "");
+  const [secondary_email, setSecondary_email] = useState(customer?.secondary_email ?? "");
   const [pocName, setPocName] = useState(customer?.poc_name ?? "");
   const [pocContactNumber, setPocContactNumber] = useState(customer?.poc_contact_number ?? "");
   const [address, setAddress] = useState(customer?.address ?? "");
@@ -222,8 +222,25 @@ export default function AddCustomerForm({
       try { data = await res.json(); } catch (e) { data = {}; }
 
       if (!res.ok) {
-        const msg = data?.detail || JSON.stringify(data) || `${res.status} ${res.statusText}`;
-        throw new Error(msg);
+        let errorMessage = "";
+
+        if (data) {
+          // Handle DRF validation errors
+          if (typeof data === "object") {
+            errorMessage = Object.entries(data)
+              .map(([field, messages]) => {
+                const msg = Array.isArray(messages) ? messages.join(", ") : messages;
+                return `${field}: ${msg}`;
+              })
+              .join("\n");
+          } else {
+            errorMessage = data.detail || "Something went wrong";
+          }
+        } else {
+          errorMessage = `${res.status} ${res.statusText}`;
+        }
+
+        throw new Error(errorMessage);
       }
 
       Swal.fire({

@@ -3,6 +3,8 @@ import axios from "axios";
 import ItemSelectionEngine from "../ItemSelectionEngine";
 import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
+import ReusableForm from "../Form";
+import Swal from "sweetalert2";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -31,28 +33,25 @@ export default function AddQuotation({ id, onBack }) {
   // Term types are needed to get the correct terms for payment and delivery
   const { getOrCreateTermTypeId } = useTermTypes({ baseApi: BASE_API, token });
   const [paymentTypeId, setPaymentTypeId] = useState(null);
-  const [deliveryTypeId, setDeliveryTypeId] = useState(null);
+  const [validityTypeId, setValidityTypeId] = useState(null);
+  const [warrantyTypeId, setWarrantyTypeId] = useState(null);
 
-  const [subject, setSubject] = useState("");
-  //branch
-  const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState("");
-  //site
-  const [sites, setSites] = useState([]);
-  const [selectedSite, setSelectedSite] = useState("");
-
-  // ================= HIGH SIDE MASTER =================
-
-
-  const [gstType, setGstType] = useState("CGST_SGST");
-
-  const [thankNote, setThankNote] = useState("");
-
-  const [customer, setCustomer] = useState({
-    phone: "",
-    name: "",
-    id: ""
+  // Form data state
+  const [formData, setFormData] = useState({
+    customer_phone: "",
+    customer_name: "",
+    customer_id: "",
+    subject: "",
+    branch: "",
+    site: "",
+    gst_type: "CGST_SGST",
+    thank_you_note: ""
   });
+
+  //branch and site data
+  const [branches, setBranches] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // ================= HIGH SIDE ITEMS =================
   const [items, setItems] = useState([]);
@@ -62,7 +61,8 @@ export default function AddQuotation({ id, onBack }) {
 
   // ================= TERMS AND CONDITIONS =================
   const [paymentTerms, setPaymentTerms] = useState([]);
-  const [deliveryTerms, setDeliveryTerms] = useState([]);
+  const [validityTerms, setValidityTerms] = useState([]);
+  const [warrantyTerms, setWarrantyTerms] = useState([]);
 
 
   // ================= LOAD MASTERS =================
@@ -71,10 +71,12 @@ export default function AddQuotation({ id, onBack }) {
   useEffect(() => {
     const initTypes = async () => {
       const paymentId = await getOrCreateTermTypeId("Quotation Payment", "Terms of Payment");
-      const deliveryId = await getOrCreateTermTypeId("Quotation Delivery", "Terms of Delivery");
-
+      const validityId = await getOrCreateTermTypeId("Quotation Validity", "Validity Terms");
+      const warrantyId = await getOrCreateTermTypeId("Quotation Warranty", "Warranty Terms");
+      
       setPaymentTypeId(paymentId);
-      setDeliveryTypeId(deliveryId);
+      setValidityTypeId(validityId);
+      setWarrantyTypeId(warrantyId);
     };
 
     initTypes();
@@ -90,35 +92,39 @@ export default function AddQuotation({ id, onBack }) {
         const res = await api.get(`quotation/quotation/${id}/`);
         const q = res.data;
 
-        setCustomer({
-          phone: q.customer_contact,
-          name: q.customer_name,
-          id: q.customer
+        setFormData({
+          customer_phone: q.customer_contact || "",
+          customer_name: q.customer_name || "",
+          customer_id: q.customer || "",
+          subject: q.subject || "",
+          branch: q.branch || "",
+          site: q.site || "",
+          thank_you_note: q.thank_you_note || "",
+          gst_type: q.versions.find(v => v.is_active)?.gst_type || "CGST_SGST"
         });
 
-        setSubject(q.subject || "");
-        setSelectedBranch(q.branch || "");
-        setSelectedSite(q.site || "");
-        setThankNote(q.thank_you_note || "");
-
-        const active = q.versions.find(v => v.is_active);
-        setGstType(active.gst_type);
-
-        // Extract terms and conditions
         const paymentTermsData = q.terms_conditions_details
           ?.filter(t => t.terms_condition_type_name === "Quotation Payment")
           .map(t => t.id) || [];
 
-        const deliveryTermsData = q.terms_conditions_details
-          ?.filter(t => t.terms_condition_type_name === "Quotation Delivery")
+        const validityTermsData = q.terms_conditions_details
+          ?.filter(t => t.terms_condition_type_name === "Quotation Validity")
+          .map(t => t.id) || [];
+
+        const warrantyTermsData = q.terms_conditions_details
+          ?.filter(t => t.terms_condition_type_name === "Quotation Warranty")
           .map(t => t.id) || [];
 
         setPaymentTerms(paymentTermsData);
-        setDeliveryTerms(deliveryTermsData);
+        setValidityTerms(validityTermsData);
+        setWarrantyTerms(warrantyTermsData);
 
+        const active = q.versions.find(v => v.is_active);
+        
         setItems(
           active.high_side_items.map(i => ({
             product_variant: i.product_variant,
+            unit: i.unit || "NOS",
             ac_type_name: i.ac_type_name,
             ac_sub_type_name: i.ac_sub_type_name,
             brand_name: i.brand_name,
@@ -137,6 +143,7 @@ export default function AddQuotation({ id, onBack }) {
           active.low_side_items.map(l => ({
             item: l.item,
             item_code: l.item_code,
+            unit: l.unit || "NOS",
             quantity: l.quantity,
             gst_percent: l.gst_percent || 18,
             unit_price: l.unit_price,
@@ -174,20 +181,22 @@ export default function AddQuotation({ id, onBack }) {
 
 
   // ================= PHONE SEARCH =================
-  const handlePhone = async (e) => {
-    const phone = e.target.value;
-    setCustomer(prev => ({ ...prev, phone }));
-
+  const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
-      const res = await api.get(`lead/customer/?search=${phone}`);
-      const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+      try {
+        const res = await api.get(`lead/customer/?search=${phone}`);
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
 
-      if (data.length > 0) {
-        setCustomer({
-          phone,
-          name: data[0].name,
-          id: data[0].id
-        });
+        if (data.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            customer_phone: phone,
+            customer_name: data[0].name,
+            customer_id: data[0].id
+          }));
+        }
+      } catch (err) {
+        console.log("Error searching customer:", err);
       }
     }
   };
@@ -198,22 +207,21 @@ export default function AddQuotation({ id, onBack }) {
 
 
   const resetForm = () => {
-
-    setCustomer({
-      phone: "",
-      name: "",
-      id: ""
+    setFormData({
+      customer_phone: "",
+      customer_name: "",
+      customer_id: "",
+      subject: "AC Quotation",
+      branch: "",
+      site: "",
+      gst_type: "CGST_SGST",
+      thank_you_note: ""
     });
-
-    setSubject("AC Quotation");
-    setSelectedBranch("");
-    setSelectedSite("");
-    setThankNote("");
-    setGstType("CGST_SGST");
 
     // Reset terms and conditions
     setPaymentTerms([]);
-    setDeliveryTerms([]);
+    setValidityTerms([]);
+    setWarrantyTerms([]);
 
     setItems([
       {
@@ -243,217 +251,291 @@ export default function AddQuotation({ id, onBack }) {
         mathadi_charges: 0
       }
     ]);
-
-    // optional but recommended
-
   };
 
 
   // ================= SUBMIT =================
-  const handleSubmit = async () => {
+  const handleSubmit = async (data) => {
+    // Validation
+    if (!data.customer_id) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
+      return;
+    }
+    if (!data.subject.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
+      return;
+    }
+    if (items.length === 0 && lowItems.length === 0) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
+      return;
+    }
 
+    setLoading(true);
+    
     const payload = {
-
-      customer: Number(customer.id),
-      subject: subject,
-      branch: selectedBranch ? Number(selectedBranch) : null,
-      site: selectedSite ? Number(selectedSite) : null,
-      thank_you_note: thankNote,
+      customer: Number(data.customer_id),
+      subject: data.subject,
+      branch: data.branch ? Number(data.branch) : null,
+      site: data.site ? Number(data.site) : null,
+      thank_you_note: data.thank_you_note,
 
       // Add terms and conditions
       terms_conditions: [
         ...(paymentTerms || []).map(t => t.id || t),
-        ...(deliveryTerms || []).map(t => t.id || t)
+        ...(validityTerms || []).map(t => t.id || t),
+        ...(warrantyTerms || []).map(t => t.id || t)
       ],
 
       versions: [{
-        gst_type: gstType,
-
+        gst_type: data.gst_type,
 
         high_side_items: items.map(i => ({
           product_variant: Number(i.product_variant),
           quantity: Number(i.quantity),
+          unit: i.unit,
+          description: i.description || "",
           unit_price: Number(i.unit_price),
           gst_percent: Number(i.gst_percent),
           mathadi_charges: Number(i.mathadi_charges),
-          transportation_charges: Number(i.transportation_charges)
+          transportation_charges: Number(i.transportation_charges),
+          hsn_sac: i.hsn_sac || ""
         })),
 
         low_side_items: lowItems.map(l => ({
           item: Number(l.item),
           quantity: Number(l.quantity),
           unit_price: Number(l.unit_price),
+          description: l.description || "",
+          unit: l.unit,
           gst_percent: Number(l.gst_percent),
-          mathadi_charges: Number(l.mathadi_charges)
+          mathadi_charges: Number(l.mathadi_charges),
+          hsn_sac: l.hsn_sac || ""
         }))
       }]
     };
 
     try {
-
       if (isEdit) {
         await api.put(`quotation/quotation/${id}/`, payload);
       } else {
         await api.post("quotation/quotation/", payload);
       }
 
-      alert("Quotation Saved Successfully ✅");
+      Swal.fire({
+        icon: "success",
+        text: isEdit ? "Quotation updated successfully" : "Quotation saved successfully",
+        timer: 1200,
+        showConfirmButton: false
+      });
 
       resetForm();
-
-      // ⭐ CLOSE MODAL & RETURN TO LIST
       onBack && onBack();
 
     } catch (err) {
       console.log(err.response?.data);
-      alert("Error saving quotation ❌");
+      Swal.fire({ icon: "error", title: "Error", text: "Error saving quotation" });
+    } finally {
+      setLoading(false);
     }
   };
 
+  // ================= FIELD DEFINITIONS =================
+  const fields = [
+    {
+      name: "customer_phone",
+      label: "Customer Phone",
+      type: "phone",
+      required: true,
+      gridCols: 1,
+      placeholder: "Enter customer phone",
+      component: ({ value, onChange }) => (
+        <input
+          type="text"
+          className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          value={value}
+          onChange={(e) => {
+            const phone = e.target.value.replace(/\D/g, "");
+            onChange(phone);
+            handlePhoneSearch(phone);
+          }}
+          placeholder="Enter customer phone"
+          maxLength={10}
+        />
+      )
+    },
+    {
+      name: "customer_name",
+      label: "Customer Name",
+      type: "text",
+      disabled: true,
+      gridCols: 1,
+      placeholder: "Auto-filled from phone search"
+    },
+    {
+      name: "subject",
+      label: "Subject",
+      type: "text",
+      required: true,
+      gridCols: 1,
+      placeholder: "Enter quotation subject"
+    },
+    {
+      name: "site",
+      label: "Site",
+      type: "select",
+      gridCols: 1,
+      placeholder: "Select Site",
+      options: sites.map(site => ({ value: site.id, label: site.name }))
+    },
+    {
+      name: "branch",
+      label: "Branch",
+      type: "select",
+      gridCols: 1,
+      placeholder: "Select Branch",
+      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
+    },
+    {
+      name: "gst_type",
+      label: "GST Type",
+      type: "select",
+      required: true,
+      gridCols: 1,
+      options: [
+        { value: "CGST_SGST", label: "CGST + SGST" },
+        { value: "IGST", label: "IGST" },
+        { value: "NO_GST", label: "No GST" }
+      ]
+    },
+    {
+      name: "thank_you_note",
+      label: "Thank You Note",
+      type: "textarea",
+      rows: 2,
+      gridCols: 2,
+      placeholder: "Enter thank you note"
+    }
+  ];
+
   // ================= UI =================
   return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
-      <div className="relative w-full max-w-2xl text-[13.5px] p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto space-y-6">
+    <>
+      <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
+        <div className="bg-white rounded-md shadow-lg w-full max-w-4xl relative max-h-[90vh] flex flex-col">
 
-        <button
-          onClick={onBack}
-          className="absolute top-3 right-4 text-gray-500 hover:text-black text-lg font-bold"
-        >
-          ✕
-        </button>
-        <h2 className="text-xl font-bold text-center mb-2">
-          {isEdit ? "Edit Quotation" : "Add Quotation"}
-        </h2>
+          {/* FIXED HEADER */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
+            <h2 className="text-lg font-semibold">
+              {isEdit ? "Edit Quotation" : "Add Quotation"}
+            </h2>
+            <button
+              onClick={onBack}
+              className="text-xl font-bold hover:text-red-500"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
 
-        {/* ================= CUSTOMER INFO ================= */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          <input
-            className="w-full px-3 py-2 rounded-md border border-slate-300"
-            placeholder="Customer Phone"
-            value={customer.phone}
-            onChange={handlePhone}
-          />
-
-          <input
-            className="w-full px-3 py-2 rounded-md border border-slate-300 bg-gray-100"
-            placeholder="Customer Name"
-            value={customer.name}
-            readOnly
-          />
-
-          <input
-            className="w-full px-3 py-2 rounded-md border border-slate-300"
-            placeholder="Subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-
-          <select
-            className="w-full px-3 py-2 rounded-md border border-slate-300"
-            value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
-          >
-            <option value="">Select Site</option>
-            {sites.map(site => (
-              <option key={site.id} value={site.id}>
-                {site.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="w-full px-3 py-2 rounded-md border border-slate-300"
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-          >
-            <option value="">Select Branch</option>
-            {branches.map(branch => (
-              <option key={branch.id} value={branch.id}>
-                {branch.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="w-full px-3 py-2 rounded-md border border-slate-300"
-            value={gstType}
-            onChange={(e) => setGstType(e.target.value)}
-          >
-            <option value="CGST_SGST">CGST + SGST</option>
-            <option value="IGST">IGST</option>
-          </select>
-        </div>
-
-        <textarea
-          className="w-full px-3 py-2 rounded-md border border-slate-300"
-          placeholder="Thank You Note"
-          value={thankNote}
-          onChange={(e) => setThankNote(e.target.value)}
-        />
-
-        {/* ================= HIGH SIDE ================= */}
-        {/* ================= HIGH SIDE and low ================= */}
-        <ItemSelectionEngine
-          baseApi={BASE_API}
-          authToken={localStorage.getItem("access")}
-          items={items}
-          setItems={setItems}
-          lowItems={lowItems}
-          setLowItems={setLowItems}
-          mode="quotation"
-        />
-
-        {/* ================= TERMS AND CONDITIONS ================= */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800">Terms & Conditions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-
-            {/* Payment Terms */}
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Terms <span className="text-red-500">*</span>
-              </label>
-
-              <TermsMultiSelect
-                value={paymentTerms}
-                onChange={setPaymentTerms}
-                termsType={paymentTypeId}
-                baseApi={BASE_API}
-                token={token}
+          {/* SCROLLABLE FORM BODY */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            {/* Basic Information Form */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
+              <ReusableForm
+                fields={fields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={handleSubmit}
+                loading={loading}
+                submitText={isEdit ? "Update Quotation" : "Save Quotation"}
+                onCancel={onBack}
+                showCancel={false}
+                submitButtonClass="hidden" // Hide submit button as we'll add custom one
               />
             </div>
 
-          </div>
-
-          {/* Delivery Terms */}
-          {/* <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Delivery Terms <span className="text-red-500">*</span>
-              </label>
-              <TermsMultiSelect
-                value={deliveryTerms}
-                onChange={setDeliveryTerms}
-                termsType={deliveryTypeId}
+            {/* Items Selection */}
+            <div>
+              <ItemSelectionEngine
                 baseApi={BASE_API}
-                token={token}
+                authToken={localStorage.getItem("access")}
+                items={items}
+                setItems={setItems}
+                lowItems={lowItems}
+                setLowItems={setLowItems}
+                mode="quotation"
               />
-            </div> */}
-        </div>
+            </div>
 
-        {/* Save Button at the bottom */}
-        <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
-          <button
-            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            onClick={handleSubmit}
-          >
-            Save Quotation
-          </button>
+            {/* Terms and Conditions */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Terms <span className="text-red-500">*</span>
+                  </label>
+                  <TermsMultiSelect
+                    value={paymentTerms}
+                    onChange={setPaymentTerms}
+                    termsType={paymentTypeId}
+                    baseApi={BASE_API}
+                    token={token}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Validity Terms
+                  </label>
+                  <TermsMultiSelect
+                    value={validityTerms}
+                    onChange={setValidityTerms}
+                    termsType={validityTypeId}
+                    baseApi={BASE_API}
+                    token={token}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Warranty Terms
+                  </label>
+                  <TermsMultiSelect
+                    value={warrantyTerms}
+                    onChange={setWarrantyTerms}
+                    termsType={warrantyTypeId}
+                    baseApi={BASE_API}
+                    token={token}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onBack}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmit(formData)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                disabled={loading}
+              >
+                {loading ? "Saving..." : (isEdit ? "Update Quotation" : "Save Quotation")}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      </div>
-
-    // </div >
+    </>
   );
-
 }
