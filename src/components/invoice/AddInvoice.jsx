@@ -3,6 +3,8 @@ import axios from "axios";
 import ItemSelectionEngine from "../ItemSelectionEngine";
 import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
+import ReusableForm from "../Form";
+import Swal from "sweetalert2";
 
 
 const BASE_API =
@@ -69,43 +71,95 @@ export default function AddInvoice({ id, onBack }) {
 
   const isEdit = !!id;
 
-  // ================= COMPANY PROFILE =================
+  // ================= FORM DATA STATE =================
+  const [formData, setFormData] = useState({
+    // Customer info
+    customer_phone: "",
+    customer_name: "",
+    customer_id: "",
+    
+    // Invoice header
+    invoice_no: "",
+    invoice_date: new Date().toISOString().split('T')[0],
+    branch: "",
+    site: "",
+    gst_type: "CGST_SGST",
+    
+    // Buyer information
+    buyer_address: "",
+    buyer_gstin: "",
+    buyer_state: "",
+    buyer_state_code: "",
+    
+    // Ship to
+    ship_to_address: "",
+    same_as_buyer: true,
+    
+    // Additional info
+    delivery_note: "",
+    delivery_note_date: "",
+    supplier_ref: "",
+    other_references: "",
+    buyer_order_no: "",
+    dispatch_doc_no: "",
+    dispatched_through: "",
+    destination: "",
+    work_description: "",
+    
+    // Company/Bank details
+    bank_name: "",
+    account_no: "",
+    ifsc_code: "",
+    declaration: ""
+  });
 
-  const [sites, setSites] = useState([])
-  const [selectedSite, setSelectedSite] = useState("")
-  const [selectedTerms, setSelectedTerms] = useState([]);
+  // ================= MASTER DATA =================
+  const [sites, setSites] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [loading_form, setLoadingForm] = useState(false);
+
+
+  // ================= TERMS AND CONDITIONS =================
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [deliveryTerms, setDeliveryTerms] = useState([]);
   const [paymentTypeId, setPaymentTypeId] = useState(null);
   const [deliveryTypeId, setDeliveryTypeId] = useState(null);
-  const [companyProfile, setCompanyProfile] = useState(null);
+
+  // ================= ITEMS =================
+  const [items, setItems] = useState([]);
+  const [lowItems, setLowItems] = useState([]);
+
+  // ================= STATE SEARCH =================
   const [stateSearch, setStateSearch] = useState("");
   const [showStateList, setShowStateList] = useState(false);
   const filteredStates = STATES.filter(s =>
     s.name.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
-
-  // site
-
+  // ================= LOAD MASTER DATA =================
   useEffect(() => {
-  api.get("auth/site/")
-    .then(res => {
-      setSites(normalize(res.data))
-    })
-}, [])
+    const loadMasterData = async () => {
+      try {
+        // Load sites
+        const siteRes = await api.get("auth/site/");
+        setSites(normalize(siteRes.data));
 
+        // Load branches
+        const branchRes = await api.get("auth/branch/");
+        setBranches(normalize(branchRes.data));
+      } catch (err) {
+        console.log("Error loading master data:", err);
+      }
+    };
 
+    loadMasterData();
+  }, []);
 
-
-  // terms and codition
-
+  // ================= INITIALIZE TERM TYPES =================
   useEffect(() => {
-
     if (loading) return;
 
     const initTypes = async () => {
-
       const paymentId = await getOrCreateTermTypeId(
         "Invoice Payment",
         "Terms of Payment"
@@ -121,125 +175,50 @@ export default function AddInvoice({ id, onBack }) {
     };
 
     initTypes();
-
   }, [loading]);
-
-  const handleStateChange = (value) => {
-    setStateSearch(value);
-
-    setBuyerSnapshot(prev => ({
-      ...prev,
-      buyer_state: value
-    }));
-
-    const found = STATES.find(
-      s => s.name.toLowerCase() === value.toLowerCase()
-    );
-
-    if (found) {
-      setBuyerSnapshot(prev => ({
-        ...prev,
-        buyer_state: found.name,
-        buyer_state_code: found.code
-      }));
-    }
-  };
-
-  // ================= CUSTOMER =================
-  const [customer, setCustomer] = useState({
-    phone: "",
-    name: "",
-    id: "",
-    address: "",
-    gstin: "",
-    state: "",
-    state_code: ""
-  });
-
-  // ================= INVOICE HEADER =================
-  const [form, setForm] = useState({
-    invoice_no: isEdit ? "" : "INV-" + Date.now(),
-    invoice_date: new Date().toISOString().split('T')[0],
-
-    delivery_note: "",
-    delivery_note_date: "",
-
-    supplier_ref: "",
-    other_references: "",
-
-    buyer_order_no: "",
-
-    dispatch_doc_no: "",
-    dispatched_through: "",
-
-    destination: "",
-
-
-
-
-    work_description: "",
-
-    gst_type: "CGST_SGST"
-  });
-
-  // ================= BUYER SNAPSHOT =================
-  const [buyerSnapshot, setBuyerSnapshot] = useState({
-    buyer_name: "",
-    buyer_address: "",
-    buyer_gstin: "",
-    buyer_state: "",
-    buyer_state_code: ""
-  });
-
-  // ================= SHIP TO =================
-  const [shipTo, setShipTo] = useState({
-    ship_to_address: "",
-    same_as_buyer: true
-  });
-
-  // ================= COMPANY SNAPSHOT =================
-
-
-  const [companySnapshot, setCompanySnapshot] = useState({
-    bank_name: "",
-    account_no: "",
-    ifsc_code: "",
-    declaration: ""
-  });
-
-  const [branches, setBranches] = useState([])
-
-  const [selectedBranch, setSelectedBranch] = useState("")
-
-  useEffect(() => {
-    api.get("auth/branch/")
-      .then(res => {
-        setBranches(normalize(res.data))
-      })
-  }, [])
-
-  // ================= HIGH SIDE ITEMS =================
-  const [items, setItems] = useState([]);
-
-  // ================= LOW SIDE ITEMS =================
-  const [lowItems, setLowItems] = useState([]);
-
-  // ================= LOAD MASTERS =================
 
   // ================= EDIT LOAD =================
   useEffect(() => {
-
     if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
 
-    api.get(`invoice/invoice/${id}/`)
-      .then(res => {
-
+    const loadInvoiceData = async () => {
+      try {
+        const res = await api.get(`invoice/invoice/${id}/`);
         const inv = res.data;
-        setSelectedBranch(inv.branch);
-        setSelectedSite(inv.site) 
-        // ---------- Load Terms ----------
-        if (inv.terms_conditions_details) {
 
+        // Set form data
+        setFormData({
+          customer_phone: inv.customer_phone || "",
+          customer_name: inv.buyer_name || "",
+          customer_id: inv.customer || "",
+          invoice_no: inv.invoice_no,
+          invoice_date: inv.invoice_date,
+          branch: inv.branch || "",
+          site: inv.site || "",
+          gst_type: inv.gst_type,
+          buyer_address: inv.buyer_address || "",
+          buyer_gstin: inv.buyer_gstin || "",
+          buyer_state: inv.buyer_state || "",
+          buyer_state_code: inv.buyer_state_code || "",
+          ship_to_address: inv.ship_to_address || "",
+          same_as_buyer: !inv.ship_to_address,
+          delivery_note: inv.delivery_note || "",
+          delivery_note_date: inv.delivery_note_date || "",
+          supplier_ref: inv.supplier_ref || "",
+          other_references: inv.other_references || "",
+          buyer_order_no: inv.buyer_order_no || "",
+          dispatch_doc_no: inv.dispatch_doc_no || "",
+          dispatched_through: inv.dispatched_through || "",
+          destination: inv.destination || "",
+          work_description: inv.work_description || "",
+          bank_name: inv.bank_name || "",
+          account_no: inv.account_no || "",
+          ifsc_code: inv.ifsc_code || "",
+          declaration: inv.declaration || ""
+        });
+
+        // Load Terms
+        if (inv.terms_conditions_details) {
           const payment = inv.terms_conditions_details
             .filter(t => t.terms_condition_type_name === "Invoice Payment")
             .map(t => t.id);
@@ -252,83 +231,17 @@ export default function AddInvoice({ id, onBack }) {
           setDeliveryTerms(delivery);
         }
 
-
-
-
-        // Set customer
-        setCustomer({
-          phone: inv.customer_phone || "", // You might need to fetch customer details separately
-          name: inv.buyer_name,
-          id: inv.customer,
-          address: inv.buyer_address,
-          gstin: inv.buyer_gstin,
-          state: inv.buyer_state,
-          state_code: inv.buyer_state_code
-        });
-
-        // Set form fields
-        setForm({
-          invoice_no: inv.invoice_no,
-          invoice_date: inv.invoice_date,
-          delivery_note: inv.delivery_note || "",
-          supplier_ref: inv.supplier_ref || "",
-          buyer_order_no: inv.buyer_order_no || "",
-          destination: inv.destination || "",
-
-          
-          work_description: inv.work_description || "",
-          gst_type: inv.gst_type,
-          delivery_note_date: inv.delivery_note_date || "",
-          other_references: inv.other_references || "",
-          dispatch_doc_no: inv.dispatch_doc_no || "",
-          dispatched_through: inv.dispatched_through || "",
-
-        });
-
-        // Set buyer snapshot
-        setBuyerSnapshot({
-          buyer_name: inv.buyer_name,
-          buyer_address: inv.buyer_address,
-          buyer_gstin: inv.buyer_gstin,
-          buyer_state: inv.buyer_state,
-          buyer_state_code: inv.buyer_state_code
-        });
-
-        // Set ship to
-        setShipTo({
-          ship_to_address: inv.ship_to_address || "",
-          same_as_buyer: !inv.ship_to_address
-        });
-
-        // Set company snapshot
-        setCompanySnapshot({
-          company_name: inv.company_name,
-          company_address: inv.company_address,
-          company_gstin: inv.company_gstin,
-          company_pan: inv.company_pan,
-          company_email: inv.company_email || "",
-          company_msme_number: inv.company_msme_number || "",
-          bank_name: inv.bank_name,
-          account_no: inv.account_no,
-          ifsc_code: inv.ifsc_code,
-          branch: inv.branch,
-          declaration: inv.declaration || ""
-        });
-
-        // Set items (you'll need to separate high/low based on your data structure)
+        // Set items
         const highItems = inv.high_side_items || [];
         const lowItemsList = inv.low_side_items || [];
 
         setItems(highItems.map(i => ({
           product_variant: i.product_variant,
-
-          // ⭐ ADD THESE
           ac_type_name: i.ac_type_name,
           ac_sub_type_name: i.ac_sub_type_name,
           brand_name: i.brand_name,
           model_no: i.model_no,
           variant_sku: i.variant_sku,
-
           description: i.description,
           hsn_sac: i.hsn_sac,
           quantity: i.quantity,
@@ -339,10 +252,7 @@ export default function AddInvoice({ id, onBack }) {
 
         setLowItems(lowItemsList.map(i => ({
           item: i.item,
-
-          // ⭐ ADD THIS
           item_code: i.item_code,
-
           description: i.description,
           hsn_sac: i.hsn_sac,
           quantity: i.quantity,
@@ -350,117 +260,105 @@ export default function AddInvoice({ id, onBack }) {
           rate: i.rate,
           gst_percent: i.gst_percent
         })));
-      });
+      } catch (err) {
+        console.log("Error loading invoice:", err);
+      }
+    };
+
+    loadInvoiceData();
   }, [id, paymentTypeId, deliveryTypeId]);
-
   // ================= CUSTOMER SEARCH =================
-  const handlePhone = async (e) => {
-    const phone = e.target.value;
-    setCustomer(prev => ({ ...prev, phone }));
-
+  const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
-      const res = await api.get(`lead/customer/?search=${phone}`);
-      const data = normalize(res.data);
+      try {
+        const res = await api.get(`lead/customer/?search=${phone}`);
+        const data = normalize(res.data);
 
-      if (data.length > 0) {
-        const cust = data[0];
-        setCustomer({
-          phone,
-          name: cust.name,
-          id: cust.id,
-          address: cust.address || "",
-          gstin: cust.gstin || "",
-          state: cust.state || "",
-          state_code: cust.state_code || ""
-        });
-
-        // Auto-fill buyer snapshot
-        setBuyerSnapshot({
-          buyer_name: cust.name,
-          buyer_address: cust.address || "",
-          buyer_gstin: cust.gstin || "",
-          buyer_state: cust.state || "",
-          buyer_state_code: cust.state_code || ""
-        });
-
-        // Auto-fill ship to if same as buyer
-        if (shipTo.same_as_buyer) {
-          setShipTo(prev => ({
+        if (data.length > 0) {
+          const cust = data[0];
+          setFormData(prev => ({
             ...prev,
-            ship_to_address: cust.address || ""
+            customer_phone: phone,
+            customer_name: cust.name,
+            customer_id: cust.id,
+            buyer_address: cust.address || "",
+            buyer_gstin: cust.gstin || "",
+            buyer_state: cust.state || "",
+            buyer_state_code: cust.state_code || "",
+            ship_to_address: prev.same_as_buyer ? (cust.address || "") : prev.ship_to_address
           }));
         }
+      } catch (err) {
+        console.log("Error searching customer:", err);
       }
     }
   };
 
+  // ================= STATE CHANGE HANDLER =================
+  const handleStateChange = (value) => {
+    setStateSearch(value);
+    
+    const found = STATES.find(
+      s => s.name.toLowerCase() === value.toLowerCase()
+    );
 
+    if (found) {
+      setFormData(prev => ({
+        ...prev,
+        buyer_state: found.name,
+        buyer_state_code: found.code
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        buyer_state: value
+      }));
+    }
+  };
 
-
-
-
-  // ================= HANDLE SHIP TO TOGGLE =================
-  const handleShipToToggle = (e) => {
-    const same = e.target.checked;
-    setShipTo({
-      same_as_buyer: same,
-      ship_to_address: same ? buyerSnapshot.buyer_address : ""
-    });
+  // ================= SHIP TO TOGGLE =================
+  const handleShipToToggle = (checked) => {
+    setFormData(prev => ({
+      ...prev,
+      same_as_buyer: checked,
+      ship_to_address: checked ? prev.buyer_address : ""
+    }));
   };
 
   // ================= RESET FORM =================
   const resetForm = () => {
-
-    setSelectedSite("")
-    setCustomer({
-      phone: "",
-      name: "",
-      id: "",
-      address: "",
-      gstin: "",
-      state: "",
-      state_code: ""
-    });
-
-    setForm({
-      invoice_no: "INV-" + Date.now(),
+    setFormData({
+      customer_phone: "",
+      customer_name: "",
+      customer_id: "",
+      invoice_no: "",
       invoice_date: new Date().toISOString().split('T')[0],
-      delivery_note: "",
-      supplier_ref: "",
-      buyer_order_no: "",
-      destination: "",
-
-      
-      work_description: "",
-      gst_type: "CGST_SGST"
-    });
-
-    setBuyerSnapshot({
-      buyer_name: "",
+      branch: "",
+      site: "",
+      gst_type: "CGST_SGST",
       buyer_address: "",
       buyer_gstin: "",
       buyer_state: "",
-      buyer_state_code: ""
-    });
-
-    setShipTo({
+      buyer_state_code: "",
       ship_to_address: "",
-      same_as_buyer: true
+      same_as_buyer: true,
+      delivery_note: "",
+      delivery_note_date: "",
+      supplier_ref: "",
+      other_references: "",
+      buyer_order_no: "",
+      dispatch_doc_no: "",
+      dispatched_through: "",
+      destination: "",
+      work_description: "",
+      bank_name: "",
+      account_no: "",
+      ifsc_code: "",
+      declaration: ""
     });
 
-    if (companyProfile) {
-      setCompanySnapshot({
-        company_name: companyProfile.name || "",
-        company_address: companyProfile.address || "",
-        company_gstin: companyProfile.gstin || "",
-        company_pan: companyProfile.pan || "",
-        bank_name: companyProfile.bank_name || "",
-        account_no: companyProfile.account_no || "",
-        ifsc_code: companyProfile.ifsc_code || "",
-        branch: companyProfile.branch || "",
-        declaration: companyProfile.declaration || ""
-      });
-    }
+    setPaymentTerms([]);
+    setDeliveryTerms([]);
 
     setItems([{
       acType: "",
@@ -489,62 +387,67 @@ export default function AddInvoice({ id, onBack }) {
       rate: 0,
       gst_percent: 18
     }]);
-
-
   };
 
   // ================= SUBMIT =================
-  const handleSubmit = async () => {
+  const handleSubmit = async (data) => {
+    // Validation
+    if (!data.customer_id) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
+      return;
+    }
+    if (!data.invoice_no.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Invoice number is required" });
+      return;
+    }
+    if (items.length === 0 && lowItems.length === 0) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
+      return;
+    }
 
-    // Combine high and low items
-
+    setLoadingForm(true);
 
     const payload = {
-      invoice_no: form.invoice_no,
-      customer: customer.id ? Number(customer.id) : null,
-      site: selectedSite,
+      invoice_no: data.invoice_no,
+      customer: data.customer_id ? Number(data.customer_id) : null,
+      site: data.site || null,
+      branch: data.branch || null,
       terms_conditions: [
         ...paymentTerms,
         ...deliveryTerms
       ],
 
-
-      invoice_date: form.invoice_date,
+      invoice_date: data.invoice_date,
 
       // Buyer snapshot
-      buyer_name: buyerSnapshot.buyer_name,
-      buyer_address: buyerSnapshot.buyer_address,
-      buyer_gstin: buyerSnapshot.buyer_gstin,
-      buyer_state: buyerSnapshot.buyer_state,
-      buyer_state_code: buyerSnapshot.buyer_state_code,
+      buyer_name: data.customer_name,
+      buyer_address: data.buyer_address,
+      buyer_gstin: data.buyer_gstin,
+      buyer_state: data.buyer_state,
+      buyer_state_code: data.buyer_state_code,
 
       // Ship to
-      ship_to_address: shipTo.ship_to_address,
+      ship_to_address: data.ship_to_address,
 
       // Company snapshot
-      branch: selectedBranch,
-      bank_name: companySnapshot.bank_name,
-      account_no: companySnapshot.account_no,
-      ifsc_code: companySnapshot.ifsc_code,
-
-      declaration: companySnapshot.declaration,
+      bank_name: data.bank_name,
+      account_no: data.account_no,
+      ifsc_code: data.ifsc_code,
+      declaration: data.declaration,
 
       // Header fields
-      delivery_note: form.delivery_note,
-      supplier_ref: form.supplier_ref,
-      buyer_order_no: form.buyer_order_no,
-      destination: form.destination,
-
-      
-      work_description: form.work_description,
-      delivery_note_date: form.delivery_note_date,
-      other_references: form.other_references,
-      dispatch_doc_no: form.dispatch_doc_no,
-      dispatched_through: form.dispatched_through,
-
+      delivery_note: data.delivery_note,
+      delivery_note_date: data.delivery_note_date,
+      supplier_ref: data.supplier_ref,
+      other_references: data.other_references,
+      buyer_order_no: data.buyer_order_no,
+      dispatch_doc_no: data.dispatch_doc_no,
+      dispatched_through: data.dispatched_through,
+      destination: data.destination,
+      work_description: data.work_description,
 
       // GST Type
-      gst_type: form.gst_type,
+      gst_type: data.gst_type,
 
       high_side_items: items.map(i => ({
         product_variant: Number(i.product_variant),
@@ -569,417 +472,453 @@ export default function AddInvoice({ id, onBack }) {
     try {
       if (isEdit) {
         await api.put(`invoice/invoice/${id}/`, payload);
-        alert("Invoice Updated Successfully ✅");
       } else {
         await api.post("invoice/invoice/", payload);
-        alert("Invoice Created Successfully ✅");
       }
+
+      Swal.fire({
+        icon: "success",
+        text: isEdit ? "Invoice updated successfully" : "Invoice created successfully",
+        timer: 1200,
+        showConfirmButton: false
+      });
 
       resetForm();
       if (onBack) onBack();
 
     } catch (err) {
       console.log(err.response?.data);
-      alert("Error saving invoice ❌");
+      Swal.fire({ icon: "error", title: "Error", text: "Error saving invoice" });
+    } finally {
+      setLoadingForm(false);
     }
   };
 
+  // ================= FIELD DEFINITIONS =================
+  const basicInfoFields = [
+    {
+      name: "customer_phone",
+      label: "Customer Phone",
+      type: "phone",
+      required: true,
+      gridCols: 1,
+      placeholder: "Enter customer phone",
+      component: ({ value, onChange }) => (
+        <input
+          type="text"
+          className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          value={value}
+          onChange={(e) => {
+            const phone = e.target.value.replace(/\D/g, "");
+            onChange(phone);
+            handlePhoneSearch(phone);
+          }}
+          placeholder="Enter customer phone"
+          maxLength={10}
+        />
+      )
+    },
+    {
+      name: "customer_name",
+      label: "Customer Name",
+      type: "text",
+      disabled: true,
+      gridCols: 1,
+      placeholder: "Auto-filled from phone search"
+    },
+    {
+      name: "invoice_no",
+      label: "Invoice Number",
+      type: "text",
+      required: true,
+      gridCols: 1,
+      placeholder: "Enter invoice number"
+    },
+    {
+      name: "invoice_date",
+      label: "Invoice Date",
+      type: "date",
+      required: true,
+      gridCols: 1
+    },
+    {
+      name: "branch",
+      label: "Branch",
+      type: "select",
+      gridCols: 1,
+      placeholder: "Select Branch",
+      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
+    },
+    {
+      name: "site",
+      label: "Site",
+      type: "select",
+      gridCols: 1,
+      placeholder: "Select Site",
+      options: sites.map(site => ({ value: site.id, label: site.name }))
+    },
+    {
+      name: "gst_type",
+      label: "GST Type",
+      type: "select",
+      required: true,
+      gridCols: 1,
+      options: [
+        { value: "CGST_SGST", label: "CGST + SGST" },
+        { value: "IGST", label: "IGST" },
+        { value: "NO_GST", label: "No GST" }
+      ]
+    }
+  ];
+
+  const buyerInfoFields = [
+    {
+      name: "buyer_address",
+      label: "Buyer Address",
+      type: "textarea",
+      rows: 2,
+      gridCols: 2,
+      placeholder: "Enter buyer address"
+    },
+    {
+      name: "buyer_gstin",
+      label: "Buyer GSTIN",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter GSTIN"
+    },
+    {
+      name: "buyer_state",
+      label: "Buyer State",
+      type: "component",
+      gridCols: 1,
+      component: ({ value, onChange }) => (
+        <div className="relative">
+          <input
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Select State"
+            value={stateSearch || value}
+            onChange={(e) => {
+              handleStateChange(e.target.value);
+              setShowStateList(true);
+            }}
+            onFocus={() => setShowStateList(true)}
+          />
+          {showStateList && filteredStates.length > 0 && (
+            <div className="absolute z-20 bg-white border w-full max-h-40 overflow-y-auto rounded-md shadow">
+              {filteredStates.map((s, i) => (
+                <div
+                  key={i}
+                  className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                  onClick={() => {
+                    setStateSearch(s.name);
+                    onChange(s.name);
+                    setFormData(prev => ({
+                      ...prev,
+                      buyer_state: s.name,
+                      buyer_state_code: s.code
+                    }));
+                    setShowStateList(false);
+                  }}
+                >
+                  {s.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      name: "buyer_state_code",
+      label: "State Code",
+      type: "text",
+      disabled: true,
+      gridCols: 1,
+      placeholder: "Auto-filled"
+    }
+  ];
+
+  const shipToFields = [
+    {
+      name: "same_as_buyer",
+      label: "Same as Buyer Address",
+      type: "checkbox",
+      gridCols: 2,
+      component: ({ value, onChange }) => (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={value}
+            onChange={(e) => {
+              onChange(e.target.checked);
+              handleShipToToggle(e.target.checked);
+            }}
+          />
+          Same as Buyer Address
+        </label>
+      )
+    },
+    {
+      name: "ship_to_address",
+      label: "Ship To Address",
+      type: "textarea",
+      rows: 2,
+      gridCols: 2,
+      disabled: formData.same_as_buyer,
+      placeholder: "Enter shipping address"
+    }
+  ];
+
+  const additionalInfoFields = [
+    {
+      name: "delivery_note",
+      label: "Delivery Note",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter delivery note"
+    },
+    {
+      name: "delivery_note_date",
+      label: "Delivery Note Date",
+      type: "date",
+      gridCols: 1
+    },
+    {
+      name: "supplier_ref",
+      label: "Supplier Reference",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter supplier reference"
+    },
+    {
+      name: "other_references",
+      label: "Other References",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter other references"
+    },
+    {
+      name: "buyer_order_no",
+      label: "Buyer Order No",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter buyer order number"
+    },
+    {
+      name: "dispatch_doc_no",
+      label: "Dispatch Document No",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter dispatch document number"
+    },
+    {
+      name: "dispatched_through",
+      label: "Dispatched Through",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter dispatch method"
+    },
+    {
+      name: "destination",
+      label: "Destination",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter destination"
+    },
+    {
+      name: "work_description",
+      label: "Work Description",
+      type: "textarea",
+      rows: 3,
+      gridCols: 2,
+      placeholder: "Enter work description"
+    }
+  ];
+
+  const companyBankFields = [
+    {
+      name: "bank_name",
+      label: "Bank Name",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter bank name"
+    },
+    {
+      name: "account_no",
+      label: "Account Number",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter account number"
+    },
+    {
+      name: "ifsc_code",
+      label: "IFSC Code",
+      type: "text",
+      gridCols: 1,
+      placeholder: "Enter IFSC code"
+    },
+    {
+      name: "declaration",
+      label: "Declaration",
+      type: "textarea",
+      rows: 2,
+      gridCols: 2,
+      placeholder: "Enter declaration"
+    }
+  ];
+
   // ================= UI =================
   return (
-    <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
+    <>
+      <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
+        <div className="bg-white rounded-md shadow-lg w-full max-w-5xl relative max-h-[90vh] flex flex-col">
 
-      <div className="relative w-full max-w-2xl text-[13.5px] p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto space-y-6">
-
-        <button
-          onClick={onBack}
-          className="absolute top-3 right-4 text-gray-500 hover:text-black text-lg font-bold"
-        >
-          ✕
-        </button>
-
-        <h2 className="text-xl font-bold text-center mb-2">
-          {isEdit ? "Edit Invoice" : "Create New Invoice"}
-        </h2>
-
-        {/* ================= CUSTOMER DETAILS ================= */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Customer Details</h3>
-
-          <div className="grid md:grid-cols-2 gap-4">
-
-            <input
-              className="w-full px-3 py-2 rounded-md border border-slate-300"
-              placeholder="Customer Phone"
-              value={customer.phone}
-              onChange={handlePhone}
-            />
-
-            <input
-              className="w-full px-3 py-2 rounded-md border border-slate-300 bg-gray-100"
-              value={customer.name}
-              readOnly
-            />
-
-          </div>
-        </div>
-
-
-        {/* ================= INVOICE HEADER ================= */}
-        <div className="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-          {/* <div>
-    <label className="text-sm font-medium">Invoice Number</label>
-    <input
-      className="w-full border rounded-lg px-3 py-2 bg-gray-100"
-      value={form.invoice_no}
-      readOnly
-    />
-  </div> */}
-
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select Branch</label>
-
-            <select
-              className="border rounded-lg px-3 py-2 w-full"
-              value={selectedBranch}
-              onChange={(e) => {
-                setSelectedBranch(e.target.value)
-              }}
+          {/* FIXED HEADER */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
+            <h2 className="text-lg font-semibold">
+              {isEdit ? "Edit Invoice" : "Create New Invoice"}
+            </h2>
+            <button
+              onClick={onBack}
+              className="text-xl font-bold hover:text-red-500"
+              aria-label="Close"
             >
-
-              <option value="">Select Branch</option>
-
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-
-            </select>
+              ✕
+            </button>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Invoice Date</label>
-            <input
-              type="date"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.invoice_date}
-              onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
-            />
-          </div>
-        </div>
-
-
-        {/* <div className="space-y-2">
-<label className="text-sm font-medium">Select Branch</label>
-
-<select
-className="border rounded-lg px-3 py-2 w-full"
-value={selectedBranch}
-onChange={(e)=>{
-  setSelectedBranch(e.target.value)
-}}
->
-
-<option value="">Select Branch</option>
-
-{branches.map(b=>(
-<option key={b.id} value={b.id}>
-{b.name}
-</option>
-))}
-
-</select>
-</div> */}
-
-
-
-
-        {/* ================= BUYER INFO ================= */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Buyer Information</h3>
-
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            rows="2"
-            value={buyerSnapshot.buyer_address}
-            onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_address: e.target.value })}
-          />
-
-          <div className="grid md:grid-cols-2 gap-4">
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="GSTIN"
-              value={buyerSnapshot.buyer_gstin}
-              onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_gstin: e.target.value })}
-            />
-
-            <div className="relative">
-              <input
-                className="border rounded-lg px-3 py-2 w-full"
-                placeholder="State"
-                value={stateSearch || buyerSnapshot.buyer_state}
-                onChange={(e) => {
-                  handleStateChange(e.target.value);
-                  setShowStateList(true);
-                }}
-                onFocus={() => setShowStateList(true)}
+          {/* SCROLLABLE FORM BODY */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            {/* Basic Information */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
+              <ReusableForm
+                fields={basicInfoFields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={() => {}}
+                submitButtonClass="hidden"
               />
-
-              {showStateList && filteredStates.length > 0 && (
-                <div className="absolute z-20 bg-white border w-full max-h-40 overflow-y-auto rounded-md shadow">
-                  {filteredStates.map((s, i) => (
-                    <div
-                      key={i}
-                      className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                      onClick={() => {
-                        setStateSearch(s.name);
-                        setBuyerSnapshot(prev => ({
-                          ...prev,
-                          buyer_state: s.name,
-                          buyer_state_code: s.code
-                        }));
-                        setShowStateList(false);
-                      }}
-                    >
-                      {s.name}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="State Code"
-              value={buyerSnapshot.buyer_state_code}
-              onChange={(e) => setBuyerSnapshot({ ...buyerSnapshot, buyer_state_code: e.target.value })}
-            />
+            {/* Buyer Information */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Buyer Information</h3>
+              <ReusableForm
+                fields={buyerInfoFields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={() => {}}
+                submitButtonClass="hidden"
+              />
+            </div>
 
+            {/* Ship To */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Ship To</h3>
+              <ReusableForm
+                fields={shipToFields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={() => {}}
+                submitButtonClass="hidden"
+              />
+            </div>
+
+            {/* Items Selection */}
+            <div>
+              <ItemSelectionEngine
+                baseApi={BASE_API}
+                authToken={localStorage.getItem("access")}
+                items={items}
+                setItems={setItems}
+                lowItems={lowItems}
+                setLowItems={setLowItems}
+                mode="invoice"
+                gstType={formData.gst_type}
+              />
+            </div>
+
+            {/* Additional Information */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Additional Information</h3>
+              <ReusableForm
+                fields={additionalInfoFields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={() => {}}
+                submitButtonClass="hidden"
+              />
+            </div>
+
+            {/* Company/Bank Details */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Company/Bank Details</h3>
+              <ReusableForm
+                fields={companyBankFields}
+                formData={formData}
+                onChange={setFormData}
+                onSubmit={() => {}}
+                submitButtonClass="hidden"
+              />
+            </div>
+
+            {/* Terms and Conditions */}
+            <div>
+              <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Terms <span className="text-red-500">*</span>
+                  </label>
+                  <TermsMultiSelect
+                    value={paymentTerms}
+                    onChange={setPaymentTerms}
+                    termsType={paymentTypeId}
+                    baseApi={BASE_API}
+                    token={localStorage.getItem("access")}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Delivery Terms <span className="text-red-500">*</span>
+                  </label>
+                  <TermsMultiSelect
+                    value={deliveryTerms}
+                    onChange={setDeliveryTerms}
+                    termsType={deliveryTypeId}
+                    baseApi={BASE_API}
+                    token={localStorage.getItem("access")}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-2 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onBack}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                disabled={loading_form}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSubmit(formData)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+                disabled={loading_form}
+              >
+                {loading_form ? "Saving..." : (isEdit ? "Update Invoice" : "Save Invoice")}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* ================= SHIP TO ================= */}
-        <div className="space-y-3">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={shipTo.same_as_buyer} onChange={handleShipToToggle} />
-            Same as Buyer Address
-          </label>
-
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            rows="2"
-            value={shipTo.ship_to_address}
-            onChange={(e) => setShipTo({ ship_to_address: e.target.value, same_as_buyer: false })}
-            disabled={shipTo.same_as_buyer}
-          />
-        </div>
-
-        {/* ================= GST TYPE ================= */}
-        <div className="flex items-center gap-3">
-          <label className="font-medium">GST Type :</label>
-          <select
-            className="border rounded-md px-3 py-2"
-            value={form.gst_type}
-            onChange={(e) => setForm({ ...form, gst_type: e.target.value })}
-          >
-            <option value="CGST_SGST">CGST + SGST</option>
-            <option value="IGST">IGST</option>
-            <option value="NO_GST">No GST</option>
-          </select>
-        </div>
-
-        {/* ================= HIGH SIDE PRODUCTS (FULL ORIGINAL) ================= */}
-        {/* ================= HIGH SIDE PRODUCTS ================= */}
-
-        <ItemSelectionEngine
-          baseApi={BASE_API}
-          authToken={localStorage.getItem("access")}
-          items={items}
-          setItems={setItems}
-          lowItems={lowItems}
-          setLowItems={setLowItems}
-          mode="invoice"
-          gstType={form.gst_type}
-        />
-
-        {/* ================= ADDITIONAL INFO ================= */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Additional Information</h3>
-
-          <div className="grid md:grid-cols-3 gap-4">
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Delivery Note"
-              value={form.delivery_note}
-              onChange={(e) => setForm({ ...form, delivery_note: e.target.value })}
-            />
-
-            <input
-              type="date"
-              className="border rounded-lg px-3 py-2"
-              value={form.delivery_note_date}
-              onChange={(e) => setForm({ ...form, delivery_note_date: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Supplier Reference"
-              value={form.supplier_ref}
-              onChange={(e) => setForm({ ...form, supplier_ref: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Other References"
-              value={form.other_references}
-              onChange={(e) => setForm({ ...form, other_references: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Buyer Order No"
-              value={form.buyer_order_no}
-              onChange={(e) => setForm({ ...form, buyer_order_no: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Dispatch Document No"
-              value={form.dispatch_doc_no}
-              onChange={(e) => setForm({ ...form, dispatch_doc_no: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Dispatched Through"
-              value={form.dispatched_through}
-              onChange={(e) => setForm({ ...form, dispatched_through: e.target.value })}
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Destination"
-              value={form.destination}
-              onChange={(e) => setForm({ ...form, destination: e.target.value })}
-            />
-
-
-
-           <div>
-<label className="text-sm font-medium">Select Site</label>
-
-<select
-className="border rounded-lg px-3 py-2 w-full"
-value={selectedSite}
-onChange={(e)=>setSelectedSite(e.target.value)}
->
-
-<option value="">Select Site</option>
-
-{sites.map(site => (
-<option key={site.id} value={site.id}>
-{site.name}
-</option>
-))}
-
-</select>
-
-</div>
-
-          </div>
-
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            rows="3"
-            placeholder="Work Description"
-            value={form.work_description}
-            onChange={(e) => setForm({ ...form, work_description: e.target.value })}
-          />
-        </div>
-
-        {/* ================= COMPANY DETAILS FULL ================= */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold">Company/Bank Details</h3>
-
-          <div className="grid md:grid-cols-3 gap-4">
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Bank Name"
-              value={companySnapshot.bank_name}
-              onChange={(e) =>
-                setCompanySnapshot({ ...companySnapshot, bank_name: e.target.value })
-              }
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="Account No"
-              value={companySnapshot.account_no}
-              onChange={(e) =>
-                setCompanySnapshot({ ...companySnapshot, account_no: e.target.value })
-              }
-            />
-
-            <input
-              className="border rounded-lg px-3 py-2"
-              placeholder="IFSC Code"
-              value={companySnapshot.ifsc_code}
-              onChange={(e) =>
-                setCompanySnapshot({ ...companySnapshot, ifsc_code: e.target.value })
-              }
-            />
-          </div>
-
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            placeholder="Declaration"
-            value={companySnapshot.declaration}
-            onChange={(e) => setCompanySnapshot({ ...companySnapshot, declaration: e.target.value })}
-          />
-        </div>
-
-
-
-
-        <div className="space-y-4">
-
-          <h3 className="text-lg font-semibold">Payment Terms</h3>
-
-          <TermsMultiSelect
-            value={paymentTerms}
-            onChange={setPaymentTerms}
-            termsType={paymentTypeId}
-            baseApi={BASE_API}
-            token={localStorage.getItem("access")}
-          />
-
-          <h3 className="text-lg font-semibold">Delivery Terms</h3>
-
-          <TermsMultiSelect
-            value={deliveryTerms}
-            onChange={setDeliveryTerms}
-            termsType={deliveryTypeId}
-            baseApi={BASE_API}
-            token={localStorage.getItem("access")}
-          />
-
-        </div>
-
-        {/* ================= SUBMIT ================= */}
-        <div className="flex justify-end">
-          <button
-            className="px-5 py-2 bg-blue-600 text-white rounded-md"
-            onClick={handleSubmit}
-          >
-            {isEdit ? "Update Invoice" : "Save Invoice"}
-          </button>
-        </div>
-
       </div>
-    </div>
+    </>
   );
 }

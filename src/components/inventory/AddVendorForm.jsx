@@ -175,14 +175,10 @@ export default function AddVendorForm({
       Swal.fire({ icon: "error", title: "Validation", text: "GST must be 15 characters" });
       return false;
     }
-    if (!formData.office_poc_name.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Office POC name is required" });
-      return false;
-    }
-    if (!formData.office_poc_phone.trim() || formData.office_poc_phone.length !== 10) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Office POC phone must be 10 digits" });
-      return false;
-    }
+    // if (!formData.office_poc_phone.trim() || formData.office_poc_phone.length !== 10) {
+    //   Swal.fire({ icon: "error", title: "Validation", text: "Office POC phone must be 10 digits" });
+    //   return false;
+    // }
     if (formData.pan_details && formData.pan_details.length !== 10) {
       Swal.fire({ icon: "error", title: "Validation", text: "PAN must be 10 characters" });
       return false;
@@ -203,10 +199,14 @@ export default function AddVendorForm({
         bank_details: data.bank_details || null,
         store_address: data.store_address || null,
         supplier_category: data.supplier_category || null,
+        office_poc_name: data.office_poc_name || null,
+        office_poc_phone: data.office_poc_phone || null,
         store_poc_name: data.store_poc_name || null,
         store_poc_phone: data.store_poc_phone || null,
         website: data.website || null,
       };
+
+      console.log("Vendor payload being sent:", payload);
 
 
       const url = vendor ? `${BASE_API}/inventory/vendors/${vendor.id}/` : `${BASE_API}/inventory/vendors/`;
@@ -225,6 +225,32 @@ export default function AddVendorForm({
       try { responseData = await res.json(); } catch (e) { responseData = {}; }
 
       if (!res.ok) {
+        console.error("Vendor API Error:", responseData);
+        
+        // Handle specific validation errors
+        if (responseData && typeof responseData === 'object') {
+          const errorMessages = [];
+          
+          // Check for field-specific errors
+          Object.keys(responseData).forEach(field => {
+            if (Array.isArray(responseData[field])) {
+              errorMessages.push(`${field}: ${responseData[field].join(', ')}`);
+            } else if (typeof responseData[field] === 'string') {
+              errorMessages.push(`${field}: ${responseData[field]}`);
+            }
+          });
+          
+          if (errorMessages.length > 0) {
+            Swal.fire({ 
+              icon: "error", 
+              title: "Validation Error", 
+              html: errorMessages.join('<br>'),
+              width: '500px'
+            });
+            return;
+          }
+        }
+        
         const msg = responseData?.detail || JSON.stringify(responseData) || `${res.status} ${res.statusText}`;
         throw new Error(msg);
       }
@@ -279,8 +305,8 @@ export default function AddVendorForm({
       )
     },
     { name: "state_code", label: "State Code", type: "text", disabled: true, gridCols: 1, placeholder: "Auto-filled" },
-    { name: "office_poc_name", label: "Office poc name", type: "text", required: true, gridCols: 1, placeholder: "Contact person name" },
-    { name: "office_poc_phone", label: "Office poc phone", type: "phone", required: true, maxLength: 10, gridCols: 1, placeholder: "9876543210" },
+    { name: "office_poc_name", label: "Office poc name", type: "text", gridCols: 1, placeholder: "Contact person name" },
+    { name: "office_poc_phone", label: "Office poc phone", type: "phone", maxLength: 10, gridCols: 1, placeholder: "9876543210" },
     { name: "store_poc_name", label: "Store poc name", type: "text", gridCols: 1, placeholder: "Store contact name" },
     { name: "store_poc_phone", label: "Store poc phone", type: "phone", maxLength: 10, gridCols: 1, placeholder: "9876543210" },
     { name: "website", label: "Website", type: "url", gridCols: 2, placeholder: "https://example.com" },

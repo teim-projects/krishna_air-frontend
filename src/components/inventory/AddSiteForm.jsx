@@ -101,14 +101,14 @@ export default function AddSiteForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Pincode must be 6 digits" });
       return false;
     }
-    if (!formData.owner_name.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Owner name is required" });
-      return false;
-    }
-    if (!formData.owner_contact.trim() || formData.owner_contact.length !== 10) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Owner contact must be 10 digits" });
-      return false;
-    }
+    // if (!formData.owner_name.trim()) {
+    //   Swal.fire({ icon: "error", title: "Validation", text: "Owner name is required" });
+    //   return false;
+    // }
+    // if (!formData.owner_contact.trim() || formData.owner_contact.length !== 10) {
+    //   Swal.fire({ icon: "error", title: "Validation", text: "Owner contact must be 10 digits" });
+    //   return false;
+    // }
     return true;
   };
 
@@ -120,6 +120,8 @@ export default function AddSiteForm({
       const payload = {
         ...data,
         pincode: parseInt(data.pincode),
+        owner_name: data.owner_name || null,
+        owner_contact: data.owner_contact || null,
       };
 
     
@@ -185,8 +187,8 @@ export default function AddSiteForm({
       )
     },
     { name: "pincode", label: "Pincode", type: "text", required: true, maxLength: 6, gridCols: 1, placeholder: "123456" },
-    { name: "owner_name", label: "Owner Name", type: "text", required: true, gridCols: 1, placeholder: "Enter owner name" },
-    { name: "owner_contact", label: "Owner Contact", type: "phone", required: true, maxLength: 10, gridCols: 1, placeholder: "9876543210" },
+    { name: "owner_name", label: "Owner Name", type: "text", gridCols: 1, placeholder: "Enter owner name" },
+    { name: "owner_contact", label: "Owner Contact", type: "phone", maxLength: 10, gridCols: 1, placeholder: "9876543210" },
   ];
 
   return (

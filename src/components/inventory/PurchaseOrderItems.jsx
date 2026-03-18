@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { MdDelete } from "react-icons/md";
 
 export default function PurchaseOrderItems({
   baseApi,
@@ -120,7 +121,7 @@ export default function PurchaseOrderItems({
   // Subtypes depend on AC Type
   useEffect(() => {
     if (!highForm.acType) return;
-    api.get(`/product/ac-subtypes/?ac_type_id__id=${highForm.acType}`)
+    api.get(`/product/ac-subtypes/?ac_type_id=${highForm.acType}`)
       .then(res => setSubTypes(res.data?.results || []));
   }, [highForm.acType]);
 
@@ -372,6 +373,20 @@ export default function PurchaseOrderItems({
 
   return (
     <div className="space-y-8">
+      <style>
+        {`
+          /* Hide number input spinners */
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
       {/* ================= ADD SECTION ================= */}
       <div className="border rounded-xl p-4 bg-gray-50 shadow-sm">
         <h4 className="font-semibold mb-2">Add Section</h4>
@@ -574,7 +589,7 @@ export default function PurchaseOrderItems({
 
             <button
               type="button"
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md whitespace-nowrap"
               onClick={addHighProduct}
             >
               + Add
@@ -692,7 +707,7 @@ export default function PurchaseOrderItems({
 
             <button
               type="button"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded-md whitespace-nowrap"
               onClick={addLowItem}
             >
               + Add
@@ -754,7 +769,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        Delete
+                        <MdDelete/>
                       </button>
                     </td>
                   </>
@@ -795,7 +810,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        Delete
+                        <MdDelete/>
                       </button>
                     </td>
                   </>
