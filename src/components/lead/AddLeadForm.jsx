@@ -8,6 +8,8 @@ import { fetchCustomerByQuery } from "../customers/customerLookup";
 import { useUserRole } from '../../hooks/useAuth';
 import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
+import { State } from "country-state-city";
+import CreatableSelect from "react-select/creatable";
 
 
 const createEmptyProductRow = () => ({
@@ -42,29 +44,46 @@ export default function AddLeadForm({
 }) {
   const contactRef = useRef("");
   const productsInitializedRef = useRef(false);
-
+  const states = useMemo(() => State.getStatesOfCountry("IN"), []);
   const API_URL = `${baseApi.replace(/\/$/, "")}/lead/lead/`;
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
+  const [step, setStep] = useState(1);
+
   const [formData, setFormData] = useState({
     enquiry_date: "",
     clientName: "",
     contactNumber: "",
+    secondaryContactNumber: "",
     email: "",
     secondary_email: "",
     address: "",
+    city: "",
+    state: "",
+    pincode: "",
     projectName: "",
     enquiryType: "",
     serviceEnquiry: "",
     projectAddress: "",
     requirementDetails: "",
 
+    contact_person_name: "",
+    contact_person_number: "",
+
+    serviceCategory: [],
+    customService: "",
+
     tonCapacity: "",
     leadSource: "",
-    leadSourceInput: "",
+    leadSourceDetails: {
+      name: "",
+      mobile: "",
+      email: "",
+      address: ""
+    },
     status: "",
     assignTo: "",
     creditedBy: "",
-    referance_by: "",
+    // referance_by: "",
     followupDate: "",
     remarks: "",
   });
@@ -90,6 +109,9 @@ export default function AddLeadForm({
   const [showHistory, setShowHistory] = useState(false);
 
 
+  const [customerSuggestions, setCustomerSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [products, setProducts] = useState([
     {
       ac_type: "",
@@ -109,6 +131,18 @@ export default function AddLeadForm({
   ]);
 
 
+  const [serviceOptions, setServiceOptions] = useState([
+    { id: "service", name: "Service" },
+    { id: "remove", name: "Remove" },
+    { id: "reinstall", name: "Reinstall" },
+    { id: "other", name: "Other" }
+  ]);
+
+  const serviceSelectOptions = serviceOptions.map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
+
   const leadSourceOptions = [
     { id: "google_ads", name: "Google Ads", needsInput: false },
     { id: "indiamart", name: "IndiaMART", needsInput: false },
@@ -118,7 +152,8 @@ export default function AddLeadForm({
     { id: "architect/interior_designer", name: "Architect Interior Designer", needsInput: true },
     { id: "builder", name: "Builder", needsInput: true },
     { id: "existing_customer", name: "Existing Customer", needsInput: true },
-    { id: "ka_staff", name: "KA Staff", needsInput: true },
+    { id: "scgt", name: "SCGT", needsInput: false },
+    { id: "ka_staff", name: "KHL Staff", needsInput: true },
     { id: "other", name: "Other", needsInput: true },
   ];
 
@@ -146,6 +181,12 @@ export default function AddLeadForm({
   const lookupTimerRef = useRef(null);
   const lookupAbortRef = useRef(null);
 
+  useEffect(() => {
+    if (open) {
+      setStep(1);
+    }
+  }, [open]);
+
   // featch all staff records
   useEffect(() => {
     if (!open) return;
@@ -155,7 +196,7 @@ export default function AddLeadForm({
 
     const url = `${baseApi.replace(/\/$/, "")}/auth/staff/all/`;
 
-    console.log("url:",url);
+    console.log("url:", url);
 
     fetch(url, {
       method: "GET",
@@ -255,23 +296,40 @@ export default function AddLeadForm({
         enquiry_date: lead.enquiry_date || "",
         clientName: lead.customer_name || "",
         contactNumber: lead.customer_contact || "",
+        secondaryContactNumber: lead.customer_secondary_contact || "",
         email: lead.customer_email || "",
         secondary_email: lead.customer_secondary_email || "",
         address: lead.customer_address || "",
+        city: lead.customer_city || "",
+        state: lead.customer_state || "",
+        pincode: lead.customer_pincode || "",
         projectName: lead.project_name || "",
         projectAddress: lead.project_adderess || "",
         requirementDetails: lead.requirements_details || "",
 
         enquiryType: lead.lead_type || "individual",
-        serviceEnquiry: lead.is_service_lead ? "yes" : "no",
+        serviceEnquiry: lead.is_service_lead || "",
+        serviceCategory: Array.isArray(lead.service_type)
+          ? lead.service_type
+          : lead.service_type
+            ? [lead.service_type]
+            : [],
+        contact_person_name: lead.contact_person_name || "",
+        contact_person_number: lead.contact_person_number || "",
+
 
         tonCapacity: lead.capacity_required || "",
         leadSource: lead.lead_source || "",
-        leadSourceInput: lead.lead_source_input || "",
+        leadSourceDetails: lead.lead_source_input || {
+          name: "",
+          mobile: "",
+          email: "",
+          address: ""
+        },
         status: lead.status || "",
         assignTo: lead.assign_to || "",
         creditedBy: lead.creatd_by_details?.full_name || "",
-        referance_by: lead.referance_by || "",
+        // referance_by: lead.referance_by || "",
         followupDate: lead.followup_date || "",
         remarks: lead.remarks || "",
       });
@@ -288,17 +346,28 @@ export default function AddLeadForm({
         email: "",
         secondary_email: "",
         address: "",
+        city: "",
+        state: "",
+        pincode: "",
         projectName: "",
         project_adderess: "",
         requirementDetails: "",
-
+        enquiryType: "",
+        serviceCategory: [],
+        serviceEnquiry: "",
+        customService: "",
         tonCapacity: "",
         leadSource: "",
-        leadSourceInput: "",
+        leadSourceDetails: {
+          name: "",
+          mobile: "",
+          email: "",
+          address: ""
+        },
         // status: "",
         assignTo: "",
         creditedBy: "",
-        referance_by: "",
+        // referance_by: "",
         followupDate: "",
         remarks: "",
       });
@@ -319,7 +388,22 @@ export default function AddLeadForm({
     }
   }, [open, lead]);
 
+  const handleCreateService = (inputValue) => {
+    const newOption = {
+      value: inputValue.toLowerCase().replace(/\s+/g, "_"),
+      label: inputValue
+    };
 
+    setServiceOptions(prev => [
+      ...prev,
+      { id: newOption.value, name: newOption.label }
+    ]);
+
+    setFormData(prev => ({
+      ...prev,
+      serviceCategory: [...prev.serviceCategory, newOption.value]
+    }));
+  };
 
   useEffect(() => {
     if (!open) {
@@ -440,7 +524,8 @@ export default function AddLeadForm({
     // If empty, clear customer info
     if (!phone || phone === "") {
       setCustomerId(null);
-      setFormData((prev) => ({ ...prev, clientName: "", email: "" }));
+      setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "", secondaryContactNumber: "", address: "", city: "", state: "", pincode: "" }));
+      setCustomerSuggestions([]);
       setLoadingLookup(false);
       return;
     }
@@ -468,15 +553,19 @@ export default function AddLeadForm({
           setFormData((prev) => ({
             ...prev,
             clientName: customer.full_name ?? customer.name ?? "",
+            secondaryContactNumber: customer.secondary_contact_number ?? "",
             email: customer.email ?? "",
             secondary_email: customer.secondary_email ?? "",
             address: customer.address ?? "",
+            city: customer.city ?? "",
+            state: customer.state ?? "",
+            pincode: customer.pin_code ?? "",
           }));
 
           fetchLatestLeadByMobile(phone);
         } else {
           setCustomerId(null);
-          setFormData((prev) => ({ ...prev, clientName: "", email: "", secondary_email: "", address: "" }));
+          setFormData((prev) => ({ ...prev, clientName: "", secondaryContactNumber: "", email: "", secondary_email: "", address: "", city: "", state: "", pincode: "" }));
         }
       } catch (err) {
         // if aborted, ignore; otherwise log
@@ -559,9 +648,13 @@ export default function AddLeadForm({
       opt => opt.id === formData.leadSource
     );
 
-    if (selectedSource?.needsInput && !formData.leadSourceInput) {
-      showError("leadSource", "Please enter lead source details");
-      return false;
+    if (selectedSource?.needsInput) {
+      const { name, mobile } = formData.leadSourceDetails;
+
+      if (!name || !mobile) {
+        showError("leadSource", "Reference name and mobile are required");
+        return false;
+      }
     }
 
     // if (!formData.status) {
@@ -569,8 +662,79 @@ export default function AddLeadForm({
     //   return false;
     // }
 
-    if (!formData.referance_by) {
-      showError("referance_by", "Referance By is required");
+    // if (!formData.referance_by) {
+    //   showError("referance_by", "Referance By is required");
+    //   return false;
+    // }
+
+    return true;
+  };
+
+  const validateStep1 = () => {
+    if (!contactRef.current.trim()) {
+      showError("contactNumber", "Contact Number is required");
+      return false;
+    }
+
+    if (!/^\d{10}$/.test(contactRef.current)) {
+      showError("contactNumber", "Please enter a valid 10-digit mobile number");
+      return false;
+    }
+
+    if (!formData.clientName && !customerId) {
+      showError("clientName", "Customer Name is required");
+      return false;
+    }
+
+    if (!formData.email && !customerId) {
+      showError("email", "Email is required");
+      return false;
+    }
+
+    if (formData.email && !emailRegex.test(formData.email)) {
+      showError("email", "Invalid email format");
+      return false;
+    }
+
+    if (!formData.address && !customerId) {
+      showError("address", "Address is required");
+      return false;
+    }
+
+    if (!formData.enquiryType) {
+      showError("enquiryType", "Customer Type is required");
+      return false;
+    }
+
+    // Organization validation
+    if (formData.enquiryType === "organization") {
+      if (!formData.contact_person_name) {
+        showError("contact_person_name", "Contact Person Name is required");
+        return false;
+      }
+
+      if (!formData.contact_person_number) {
+        showError("contact_person_number", "Contact Person Number is required");
+        return false;
+      }
+    }
+
+    if (!formData.serviceEnquiry) {
+      showError("serviceEnquiry", "Enquiry Type is required");
+      return false;
+    }
+
+    // Service category required if service/both
+    if (
+      (formData.serviceEnquiry === "service" ||
+        formData.serviceEnquiry === "both") &&
+      (!formData.serviceCategory || formData.serviceCategory.length === 0)
+    ) {
+      Swal.fire({
+        icon: "error",
+        title: "Validation",
+        text: "Please select at least one service",
+      });
       return false;
     }
 
@@ -606,7 +770,11 @@ export default function AddLeadForm({
               name: formData.clientName,
               email: formData.email,
               secondary_email: formData.secondary_email,
+              secondary_contact_number: formData.secondaryContactNumber,
               address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              pin_code: formData.pincode,
             }),
           }
         );
@@ -685,14 +853,18 @@ export default function AddLeadForm({
         project_adderess: formData.projectAddress || "",
         requirements_details: formData.requirementDetails || "",
         lead_type: formData.enquiryType || "",
-        is_service_lead: formData.serviceEnquiry === "yes",
+        is_service_lead: formData.serviceEnquiry || null,
+        service_type: formData.serviceCategory || [],
+        contact_person_name: formData.contact_person_name || "",
+        contact_person_number: formData.contact_person_number || "",
+
         capacity_required: formData.tonCapacity || "",
         lead_source: formData.leadSource || null,
         lead_source_input: showLeadSourceInput
-          ? formData.leadSourceInput
+          ? formData.leadSourceDetails
           : null,
         status: "open", // default to open on create; keep unchanged on edit
-        referance_by: formData.referance_by || null,
+        // referance_by: formData.referance_by || null,
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
@@ -725,7 +897,7 @@ export default function AddLeadForm({
         body: JSON.stringify(payload),
       });
 
-      console.log("res:",res);
+      console.log("res:", res);
       let data;
       try {
         data = await res.json();
@@ -758,81 +930,188 @@ export default function AddLeadForm({
     }
 
   };
-const handleNameChange = (e) => {
-  const name = e.target.value;
-  clearError(e);
-  setFormData(prev => ({ ...prev, clientName: name }));
 
-  // If phone is filled, skip name lookup
-  if (contactRef.current) return;
 
-  // Clear previous timer
-  if (lookupTimerRef.current) {
-    clearTimeout(lookupTimerRef.current);
-    lookupTimerRef.current = null;
-  }
+  // const handleNameChange = (e) => {
+  //   const name = e.target.value;
+  //   clearError(e);
+  //   setFormData(prev => ({ ...prev, clientName: name }));
 
-  // Abort previous request
-  if (lookupAbortRef.current) {
-    try { lookupAbortRef.current.abort(); } catch {}
-    lookupAbortRef.current = null;
-  }
+  //   // If phone is filled, skip name lookup
+  //   if (contactRef.current) return;
 
-  // Avoid noisy calls
-  if (!name || name.length < 3) return;
+  //   // Clear previous timer
+  //   if (lookupTimerRef.current) {
+  //     clearTimeout(lookupTimerRef.current);
+  //     lookupTimerRef.current = null;
+  //   }
 
-  // ⏱️ 500ms typing delay (you can keep 300ms if you want)
-  lookupTimerRef.current = setTimeout(async () => {
-    lookupTimerRef.current = null;
-    setLoadingLookup(true);
+  //   // Abort previous request
+  //   if (lookupAbortRef.current) {
+  //     try { lookupAbortRef.current.abort(); } catch { }
+  //     lookupAbortRef.current = null;
+  //   }
 
-    const controller = new AbortController();
-    lookupAbortRef.current = controller;
+  //   // Avoid noisy calls
+  //   if (!name || name.length < 3) return;
 
-    try {
-      const customer = await fetchCustomerByQuery(baseApi, authToken, name, {
-        signal: controller.signal,
-      });
+  //   // ⏱️ 500ms typing delay (you can keep 300ms if you want)
+  //   lookupTimerRef.current = setTimeout(async () => {
+  //     lookupTimerRef.current = null;
+  //     setLoadingLookup(true);
 
-      if (customer) {
-        setCustomerId(customer.id ?? null);
-        setFormData(prev => ({
-          ...prev,
-          clientName: customer.full_name ?? customer.name ?? "",
-          email: customer.email ?? "",
-          secondary_email: customer.secondary_email ?? "",
-          address: customer.address ?? "",
-          contactNumber: customer.contact_number ?? prev.contactNumber,
-        }));
-      } else {
-        // ✅ clear previously auto-filled fields if no match found
-        setCustomerId(null);
-        setFormData(prev => ({
-          ...prev,
-          contactNumber: "",
-          email: "",
-          secondary_email: "",
-          address: "",
-        }));
-      }
-    } catch (err) {
-      if (err?.name !== "AbortError") {
-        console.error("Customer name lookup error:", err);
-      }
+  //     const controller = new AbortController();
+  //     lookupAbortRef.current = controller;
+
+  //     try {
+  //       const customer = await fetchCustomerByQuery(baseApi, authToken, name, {
+  //         signal: controller.signal,
+  //       });
+
+  //       if (customer) {
+  //         setCustomerId(customer.id ?? null);
+  //         setFormData(prev => ({
+  //           ...prev,
+  //           clientName: customer.full_name ?? customer.name ?? "",
+  //           email: customer.email ?? "",
+  //           secondary_email: customer.secondary_email ?? "",
+  //           address: customer.address ?? "",
+  //           contactNumber: customer.contact_number ?? prev.contactNumber,
+  //           secondaryContactNumber: customer.secondary_contact_number ?? prev.secondaryContactNumber,
+  //           city: customer.city ?? "",
+  //           state: customer.state ?? "",
+  //           pincode: customer.pin_code ?? "",
+  //         }));
+  //       } else {
+  //         // ✅ clear previously auto-filled fields if no match found
+  //         setCustomerId(null);
+  //         setFormData(prev => ({
+  //           ...prev,
+  //           contactNumber: "",
+  //           email: "",
+  //           secondary_email: "",
+  //           address: "",
+  //         }));
+  //       }
+  //     } catch (err) {
+  //       if (err?.name !== "AbortError") {
+  //         console.error("Customer name lookup error:", err);
+  //       }
+  //       setCustomerId(null);
+  //       setFormData(prev => ({
+  //         ...prev,
+  //         email: "",
+  //         secondary_email: "",
+  //         address: "",
+  //       }));
+  //     } finally {
+  //       lookupAbortRef.current = null;
+  //       setLoadingLookup(false);
+  //     }
+  //   }, 1000); // 👈 delay for name
+  // };
+
+
+  const handleNameChange = async (e) => {
+    const name = e.target.value;
+    clearError(e);
+
+    const prevName = formData.clientName;
+
+    setFormData(prev => ({ ...prev, clientName: name }));
+    setShowSuggestions(true);
+
+    // ✅ If user edits existing selected customer → CLEAR DATA
+    if (customerId && name !== prevName) {
       setCustomerId(null);
+
       setFormData(prev => ({
         ...prev,
+        clientName: name,
+        contactNumber: "",
+        secondaryContactNumber: "",
         email: "",
         secondary_email: "",
         address: "",
+        city: "",
+        state: "",
+        pincode: "",
       }));
-    } finally {
-      lookupAbortRef.current = null;
-      setLoadingLookup(false);
-    }
-  }, 1000); // 👈 delay for name
-};
 
+      contactRef.current = "";
+    }
+
+    // ✅ If empty → clear everything
+    if (!name || name.trim() === "") {
+      setCustomerId(null);
+
+      setFormData(prev => ({
+        ...prev,
+        clientName: "",
+        contactNumber: "",
+        secondaryContactNumber: "",
+        email: "",
+        secondary_email: "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+      }));
+
+      contactRef.current = "";
+      setCustomerSuggestions([]);
+      return;
+    }
+
+    if (name.length < 2) {
+      setCustomerSuggestions([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${baseApi.replace(/\/$/, "")}/lead/customer/?search=${name}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+        }
+      );
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const results = Array.isArray(data) ? data : data.results ?? [];
+
+      setCustomerSuggestions(results);
+    } catch (err) {
+      console.error("Customer search error:", err);
+      setCustomerSuggestions([]);
+    }
+  };
+
+  const handleSelectCustomer = (customer) => {
+    setCustomerId(customer.id);
+
+    setFormData(prev => ({
+      ...prev,
+      clientName: customer.name || "",
+      contactNumber: customer.contact_number || "",
+      secondaryContactNumber: customer.secondary_contact_number || "",
+      email: customer.email || "",
+      secondary_email: customer.secondary_email || "",
+      address: customer.address || "",
+      city: customer.city || "",
+      state: customer.state || "",
+      pincode: customer.pin_code || "",
+    }));
+
+    contactRef.current = customer.contact_number || "";
+
+    setShowSuggestions(false);
+    setCustomerSuggestions([]);
+  };
 
   return (
     <>
@@ -871,42 +1150,43 @@ const handleNameChange = (e) => {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* CUSTOMER DETAILS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Contact Number */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Contact Number
-                </label>
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    name="contactNumber"
-                    placeholder="Enter Contact Number"
-                    value={formData.contactNumber}
-                    maxLength={10}
-                    onChange={(e) => {
-                      clearError(e);
+            {step === 1 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Contact Number */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Contact Number  <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      name="contactNumber"
+                      placeholder="Enter Contact Number"
+                      value={formData.contactNumber}
+                      maxLength={10}
+                      onChange={(e) => {
+                        clearError(e);
 
-                      // Accept digits only
-                      const cleaned = e.target.value.replace(/\D/g, "");
+                        // Accept digits only
+                        const cleaned = e.target.value.replace(/\D/g, "");
 
-                      // Update state only up to 10 digits
-                      if (cleaned.length <= 10) {
-                        handleContactChange({ target: { value: cleaned } });
-                      }
+                        // Update state only up to 10 digits
+                        if (cleaned.length <= 10) {
+                          handleContactChange({ target: { value: cleaned } });
+                        }
 
-                      // Live red border when less than 10 digits
-                      const input = e.target;
-                      if (cleaned.length > 0 && cleaned.length < 10) {
-                        input.classList.add("input-error");
-                      } else {
-                        input.classList.remove("input-error");
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                  />
+                        // Live red border when less than 10 digits
+                        const input = e.target;
+                        if (cleaned.length > 0 && cleaned.length < 10) {
+                          input.classList.add("input-error");
+                        } else {
+                          input.classList.remove("input-error");
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                    />
 
 
-                  {/* <button
+                    {/* <button
                  
                  
                  type="button" // Important to prevent form submission
@@ -916,401 +1196,651 @@ const handleNameChange = (e) => {
                 >
                   <FaUser className="text-gray-500 text-xl" />
                 </button> */}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {loadingLookup ? "Looking up customer..." : customerId ? `Matched customer id: ${customerId}` : ""}
-                </div>
-              </div>
 
-              {/* Customer Name (readonly for now) */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Customer Name
-                </label>
-                <input
-                  name="clientName"
-                  placeholder="Customer Name"
-                  value={formData.clientName}
-                  // onChange={(e) => {
-                  //   clearError(e);
-                  //   handleChange(e);
-                  // }}
-                  onChange={handleNameChange}
-                  // readOnly={!!customerId}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400`}
-                />
+                {/* Customer Name (readonly for now) */}
+                <div className="relative">
+                  <label className="text-sm font-normal text-gray-600">
+                    Customer Name  <span className="text-red-500">*</span>
+                  </label>
 
-              </div>
-
-              {/* Email (readonly) */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Customer Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email Address"
-                  value={formData.email}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  readOnly={!!customerId}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                    }`}
-                />
-
-              </div>
-
-              {/* Secondary Email (readonly) */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Customer Secondary Email
-                </label>
-                <input
-                  type="email"
-                  name="secondary_email"
-                  placeholder="Email Address"
-                  value={formData.secondary_email}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  readOnly={!!customerId}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                    }`}
-                />
-
-              </div>
-
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Address
-                </label>
-                <textarea
-                  name="address"
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  readOnly={!!customerId}
-                  rows={2}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
-                  ${customerId ? "bg-gray-100" : ""}`}
-                />
-
-
-              </div>
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Project Name
-                </label>
-                <input
-                  name="projectName"
-                  placeholder="Project Name"
-                  value={formData.projectName}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Enquiry Type
-                </label>
-
-                <select
-                  name="enquiryType"
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                  value={formData.enquiryType}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Enquiry Type</option>
-                  <option value="individual">Individuals</option>
-                  <option value="organization">Organization</option>
-                </select>
-              </div>
-
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Service Enquiry
-                </label>
-
-                <select
-                  name="serviceEnquiry"
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                  value={formData.serviceEnquiry || "no"}
-                  onChange={handleChange}
-                >
-                  <option value="no">No</option>
-                  <option value="yes">Yes</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Project Address
-                </label>
-                <input
-                  name="projectAddress"
-                  placeholder="Project address"
-                  value={formData.projectAddress}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-                />
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">Enquiry Date</label>
-                <input
-                  type="date"
-                  name="enquiry_date"
-                  value={formData.enquiry_date}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  readOnly={!!lead}
-                  className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
-                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
-                />
-              </div>
-            </div>
-
-            {/* ... rest unchanged ... */}
-            {/* LEAD DETAILS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Enquiry Source
-                </label>
-
-                <select
-                  name="leadSource"
-                  value={formData.leadSource}
-                  onChange={(e) => {
-                    clearError(e);
-
-                    const selected = leadSourceOptions.find(
-                      opt => opt.id === e.target.value
-                    );
-
-                    setFormData(prev => ({
-                      ...prev,
-                      leadSource: e.target.value,
-                      leadSourceInput: ""   // reset on change
-                    }));
-
-                    setShowLeadSourceInput(!!selected?.needsInput);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                >
-                  <option value="">Select Enquiry Source</option>
-                  {leadSourceOptions.map(opt => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </option>
-                  ))}
-                </select>
-
-
-                {/* 👇 SAME FIELD STORED */}
-                {showLeadSourceInput && (
                   <input
-                    type="text"
-                    name="leadSourceInput"
-                    placeholder="Enter details"
-                    value={formData.leadSourceInput}
-                    onChange={(e) =>
-                      setFormData(prev => ({
-                        ...prev,
-                        leadSourceInput: e.target.value
-                      }))
-                    }
-                    className="w-full mt-2 px-3 py-2 rounded-md border border-slate-300"
-                    required
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleNameChange}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                   />
-                )}
 
-              </div>
+                  {/* ✅ DROPDOWN */}
+                  {showSuggestions && customerSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-48 overflow-y-auto shadow-lg">
+                      {customerSuggestions.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => handleSelectCustomer(c)}
+                          className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm"
+                        >
+                          <div className="font-medium">{c.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {c.contact_number} {c.email && `| ${c.email}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Secondary Contact Number
+                  </label>
 
+                  <input
+                    name="secondaryContactNumber"
+                    placeholder="Secondary Contact Number"
+                    maxLength={10}
+                    value={formData.secondaryContactNumber}
+                    onChange={(e) => {
+                      clearError(e);
 
+                      const cleaned = e.target.value.replace(/\D/g, "");
 
-              {/* Status */}
-              {/* <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                >
-                  <option value="">Select Status</option>
-                  <option value="open">Open</option>
-                  <option value="in_process">In Process</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div> */}
+                      if (cleaned.length <= 10) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          secondaryContactNumber: cleaned
+                        }));
+                      }
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
 
-              {/* Assign To (dummy options for now) */}
-              {userRole.name !== "sales" && (
+                {/* Email (readonly) */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Customer Email  <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email Address"
+                    value={formData.email}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    readOnly={!!customerId}
+                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                      }`}
+                  />
+
+                </div>
+
+                {/* Secondary Email (readonly) */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Customer Secondary Email
+                  </label>
+                  <input
+                    type="email"
+                    name="secondary_email"
+                    placeholder="Email Address"
+                    value={formData.secondary_email}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    readOnly={!!customerId}
+                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
+                      }`}
+                  />
+
+                </div>
+                {/* Customer Type + Contact Person */}
+                <div className={formData.enquiryType === "organization" ? "md:col-span-2" : ""}>
+                  <div
+                    className={`grid gap-4 ${formData.enquiryType === "organization"
+                      ? "grid-cols-1 md:grid-cols-3"
+                      : "grid-cols-1 md:grid-cols-2"
+                      }`}
+                  >
+                    {/* Customer Type */}
+                    {/* Customer Type */}
+                    <div className={formData.enquiryType !== "organization" ? "md:col-span-2" : ""}>
+                      <label className="text-sm font-normal text-gray-600">
+                        Customer Type  <span className="text-red-500">*</span>
+                      </label>
+
+                      <select
+                        name="enquiryType"
+                        className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                        value={formData.enquiryType}
+                        onChange={(e) => {
+                          handleChange(e);
+
+                          if (e.target.value !== "organization") {
+                            setFormData(prev => ({
+                              ...prev,
+                              contact_person_name: "",
+                              contact_person_number: ""
+                            }));
+                          }
+                        }}
+                      >
+                        <option value="">Select Customer Type</option>
+                        <option value="individual">Individual</option>
+                        <option value="organization">Organization</option>
+                      </select>
+                    </div>
+                    {/* Organization Fields */}
+                    {formData.enquiryType === "organization" && (
+                      <>
+                        <div>
+                          <label className="text-sm font-normal text-gray-600">
+                            Contact Person Name  <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            name="contact_person_name"
+                            placeholder="Contact Person Name"
+                            value={formData.contact_person_name}
+                            onChange={(e) => {
+                              clearError(e);
+                              handleChange(e);
+                            }}
+                            className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-normal text-gray-600">
+                            Contact Person Number  <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            name="contact_person_number"
+                            placeholder="Contact Person Number"
+                            maxLength={10}
+                            value={formData.contact_person_number}
+                            onChange={(e) => {
+                              clearError(e);
+                              handleChange(e);
+                            }}
+                            className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
 
                 <div>
                   <label className="text-sm font-normal text-gray-600">
-                    Assign To
+                    Address  <span className="text-red-500">*</span>
                   </label>
+                  <textarea
+                    name="address"
+                    placeholder="Address"
+                    value={formData.address}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    readOnly={!!customerId}
+                    rows={1}
+                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
+                  ${customerId ? "bg-gray-100" : ""}`}
+                  />
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    City  <span className="text-red-500">*</span>
+                  </label>
+
+                  <input
+                    name="city"
+                    placeholder="City"
+                    value={formData.city}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
+
+                {/* State */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    State  <span className="text-red-500">*</span>
+                  </label>
+
                   <select
-                    name="assignTo"
-                    value={formData.assignTo}
+                    name="state"
+                    value={formData.state}
                     onChange={(e) => {
                       clearError(e);
                       handleChange(e);
                     }}
                     className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                   >
-                    <option value="">Assign To</option>
-                    {assignOptions.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name} {o.last_name}
+                    <option value="">Select State</option>
+
+                    {states.map((state) => (
+                      <option key={state.isoCode} value={state.name}>
+                        {state.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
 
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Enquiry Generate By
-                </label>
+                {/* Pincode */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Pincode  <span className="text-red-500">*</span>
+                  </label>
 
-                <select
-                  name="referance_by"
-                  value={formData.referance_by}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                >
-                  <option value="">Select</option>
+                  <input
+                    name="pincode"
+                    placeholder="Pincode"
+                    maxLength={6}
+                    value={formData.pincode}
+                    onChange={(e) => {
+                      clearError(e);
 
-                  {referenceOptions.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+                      const cleaned = e.target.value.replace(/\D/g, "");
 
-                {loadingReference && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Loading references...
+                      if (cleaned.length <= 6) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          pincode: cleaned
+                        }));
+                      }
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
+
+
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Enquiry Type  <span className="text-red-500">*</span>
+                  </label>
+
+                  <select
+                    name="serviceEnquiry"
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                    value={formData.serviceEnquiry || "no"}
+                    onChange={(e) => {
+                      handleChange(e);
+
+                      if (e.target.value === "sales") {
+                        setFormData(prev => ({
+                          ...prev,
+                          serviceCategory: [],
+                          customService: ""
+                        }));
+                      }
+                    }}
+                  >
+                    <option value="sales">Sales</option>
+                    <option value="service">Service</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+
+                {(formData.serviceEnquiry === "service" || formData.serviceEnquiry === "both") && (
+                  <div>
+                    <label className="text-sm font-normal text-gray-600">
+                      Service Category  <span className="text-red-500">*</span>
+                    </label>
+
+                    <CreatableSelect
+                      isMulti
+                      options={serviceSelectOptions}
+                      value={serviceSelectOptions.filter(option =>
+                        (formData.serviceCategory || []).includes(option.value)
+                      )}
+                      onChange={(selectedOptions) => {
+                        const values = selectedOptions
+                          ? selectedOptions.map((opt) => opt.value)
+                          : [];
+
+                        setFormData(prev => ({
+                          ...prev,
+                          serviceCategory: values
+                        }));
+                      }}
+                      onCreateOption={handleCreateService}
+                      placeholder="Select or type service..."
+                      className="mt-1"
+                    />
                   </div>
                 )}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Project Name
+                  </label>
+                  <input
+                    name="projectName"
+                    placeholder="Project Name"
+                    value={formData.projectName}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                  />
+                </div>
+
+
+
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Project Address
+                  </label>
+                  <input
+                    name="projectAddress"
+                    placeholder="Project address"
+                    value={formData.projectAddress}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                  />
+                </div>
+
+                {/* Date */}
+
               </div>
+            )}
+
+            {/* ... rest unchanged ... */}
+            {/* LEAD DETAILS */}
+            {step === 2 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Enquiry Source  <span className="text-red-500">*</span>
+                  </label>
+
+                  <select
+                    name="leadSource"
+                    value={formData.leadSource}
+                    onChange={(e) => {
+                      clearError(e);
+
+                      const selected = leadSourceOptions.find(
+                        opt => opt.id === e.target.value
+                      );
+
+                      setFormData(prev => ({
+                        ...prev,
+                        leadSource: e.target.value,
+                        leadSourceDetails: {
+                          name: "",
+                          mobile: "",
+                          email: "",
+                          address: ""
+                        }
+                      }));
+
+                      setShowLeadSourceInput(!!selected?.needsInput);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  >
+                    <option value="">Select Enquiry Source</option>
+                    {leadSourceOptions.map(opt => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </option>
+                    ))}
+                  </select>
 
 
 
-              {/* Follow-up Date */}
-              <div>
-                <label className="text-sm font-normal text-gray-600">
-                  Follow-up Date
-                </label>
-                <input
-                  type="date"
-                  name="followupDate"
-                  value={formData.followupDate}
-                  onChange={(e) => {
-                    clearError(e);
-                    handleChange(e);
-                  }}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                />
+                </div>
+
+
+                {/* Assign To (dummy options for now) */}
+                {userRole.name !== "sales" && (
+
+                  <div>
+                    <label className="text-sm font-normal text-gray-600">
+                      Assign To  <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="assignTo"
+                      value={formData.assignTo}
+                      onChange={(e) => {
+                        clearError(e);
+                        handleChange(e);
+                      }}
+                      className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                    >
+                      <option value="">Assign To</option>
+                      {assignOptions.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name} {o.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+
+                {showLeadSourceInput && (
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={formData.leadSourceDetails.name}
+                      onChange={(e) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          leadSourceDetails: {
+                            ...prev.leadSourceDetails,
+                            name: e.target.value
+                          }
+                        }))
+                      }
+                      className="px-3 py-2 rounded-md border border-slate-300"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Mobile"
+                      maxLength={10}
+                      value={formData.leadSourceDetails.mobile}
+                      onChange={(e) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          leadSourceDetails: {
+                            ...prev.leadSourceDetails,
+                            mobile: e.target.value.replace(/\D/g, "")
+                          }
+                        }))
+                      }
+                      className="px-3 py-2 rounded-md border border-slate-300"
+                    />
+
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={formData.leadSourceDetails.email}
+                      onChange={(e) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          leadSourceDetails: {
+                            ...prev.leadSourceDetails,
+                            email: e.target.value
+                          }
+                        }))
+                      }
+                      className="px-3 py-2 rounded-md border border-slate-300"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Address"
+                      value={formData.leadSourceDetails.address}
+                      onChange={(e) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          leadSourceDetails: {
+                            ...prev.leadSourceDetails,
+                            address: e.target.value
+                          }
+                        }))
+                      }
+                      className="px-3 py-2 rounded-md border border-slate-300 md:col-span-3"
+                    />
+
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm font-normal text-gray-600">Enquiry Date  <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    name="enquiry_date"
+                    value={formData.enquiry_date}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    readOnly={!!lead}
+                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
+                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                  />
+                </div>
+
+                {/* Follow-up Date */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Follow-up Date  <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="followupDate"
+                    value={formData.followupDate}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* PRODUCT / REQUIREMENTS */}
 
+            {step === 2 && (
+              <>
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Requirement Details
+                  </label>
+                  <textarea
+                    name="requirementDetails"
+                    placeholder="Enter requirement"
+                    value={formData.requirementDetails}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Requirement Details
-              </label>
-              <textarea
-                name="requirementDetails"
-                placeholder="Enter requirement"
-                value={formData.requirementDetails}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-              />
-            </div>
+                <AddLeadProductForm
+                  products={products}
+                  setProducts={setProducts}
+                  baseApi={baseApi}
+                  authToken={authToken}
+                  deletedProductIds={deletedProductIds}
+                  setDeletedProductIds={setDeletedProductIds}
+                />
 
-            <AddLeadProductForm
-              products={products}
-              setProducts={setProducts}
-              baseApi={baseApi}
-              authToken={authToken}
-              deletedProductIds={deletedProductIds}
-              setDeletedProductIds={setDeletedProductIds}
-            />
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    Remarks
+                  </label>
+                  <textarea
+                    name="remarks"
+                    placeholder="Enter remarks"
+                    value={formData.remarks}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                  />
+                </div>
+              </>
+            )}
 
-
-            {/* </div> */}
-
-            <div>
-              <label className="text-sm font-normal text-gray-600">
-                Remarks
-              </label>
-              <textarea
-                name="remarks"
-                placeholder="Enter remarks"
-                value={formData.remarks}
-                onChange={(e) => {
-                  clearError(e);
-                  handleChange(e);
-                }}
-                className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
-              />
-            </div>
             {/* BUTTONS */}
-            <div className="flex justify-end gap-4 mt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-400 rounded-md"
-              >
-                Cancel
-              </button>
+            <div className="flex justify-between mt-6">
 
-              <button
-                type="submit"
-                className="px-5 py-2 bg-blue-600 text-white rounded-md"
-                disabled={loading}
-              >
-                {loading ? (lead ? "Updating..." : "Saving...") : lead ? "Update" : "Submit"}
-              </button>
+              {/* BACK BUTTON */}
+              {step === 2 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-4 py-2 border border-gray-400 rounded-md"
+                >
+                  Back
+                </button>
+              )}
+
+              <div className="flex gap-4 ml-auto">
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-400 rounded-md"
+                >
+                  Cancel
+                </button>
+
+                {step === 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateStep1()) {
+                        setStep(2);
+                      }
+                    }}
+                    className="px-5 py-2 bg-blue-600 text-white rounded-md"
+                  >
+                    Next
+                  </button>
+                )}
+
+                {step === 2 && (
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-blue-600 text-white rounded-md"
+                    disabled={loading}
+                  >
+                    {loading ? (lead ? "Updating..." : "Saving...") : lead ? "Update" : "Submit"}
+                  </button>
+                )}
+
+              </div>
+
             </div>
           </form>
         </div>
