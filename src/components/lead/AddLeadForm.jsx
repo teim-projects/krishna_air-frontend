@@ -1223,7 +1223,7 @@ export default function AddLeadForm({
                       {customerSuggestions.map((c) => (
                         <div
                           key={c.id}
-                          onClick={() => handleSelectCustomer(c)}
+                          onMouseDown={() => handleSelectCustomer(c)}
                           className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm"
                         >
                           <div className="font-medium">{c.name}</div>
