@@ -73,7 +73,7 @@ export default function AddQuotation({ id, onBack }) {
       const paymentId = await getOrCreateTermTypeId("Quotation Payment", "Terms of Payment");
       const validityId = await getOrCreateTermTypeId("Quotation Validity", "Validity Terms");
       const warrantyId = await getOrCreateTermTypeId("Quotation Warranty", "Warranty Terms");
-      
+
       setPaymentTypeId(paymentId);
       setValidityTypeId(validityId);
       setWarrantyTypeId(warrantyId);
@@ -120,7 +120,7 @@ export default function AddQuotation({ id, onBack }) {
         setWarrantyTerms(warrantyTermsData);
 
         const active = q.versions.find(v => v.is_active);
-        
+
         setItems(
           active.high_side_items.map(i => ({
             product_variant: i.product_variant,
@@ -271,7 +271,7 @@ export default function AddQuotation({ id, onBack }) {
     }
 
     setLoading(true);
-    
+
     const payload = {
       customer: Number(data.customer_id),
       subject: data.subject,
@@ -439,7 +439,7 @@ export default function AddQuotation({ id, onBack }) {
 
           {/* SCROLLABLE FORM BODY */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
+
             {/* Basic Information Form */}
             <div>
               <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
@@ -474,38 +474,32 @@ export default function AddQuotation({ id, onBack }) {
               <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Terms <span className="text-red-500">*</span>
-                  </label>
                   <TermsMultiSelect
-                    value={paymentTerms}
-                    onChange={setPaymentTerms}
+                    label="Payment Terms"
+                    value={formData.payment_terms}
+                    onChange={(terms) => setFormData(prev => ({ ...prev, payment_terms: terms }))}
                     termsType={paymentTypeId}
                     baseApi={BASE_API}
                     token={token}
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Validity Terms
-                  </label>
                   <TermsMultiSelect
-                    value={validityTerms}
-                    onChange={setValidityTerms}
+                    label="Validity Terms"
+                    value={formData.validity_terms}
+                    onChange={(terms) => setFormData(prev => ({ ...prev, validity_terms: terms }))}
                     termsType={validityTypeId}
                     baseApi={BASE_API}
                     token={token}
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Warranty Terms
-                  </label>
                   <TermsMultiSelect
-                    value={warrantyTerms}
-                    onChange={setWarrantyTerms}
+                    label="Warranty Terms"
+                    value={formData.warranty_terms}
+                    onChange={(terms) => setFormData(prev => ({ ...prev, warranty_terms: terms }))}
                     termsType={warrantyTypeId}
                     baseApi={BASE_API}
                     token={token}
