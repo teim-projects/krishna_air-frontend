@@ -15,6 +15,9 @@ export default function ItemSelectionEngine({
 
   const isInvoice = mode === "invoice";
 
+  // Unit options array
+  const unitOptions = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot", "m", "in"];
+
   const api = axios.create({ baseURL: `${baseApi}/` });
 
   api.interceptors.request.use(config => {
@@ -34,7 +37,7 @@ export default function ItemSelectionEngine({
     product_variant: "",
     description: "",
     hsn_sac: "",
-    unit: "NOS",
+    unit: "Nos",
     quantity: "",
     unit_price: "",
     rate: "",
@@ -51,7 +54,7 @@ export default function ItemSelectionEngine({
     item: "",
     description: "",
     hsn_sac: "",
-    unit: "NOS",
+    unit: "Nos",
     quantity: "",
     unit_price: "",
     rate: "",
@@ -197,7 +200,7 @@ export default function ItemSelectionEngine({
       product_variant: "",
       description: "",
       hsn_sac: "",
-      unit: "NOS",
+      unit: "Nos",
       quantity: "",
       unit_price: "",
       rate: "",
@@ -235,7 +238,7 @@ export default function ItemSelectionEngine({
       item: "",
       description: "",
       hsn_sac: "",
-      unit: "NOS",
+      unit: "Nos",
       quantity: "",
       unit_price: "",
       rate: "",
@@ -370,10 +373,13 @@ export default function ItemSelectionEngine({
               />
             </div> */}
 
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Unit"
+            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={draftHighItem.unit}
-              onChange={e => updateHighDraft("unit", e.target.value)} />
+              onChange={e => updateHighDraft("unit", e.target.value)}>
+              {unitOptions.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
           </div>
 
 
@@ -439,14 +445,17 @@ export default function ItemSelectionEngine({
                         </td>
 
                         <td className="w-20 px-2 py-2 border-r">
-                          <input className="w-full border rounded px-1 py-1"
-                            value={row.unit || "NOS"}
+                          <select className="w-full border rounded px-1 py-1"
+                            value={row.unit || "Nos"}
                             onChange={e => {
                               const copy = [...items];
                               copy[i].unit = e.target.value;
                               setItems(copy);
-                            }}
-                          />
+                            }}>
+                            {unitOptions.map(unit => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
                         </td>
 
                         <td className="w-20 px-2 py-2 border-r">
@@ -639,10 +648,13 @@ export default function ItemSelectionEngine({
               value={draftLowItem.hsn_sac}
               onChange={e => updateLowDraft("hsn_sac", e.target.value)} />
 
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Unit"
+            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={draftLowItem.unit}
-              onChange={e => updateLowDraft("unit", e.target.value)} />
+              onChange={e => updateLowDraft("unit", e.target.value)}>
+              {unitOptions.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
           </div >
 
           {/* Row 5 - Description full width */}
@@ -711,15 +723,18 @@ export default function ItemSelectionEngine({
                           </td>
 
                           <td className="w-20 px-2 py-2 border-r">
-                            <input
+                            <select
                               className="w-full border rounded px-1 py-1"
-                              value={row.unit || "NOS"}
+                              value={row.unit || "Nos"}
                               onChange={e => {
                                 const copy = [...lowItems];
                                 copy[i].unit = e.target.value;
                                 setLowItems(copy);
-                              }}
-                            />
+                              }}>
+                              {unitOptions.map(unit => (
+                                <option key={unit} value={unit}>{unit}</option>
+                              ))}
+                            </select>
                           </td>
 
                           <td className="w-20 px-2 py-2 border-r">

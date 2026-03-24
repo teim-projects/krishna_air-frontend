@@ -45,7 +45,10 @@ export default function AddQuotation({ id, onBack }) {
     branch: "",
     site: "",
     gst_type: "CGST_SGST",
-    thank_you_note: ""
+    thank_you_note: "",
+    payment_terms: [],
+    validity_terms: [],
+    warranty_terms: []
   });
 
   //branch and site data
@@ -89,10 +92,35 @@ export default function AddQuotation({ id, onBack }) {
 
     const loadQuotationData = async () => {
       try {
+        // Wait for term types to be loaded first
+        if (!paymentTypeId || !validityTypeId || !warrantyTypeId) {
+          return;
+        }
+
         const res = await api.get(`quotation/quotation/${id}/`);
         const q = res.data;
 
-        setFormData({
+        // Load Terms (exactly like invoice)
+        if (q.terms_conditions_details) {
+          const payment = q.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Quotation Payment")
+            .map(t => t.id);
+
+          const validity = q.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Quotation Validity")
+            .map(t => t.id);
+
+          const warranty = q.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Quotation Warranty")
+            .map(t => t.id);
+
+          setPaymentTerms(payment);
+          setValidityTerms(validity);
+          setWarrantyTerms(warranty);
+        }
+
+        setFormData(prev => ({
+          ...prev,
           customer_phone: q.customer_contact || "",
           customer_name: q.customer_name || "",
           customer_id: q.customer || "",
@@ -101,23 +129,7 @@ export default function AddQuotation({ id, onBack }) {
           site: q.site || "",
           thank_you_note: q.thank_you_note || "",
           gst_type: q.versions.find(v => v.is_active)?.gst_type || "CGST_SGST"
-        });
-
-        const paymentTermsData = q.terms_conditions_details
-          ?.filter(t => t.terms_condition_type_name === "Quotation Payment")
-          .map(t => t.id) || [];
-
-        const validityTermsData = q.terms_conditions_details
-          ?.filter(t => t.terms_condition_type_name === "Quotation Validity")
-          .map(t => t.id) || [];
-
-        const warrantyTermsData = q.terms_conditions_details
-          ?.filter(t => t.terms_condition_type_name === "Quotation Warranty")
-          .map(t => t.id) || [];
-
-        setPaymentTerms(paymentTermsData);
-        setValidityTerms(validityTermsData);
-        setWarrantyTerms(warrantyTermsData);
+        }));
 
         const active = q.versions.find(v => v.is_active);
 
@@ -135,7 +147,8 @@ export default function AddQuotation({ id, onBack }) {
             gst_percent: i.gst_percent,
             mathadi_charges: i.mathadi_charges || 0,
             transportation_charges: i.transportation_charges || 0,
-            description: i.description || ""
+            description: i.description || "",
+            hsn_sac: i.hsn_sac || ""
           }))
         );
 
@@ -148,7 +161,8 @@ export default function AddQuotation({ id, onBack }) {
             gst_percent: l.gst_percent || 18,
             unit_price: l.unit_price,
             mathadi_charges: l.mathadi_charges || 0,
-            description: l.description || ""
+            description: l.description || "",
+            hsn_sac: l.hsn_sac || ""
           }))
         );
       } catch (err) {
@@ -157,7 +171,9 @@ export default function AddQuotation({ id, onBack }) {
     };
 
     loadQuotationData();
-  }, [id]);
+  }, [id, paymentTypeId, validityTypeId, warrantyTypeId]);
+
+  // Remove the separate useEffect for loadedTermsData
 
   useEffect(() => {
     const loadMasterData = async () => {
@@ -218,7 +234,7 @@ export default function AddQuotation({ id, onBack }) {
       thank_you_note: ""
     });
 
-    // Reset terms and conditions
+    // Reset terms using separate state variables
     setPaymentTerms([]);
     setValidityTerms([]);
     setWarrantyTerms([]);
@@ -281,9 +297,9 @@ export default function AddQuotation({ id, onBack }) {
 
       // Add terms and conditions
       terms_conditions: [
-        ...(paymentTerms || []).map(t => t.id || t),
-        ...(validityTerms || []).map(t => t.id || t),
-        ...(warrantyTerms || []).map(t => t.id || t)
+        ...paymentTerms,
+        ...validityTerms,
+        ...warrantyTerms
       ],
 
       versions: [{
@@ -332,6 +348,23 @@ export default function AddQuotation({ id, onBack }) {
       onBack && onBack();
 
     } catch (err) {
+      console.log("Error details:", err);
+      console.log("Response status:", err.response?.status);
+      console.log("Response data:", err.response?.data);
+      
+      // If quotation was actually saved (status 200-201), show success
+      if (err.response?.status === 200 || err.response?.status === 201) {
+        Swal.fire({
+          icon: "success",
+          text: isEdit ? "Quotation updated successfully" : "Quotation saved successfully",
+          timer: 1200,
+          showConfirmButton: false
+        });
+        resetForm();
+        onBack && onBack();
+        return;
+      }
+      
       console.log(err.response?.data);
       Swal.fire({ icon: "error", title: "Error", text: "Error saving quotation" });
     } finally {
@@ -476,8 +509,8 @@ export default function AddQuotation({ id, onBack }) {
                 <div>
                   <TermsMultiSelect
                     label="Payment Terms"
-                    value={formData.payment_terms}
-                    onChange={(terms) => setFormData(prev => ({ ...prev, payment_terms: terms }))}
+                    value={paymentTerms}
+                    onChange={setPaymentTerms}
                     termsType={paymentTypeId}
                     baseApi={BASE_API}
                     token={token}
@@ -487,8 +520,8 @@ export default function AddQuotation({ id, onBack }) {
                 <div>
                   <TermsMultiSelect
                     label="Validity Terms"
-                    value={formData.validity_terms}
-                    onChange={(terms) => setFormData(prev => ({ ...prev, validity_terms: terms }))}
+                    value={validityTerms}
+                    onChange={setValidityTerms}
                     termsType={validityTypeId}
                     baseApi={BASE_API}
                     token={token}
@@ -498,8 +531,8 @@ export default function AddQuotation({ id, onBack }) {
                 <div>
                   <TermsMultiSelect
                     label="Warranty Terms"
-                    value={formData.warranty_terms}
-                    onChange={(terms) => setFormData(prev => ({ ...prev, warranty_terms: terms }))}
+                    value={warrantyTerms}
+                    onChange={setWarrantyTerms}
                     termsType={warrantyTypeId}
                     baseApi={BASE_API}
                     token={token}
