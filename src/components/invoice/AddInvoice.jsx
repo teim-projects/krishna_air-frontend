@@ -396,10 +396,10 @@ export default function AddInvoice({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
       return;
     }
-    if (!data.invoice_no.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Invoice number is required" });
-      return;
-    }
+    // if (!data.invoice_no.trim()) {
+    //   Swal.fire({ icon: "error", title: "Validation", text: "Invoice number is required" });
+    //   return;
+    // }
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
@@ -526,14 +526,14 @@ export default function AddInvoice({ id, onBack }) {
       gridCols: 1,
       placeholder: "Auto-filled from phone search"
     },
-    {
-      name: "invoice_no",
-      label: "Invoice Number",
-      type: "text",
-      required: true,
-      gridCols: 1,
-      placeholder: "Enter invoice number"
-    },
+    // {
+    //   name: "invoice_no",
+    //   label: "Invoice Number",
+    //   type: "text",
+    //   required: true,
+    //   gridCols: 1,
+    //   placeholder: "Enter invoice number"
+    // },
     {
       name: "invoice_date",
       label: "Invoice Date",
