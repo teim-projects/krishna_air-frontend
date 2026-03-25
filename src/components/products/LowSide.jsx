@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import AddItem from "./AddItem";
 import axios from "axios";
 import Pagination from "../Pagination";
+import AcMaterials from "./AcMaterials";
+
 
 // Filter configuration for Low Side (using dropdowns)
 export const getLowSideFiltersConfig = (materialTypes = [], itemTypes = [], featureTypes = [], classes = []) => [
@@ -42,7 +44,7 @@ const LowSide = ({ base_api, filters }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-
+  const [showAcMaterialModal, setShowAcMaterialModal] = useState(false);
   // ← ADD THESE PAGINATION STATES
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -63,21 +65,21 @@ const LowSide = ({ base_api, filters }) => {
         `${base_api}/product/item/?page=${page}`,
         authHeaders()
       );
-      
+
       // Handle paginated response
       const data = response.data;
       const rows = data?.results ?? [];
-      
+
       setItems(rows);
-      
+
       // Calculate pagination
       const count = data?.count ?? rows.length;
       const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
-      
+
       setTotalCount(count);
       setTotalPages(pages);
       setCurrentPage(page);
-      
+
     } catch (err) {
       console.error("Error fetching items:", err);
       alert("Failed to fetch items");
@@ -166,7 +168,7 @@ const LowSide = ({ base_api, filters }) => {
   return (
     <div className="bg-white rounded-lg p-4">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      {/* <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-semibold">Items List</h2>
           <p className="text-sm text-gray-500">{totalCount} item(s) in inventory</p>
@@ -178,6 +180,32 @@ const LowSide = ({ base_api, filters }) => {
           <span className="text-xl">+</span>
           Add Item
         </button>
+      </div> */}
+
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-semibold">Items List</h2>
+          <p className="text-sm text-gray-500">{totalCount} item(s) in inventory</p>
+        </div>
+
+        <div className="flex gap-3">
+          {/* Add Item Button */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            <span className="text-xl">+</span>
+            Add Item
+          </button>
+
+          {/* NEW: Set AC Materials Button */}
+          <button
+            onClick={() => setShowAcMaterialModal(true)}
+            className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700"
+          >
+            ⚙️ Set AC Materials
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -234,7 +262,7 @@ const LowSide = ({ base_api, filters }) => {
 
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg> 
+                        </svg>
                       </button>
 
                       {/* Delete Icon */}
@@ -256,26 +284,31 @@ const LowSide = ({ base_api, filters }) => {
           </tbody>
 
         </table>
-      
-      {/* ← ADD PAGINATION HERE */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={totalCount}
-        onPageChange={(newPage) => {
-          // Check if filters are active
-          const hasAnyFilter = filters && Object.values(filters).some(
-            v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
-          );
-          
-          // Call appropriate function
-          hasAnyFilter ? filterItems(filters, newPage) : fetchItems(newPage);
-        }}
-      />
-      
-    </div>
 
-    {/* Add Item Modal */}
+        {/* ← ADD PAGINATION HERE */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalCount}
+          onPageChange={(newPage) => {
+            // Check if filters are active
+            const hasAnyFilter = filters && Object.values(filters).some(
+              v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+            );
+
+            // Call appropriate function
+            hasAnyFilter ? filterItems(filters, newPage) : fetchItems(newPage);
+          }}
+        />
+
+      </div>
+
+      <AcMaterials
+        open={showAcMaterialModal}
+        onClose={() => setShowAcMaterialModal(false)}
+        base_api={base_api}
+      />
+      {/* Add Item Modal */}
       <AddItem
         open={showAddModal}
         onClose={() => {
