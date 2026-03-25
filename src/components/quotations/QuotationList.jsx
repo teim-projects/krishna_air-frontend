@@ -1,6 +1,7 @@
 // quotation/QuotationList.jsx
 
 import { useEffect, useState } from "react";
+import React from "react";
 import axios from "axios";
 
 import {
@@ -162,9 +163,9 @@ export default function QuotationList({ onAdd, onEdit }) {
               const activeVersion = getActiveVersion(q);
 
               return (
-                <>
+                <React.Fragment key={q.id}>
                   {/* MAIN ROW */}
-                  <tr key={q.id} style={row}>
+                  <tr style={row}>
                     <td style={td}>{i + 1}</td>
 
                     <td style={td}>
@@ -174,7 +175,7 @@ export default function QuotationList({ onAdd, onEdit }) {
                       <div style={subText}>{q.customer_contact}</div>
                     </td>
 
-                    <td style={td}>{q.site_name}</td>
+                    <td style={td}>{q.site_name_detail || q.site_name || "-"}</td>
 
                     <td style={td}>
                       {activeVersion?.product_count || "1 item(s)"}
@@ -312,7 +313,7 @@ export default function QuotationList({ onAdd, onEdit }) {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </tbody>

@@ -335,10 +335,9 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         // Terms MultiSelects
         {
             name: "payment_terms",
-            label: "Payment Terms",
-            required: true,
             component: ({ value, onChange }) => (
                 <TermsMultiSelect
+                    label="Payment Terms"
                     value={value}
                     onChange={onChange}
                     termsType={paymentTypeId}
@@ -351,10 +350,9 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
         {
             name: "delivery_terms",
-            label: "Delivery Terms",
-            required: true,
             component: ({ value, onChange }) => (
                 <TermsMultiSelect
+                    label= "Delivery Terms"
                     value={value}
                     onChange={onChange}
                     termsType={deliveryTypeId}

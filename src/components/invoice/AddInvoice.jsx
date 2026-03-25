@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 
 
 const BASE_API =
-  import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  import.meta.env.VITE_BASE_API_URL;
 
 const api = axios.create({
   baseURL: `${BASE_API}/`,
@@ -77,24 +77,24 @@ export default function AddInvoice({ id, onBack }) {
     customer_phone: "",
     customer_name: "",
     customer_id: "",
-    
+
     // Invoice header
     invoice_no: "",
     invoice_date: new Date().toISOString().split('T')[0],
     branch: "",
     site: "",
     gst_type: "CGST_SGST",
-    
+
     // Buyer information
     buyer_address: "",
     buyer_gstin: "",
     buyer_state: "",
     buyer_state_code: "",
-    
+
     // Ship to
     ship_to_address: "",
     same_as_buyer: true,
-    
+
     // Additional info
     delivery_note: "",
     delivery_note_date: "",
@@ -105,7 +105,7 @@ export default function AddInvoice({ id, onBack }) {
     dispatched_through: "",
     destination: "",
     work_description: "",
-    
+
     // Company/Bank details
     bank_name: "",
     account_no: "",
@@ -297,7 +297,7 @@ export default function AddInvoice({ id, onBack }) {
   // ================= STATE CHANGE HANDLER =================
   const handleStateChange = (value) => {
     setStateSearch(value);
-    
+
     const found = STATES.find(
       s => s.name.toLowerCase() === value.toLowerCase()
     );
@@ -396,10 +396,10 @@ export default function AddInvoice({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
       return;
     }
-    if (!data.invoice_no.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Invoice number is required" });
-      return;
-    }
+    // if (!data.invoice_no.trim()) {
+    //   Swal.fire({ icon: "error", title: "Validation", text: "Invoice number is required" });
+    //   return;
+    // }
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
@@ -526,14 +526,14 @@ export default function AddInvoice({ id, onBack }) {
       gridCols: 1,
       placeholder: "Auto-filled from phone search"
     },
-    {
-      name: "invoice_no",
-      label: "Invoice Number",
-      type: "text",
-      required: true,
-      gridCols: 1,
-      placeholder: "Enter invoice number"
-    },
+    // {
+    //   name: "invoice_no",
+    //   label: "Invoice Number",
+    //   type: "text",
+    //   required: true,
+    //   gridCols: 1,
+    //   placeholder: "Enter invoice number"
+    // },
     {
       name: "invoice_date",
       label: "Invoice Date",
@@ -790,7 +790,7 @@ export default function AddInvoice({ id, onBack }) {
 
           {/* SCROLLABLE FORM BODY */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
+
             {/* Basic Information */}
             <div>
               <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
@@ -798,7 +798,7 @@ export default function AddInvoice({ id, onBack }) {
                 fields={basicInfoFields}
                 formData={formData}
                 onChange={setFormData}
-                onSubmit={() => {}}
+                onSubmit={() => { }}
                 submitButtonClass="hidden"
               />
             </div>
@@ -810,7 +810,7 @@ export default function AddInvoice({ id, onBack }) {
                 fields={buyerInfoFields}
                 formData={formData}
                 onChange={setFormData}
-                onSubmit={() => {}}
+                onSubmit={() => { }}
                 submitButtonClass="hidden"
               />
             </div>
@@ -822,7 +822,7 @@ export default function AddInvoice({ id, onBack }) {
                 fields={shipToFields}
                 formData={formData}
                 onChange={setFormData}
-                onSubmit={() => {}}
+                onSubmit={() => { }}
                 submitButtonClass="hidden"
               />
             </div>
@@ -848,7 +848,7 @@ export default function AddInvoice({ id, onBack }) {
                 fields={additionalInfoFields}
                 formData={formData}
                 onChange={setFormData}
-                onSubmit={() => {}}
+                onSubmit={() => { }}
                 submitButtonClass="hidden"
               />
             </div>
@@ -860,7 +860,7 @@ export default function AddInvoice({ id, onBack }) {
                 fields={companyBankFields}
                 formData={formData}
                 onChange={setFormData}
-                onSubmit={() => {}}
+                onSubmit={() => { }}
                 submitButtonClass="hidden"
               />
             </div>
@@ -870,10 +870,8 @@ export default function AddInvoice({ id, onBack }) {
               <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Terms <span className="text-red-500">*</span>
-                  </label>
                   <TermsMultiSelect
+                    label="Payment Terms"
                     value={paymentTerms}
                     onChange={setPaymentTerms}
                     termsType={paymentTypeId}
@@ -883,10 +881,8 @@ export default function AddInvoice({ id, onBack }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Delivery Terms <span className="text-red-500">*</span>
-                  </label>
                   <TermsMultiSelect
+                    label="Delivery Terms"
                     value={deliveryTerms}
                     onChange={setDeliveryTerms}
                     termsType={deliveryTypeId}

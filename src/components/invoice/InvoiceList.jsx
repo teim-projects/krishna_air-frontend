@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
 import { FiMail } from "react-icons/fi";
@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export default function InvoiceList({ onAdd, onEdit }) {
+const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -33,6 +33,11 @@ export default function InvoiceList({ onAdd, onEdit }) {
       })
       .catch((err) => console.error(err));
   };
+
+  // Expose refresh method to parent component
+  useImperativeHandle(ref, () => ({
+    refreshList: fetchInvoices
+  }));
 
   /* ================= PDF VIEW ================= */
 
@@ -214,7 +219,9 @@ export default function InvoiceList({ onAdd, onEdit }) {
       </div>
     </div>
   );
-}
+});
+
+export default InvoiceList;
 
 /* ================= UI STYLES (MATCH QUOTATION PAGE) ================= */
 
