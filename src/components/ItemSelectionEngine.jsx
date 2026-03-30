@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { MdDelete } from "react-icons/md";
+import AcMaterialList from "./AcMaterialList";
 
 export default function ItemSelectionEngine({
   baseApi,
@@ -70,21 +71,24 @@ export default function ItemSelectionEngine({
   const [models, setModels] = useState([]);
   const [variants, setVariants] = useState([]);
 
-  const [materialTypes, setMaterialTypes] = useState([]);
-  const [itemTypes, setItemTypes] = useState([]);
-  const [featureTypes, setFeatureTypes] = useState([]);
-  const [itemClasses, setItemClasses] = useState([]);
-  const [lowItemsMaster, setLowItemsMaster] = useState([]);
+  // const [materialTypes, setMaterialTypes] = useState([]);
+  // const [itemTypes, setItemTypes] = useState([]);
+  // const [featureTypes, setFeatureTypes] = useState([]);
+  // const [itemClasses, setItemClasses] = useState([]);
+  // const [lowItemsMaster, setLowItemsMaster] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [resetMaterials, setResetMaterials] = useState(0);
 
-  useEffect(() => {
-    api.get("product/actype/").then(r => setAcTypes(normalize(r.data)));
-    api.get("product/material-type/").then(r => setMaterialTypes(normalize(r.data)));
-    api.get("product/item-type/").then(r => setItemTypes(normalize(r.data)));
-    api.get("product/feature-type/").then(r => setFeatureTypes(normalize(r.data)));
-    api.get("product/item-class/").then(r => setItemClasses(normalize(r.data)));
-  }, []);
 
   /* ================= LOADERS ================= */
+  const loadAcTypes = async () => {
+    const r = await api.get("product/actype/");
+    setAcTypes(normalize(r.data));
+  };
+
+  useEffect(() => {
+    loadAcTypes();
+  }, []);
 
   const loadSubTypes = async (id) => {
     const r = await api.get(`product/ac-subtypes/?ac_type_id=${id}`);
@@ -175,6 +179,7 @@ export default function ItemSelectionEngine({
 
     const newRow = {
       ...draftHighItem,
+      unit: selectedVariant?.unit || draftHighItem.unit,
       quantity: draftHighItem.quantity || 1,
       unit_price: draftHighItem.unit_price || 0,
       rate: draftHighItem.rate || 0,
@@ -209,27 +214,46 @@ export default function ItemSelectionEngine({
       transportation_charges: ""
     });
   };
+
+  useEffect(() => {
+    if (draftHighItem.product_variant) {
+      const v = variants.find(
+        x => String(x.id) === String(draftHighItem.product_variant)
+      );
+
+      if (v) {
+        setDraftHighItem(prev => ({
+          ...prev,
+          unit: v.unit || prev.unit
+        }));
+      }
+    }
+  }, [draftHighItem.product_variant, variants]);
+
   const addLowItem = () => {
-    if (!draftLowItem.item) {
-      alert("Select Item");
+    if (selectedMaterials.length === 0) {
+      alert("Select Material");
       return;
     }
 
-    const selectedItem = lowItemsMaster.find(
-      i => String(i.id) === String(draftLowItem.item)
-    );
-
-    const newLow = {
+    const newItems = selectedMaterials.map(mat => ({
       ...draftLowItem,
       quantity: draftLowItem.quantity || 1,
       unit_price: draftLowItem.unit_price || 0,
       rate: draftLowItem.rate || 0,
       gst_percent: draftLowItem.gst_percent || 18,
       mathadi_charges: draftLowItem.mathadi_charges || 0,
-      item_code: selectedItem?.item_code
-    };
+      unit: mat.unit || draftLowItem.unit,
+      item: mat.id,
+      item_code: mat.material_name || mat.item_code
+    }));
 
-    setLowItems(prev => [...prev, newLow]);
+    setLowItems(prev => [...prev, ...newItems]);
+
+    // ✅ RESET
+    setSelectedMaterials([]);
+    setResetMaterials(prev => prev + 1);
+
     setDraftLowItem({
       material_type_id: "",
       item_type_id: "",
@@ -246,6 +270,19 @@ export default function ItemSelectionEngine({
       mathadi_charges: ""
     });
   };
+
+  useEffect(() => {
+    if (selectedMaterials.length === 1) {
+      const mat = selectedMaterials[0];
+
+      setDraftLowItem(prev => ({
+        ...prev,
+        unit: mat.unit || prev.unit
+      }));
+    }
+  }, [selectedMaterials]);
+
+
 
   /* ================= UI ================= */
 
@@ -562,77 +599,62 @@ export default function ItemSelectionEngine({
 
         <div className="p-4 space-y-4">
           {/* Row 1 - 4 dropdowns */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.material_type_id}
-              onChange={e => updateLowDraft("material_type_id", e.target.value)}>
-              <option>Material Type</option>
-              {materialTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+          <div className="gap-3">
 
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.item_type_id}
-              onChange={e => updateLowDraft("item_type_id", e.target.value)}>
-              <option>Item Type</option>
-              {itemTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.feature_type_id}
-              onChange={e => updateLowDraft("feature_type_id", e.target.value)}>
-              <option>Feature</option>
-              {featureTypes.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.item_class_id}
-              onChange={e => updateLowDraft("item_class_id", e.target.value)}>
-              <option>Item Class</option>
-              {itemClasses.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+            <AcMaterialList
+              base_api={baseApi}
+              resetTrigger={resetMaterials}
+              onSelectionChange={(data) => {
+                setSelectedMaterials(data.materials);
+              }}
+            />
           </div>
-          {/* Row 2 - remaining inputs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.item}
-              onChange={e => updateLowDraft("item", e.target.value)}>
-              <option>Select Item</option>
-              {lowItemsMaster.map(i => <option key={i.id} value={i.id}>{i.item_code}</option>)}
-            </select>
 
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+            {/* ✅ QTY FIELD */}
+            <input
               type="number"
               placeholder="Qty"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={draftLowItem.quantity}
-              onChange={e => updateLowDraft("quantity", e.target.value)} />
+              onChange={e => updateLowDraft("quantity", e.target.value)}
+            />
 
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            {/* ✅ PRICE FIELD (IMPORTANT) */}
+            <input
               type="number"
               placeholder={isInvoice ? "Rate" : "Price"}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
-              onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
+              onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
+            />
 
+            {/* ✅ GST */}
             {gstType !== "NO_GST" && (
-              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              <input
                 type="number"
                 placeholder="GST%"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 value={draftLowItem.gst_percent}
-                onChange={e => updateLowDraft("gst_percent", e.target.value)} />
+                onChange={e => updateLowDraft("gst_percent", e.target.value)}
+              />
+            )}
+
+
+            {/* Row 3 - Additional fields for non-invoice mode */}
+            {!isInvoice && (
+              <div className="grid grid-cols-1 gap-3">
+                <input
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  type="number"
+                  placeholder="Mathadi Charges"
+                  value={draftLowItem.mathadi_charges}
+                  onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+                />
+              </div>
             )}
           </div>
-
-          {/* Row 3 - Additional fields for non-invoice mode */}
-          {!isInvoice && (
-            <div className="grid grid-cols-1 gap-3">
-              <input
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                type="number"
-                placeholder="Mathadi Charges"
-                value={draftLowItem.mathadi_charges}
-                onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-              />
-            </div>
-          )}
           {/* {gstType !== "NO_GST" && (
             <input className="border rounded-lg px-3 py-2"
               type="number"
