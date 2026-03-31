@@ -329,7 +329,7 @@ export default function AddLeadFollowUpForm({
   const [status, setStatus] = useState(""); //followup?.status ?? "open"
   const [remarks, setRemarks] = useState(followup?.remarks ?? "");
   const [showHistory, setShowHistory] = useState(false);
-  
+
   // State for follow-up product modal
   const [showFollowUpProductModal, setShowFollowUpProductModal] = useState(false);
   const [selectedFollowUp, setSelectedFollowUp] = useState(null);
@@ -384,29 +384,68 @@ export default function AddLeadFollowUpForm({
     fetchLead();
   }, [open, leadId, BASE_API, token]);
 
+  // Autofill date and status based on lead data
+  useEffect(() => {
+    if (!leadData || followup) return; // Skip if editing existing followup
 
-  //   useEffect(() => {
-  //   if (!leadData) return;
+    // 1️⃣ Autofill followup date from lead's followup_date
+    if (leadData.followup_date && !followupDate) {
+      setFollowupDate(leadData.followup_date);
+    }
 
-  //   // 1️⃣ If editing followup → use its own status
-  //   if (followup?.status) {
-  //     setStatus(followup.status);
-  //     return;
-  //   }
+    // 2️⃣ Autofill status based on date logic
+    if (leadData.followup_date) {
+      const followupDateObj = new Date(leadData.followup_date);
+      const today = new Date();
+      const diffTime = today - followupDateObj;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  //   // 2️⃣ If previous followups exist → use last followup status
-  //   if (leadData?.followups?.length > 0) {
-  //     const lastFollowup =
-  //       leadData.followups[leadData.followups.length - 1];
+      if (diffDays < 0) {
+        setStatus("open"); // Future date
+      } else if (diffDays <= 7) {
+        setStatus("in_process"); // Within a week
+      } else {
+        setStatus("closed"); // Overdue
+      }
+    } else {
+      setStatus("open"); // Default if no date
+    }
+  }, [leadData, followup, followupDate]);
 
-  //     setStatus(lastFollowup.status);
-  //   }
+  useEffect(() => {
+    if (!leadData) return;
 
-  //   // 3️⃣ If no followup exists → default
-  //   else {
-  //     setStatus("open");
-  //   }
-  // }, [leadData, followup]);
+    // 1️⃣ If editing followup → use its own status
+    if (followup?.status) {
+      setStatus(followup.status);
+      return;
+    }
+
+    // 2️⃣ If previous followups exist → use last followup status
+    if (leadData?.followups?.length > 0) {
+      const lastFollowup = leadData.followups[leadData.followups.length - 1];
+      setStatus(lastFollowup.status);
+      return;
+    }
+
+    // 3️⃣ Auto-determine status based on followup date
+    if (leadData.followup_date) {
+      const followupDateObj = new Date(leadData.followup_date);
+      const today = new Date();
+      const diffTime = today - followupDateObj;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        setStatus("open"); // Future date
+      } else if (diffDays <= 7) {
+        setStatus("in_process"); // Within a week  
+      } else {
+        setStatus("closed"); // Overdue
+      }
+    } else {
+      setStatus("open"); // Default
+    }
+  }, [leadData, followup]);
 
 
 

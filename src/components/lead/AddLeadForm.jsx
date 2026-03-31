@@ -651,10 +651,10 @@ export default function AddLeadForm({
     if (selectedSource?.needsInput) {
       const { name, mobile } = formData.leadSourceDetails;
 
-      if (!name || !mobile) {
-        showError("leadSource", "Reference name and mobile are required");
-        return false;
-      }
+      // if (!name || !mobile) {
+      //   showError("leadSource", "Reference name and mobile are required");
+      //   return false;
+      // }
     }
 
     // if (!formData.status) {
@@ -1476,7 +1476,7 @@ export default function AddLeadForm({
                   <select
                     name="serviceEnquiry"
                     className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                    value={formData.serviceEnquiry || "no"}
+                    value={formData.serviceEnquiry || ""}
                     onChange={(e) => {
                       handleChange(e);
 
@@ -1489,6 +1489,7 @@ export default function AddLeadForm({
                       }
                     }}
                   >
+                    <option value="">Select Enquiry Type</option>
                     <option value="sales">Sales</option>
                     <option value="service">Service</option>
                     <option value="both">Both</option>
