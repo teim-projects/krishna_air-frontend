@@ -6,7 +6,7 @@ import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
 import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument } from "react-icons/md";
 import Swal from "sweetalert2";
-import { useUserRole } from '../hooks/useAuth'; 
+import { useUserRole } from '../hooks/useAuth';
 
 
 export default function Lead() {
@@ -25,10 +25,10 @@ export default function Lead() {
     lead_source: "",
     date: { from: "", to: "" },
     followup_date: { from: "", to: "" },
-    overdue: [], 
+    overdue: [],
   }), []);
-  
-  
+
+
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
   const [rows, setRows] = useState([]);
@@ -69,16 +69,16 @@ export default function Lead() {
   ], []);
 
   const leadSourceOptions = useMemo(() => [
-    { value: "google_ads", label: "Google Ads" }, 
-    { value: "indiamart", label: "IndiaMART" }, 
-    { value: "bni", label: "BNI" }, 
-    { value: "justdial", label: "Justdial" }, 
-    { value: "reference", label: "Reference" }, 
-    { value: "architect/interior_designer", label: "Architect Interior Designer" }, 
+    { value: "google_ads", label: "Google Ads" },
+    { value: "indiamart", label: "IndiaMART" },
+    { value: "bni", label: "BNI" },
+    { value: "justdial", label: "Justdial" },
+    { value: "reference", label: "Reference" },
+    { value: "architect/interior_designer", label: "Architect Interior Designer" },
     { value: "builder", label: "Builder" },
     { value: "existing_customer", label: "Existing Customer" },
-    { value: "ka_staff", label: "KA Staff" }, 
-    { value: "other", label: "Other" }, 
+    { value: "ka_staff", label: "KA Staff" },
+    { value: "other", label: "Other" },
   ], []);
 
 
@@ -214,7 +214,7 @@ export default function Lead() {
       if (appliedFilters.date?.to) {
         params.set("date_to", appliedFilters.date.to);
       }
-      
+
       // 🔹 FOLLOWUP DATE RANGE
       if (appliedFilters.followup_date?.from) {
         params.set("followup_date_from", appliedFilters.followup_date.from);
@@ -222,13 +222,13 @@ export default function Lead() {
       if (appliedFilters.followup_date?.to) {
         params.set("followup_date_to", appliedFilters.followup_date.to);
       }
-      
+
       // 🔴 OVERDUE FILTER
       if (appliedFilters.overdue?.includes("true")) {
         params.set("overdue", "true");
       }
 
-      
+
       // ✅ Final check for assign_to: Only include filter if user is NOT sales
       // The backend handles the restriction for sales users automatically.
       if (userRole?.name !== 'sales' && appliedFilters.assign_to) {
@@ -327,10 +327,33 @@ export default function Lead() {
     const year = d.getFullYear();
     return `${day}-${month}-${year}`;
   };
+
+    const getRowClassName = (lead) => {
+    if (!lead.followup_date) return "";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const followupDate = new Date(lead.followup_date);
+    followupDate.setHours(0, 0, 0, 0);
+    
+    // Today's followup - Yellow
+    if (followupDate.getTime() === today.getTime()) {
+      return "bg-yellow-100";
+    }
+    
+    // Missed followup - Red
+    if (followupDate < today) {
+      return "bg-red-100";
+    }
+    
+    return "";
+  };
+
   const columns = [
     { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1) },
     { key: "date", label: "Date", render: (r) => formatDate(r.date) },
-    { key: "followup_date", label: "Followup Date", render: (r) => formatDate(r.followup_date)},
+    { key: "followup_date", label: "Followup Date", render: (r) => formatDate(r.followup_date) },
     { key: "name", label: "Name", render: (r) => r.customer_name },
     { key: "contact", label: "Contact", render: (r) => r.customer_contact },
     // { key: "email", label: "Email", render: (r) => r.customer_email },
@@ -339,12 +362,12 @@ export default function Lead() {
     { key: "status", label: "Status", render: (r) => r.status },
     // ✅ SHOW ONLY IF USER IS NOT SALES
     ...(userRole?.name !== "sales"
-    ? [{
+      ? [{
         key: "assign_to",
         label: "Assign To",
         render: (r) => r.assign_to_details?.full_name || "-"
       }]
-    : [])
+      : [])
   ];
 
   // actions renderer (centered by TableView)
@@ -428,6 +451,7 @@ export default function Lead() {
           pageSize={PAGE_SIZE} // Using the actual PAGE_SIZE here
           actions={actionsRenderer}
           emptyMessage="No leads found"
+          rowClassName={getRowClassName}
         />
       </div>
       <AddLeadForm
@@ -458,7 +482,7 @@ export default function Lead() {
         onClose={() => setShowLeadFollowUp(false)}
         baseApi={BASE_API}
         token={token}
-        leadId={followUpLeadId} 
+        leadId={followUpLeadId}
         onSuccess={() => {
           fetchData(currentPage);
           setShowLeadFollowUp(false);

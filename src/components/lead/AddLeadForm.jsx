@@ -80,7 +80,7 @@ export default function AddLeadForm({
       email: "",
       address: ""
     },
-    status: "",
+    status: "open",
     assignTo: "",
     creditedBy: "",
     // referance_by: "",
@@ -326,7 +326,7 @@ export default function AddLeadForm({
           email: "",
           address: ""
         },
-        status: lead.status || "",
+        status: lead.status || "open",
         assignTo: lead.assign_to || "",
         creditedBy: lead.creatd_by_details?.full_name || "",
         // referance_by: lead.referance_by || "",
@@ -648,14 +648,14 @@ export default function AddLeadForm({
       opt => opt.id === formData.leadSource
     );
 
-    if (selectedSource?.needsInput) {
-      const { name, mobile } = formData.leadSourceDetails;
+    // if (selectedSource?.needsInput) {
+    //   const { name, mobile } = formData.leadSourceDetails;
 
-      // if (!name || !mobile) {
-      //   showError("leadSource", "Reference name and mobile are required");
-      //   return false;
-      // }
-    }
+    //   if (!name || !mobile) {
+    //     showError("leadSource", "Reference name and mobile are required");
+    //     return false;
+    //   }
+    // }
 
     // if (!formData.status) {
     //   showError("status", "Status is required");
@@ -863,7 +863,7 @@ export default function AddLeadForm({
         lead_source_input: showLeadSourceInput
           ? formData.leadSourceDetails
           : null,
-        status: "open", // default to open on create; keep unchanged on edit
+        status: lead ? formData.status : "open", // default to open on create; keep unchanged on edit
         // referance_by: formData.referance_by || null,
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,

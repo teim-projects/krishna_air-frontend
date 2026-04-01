@@ -31,6 +31,9 @@ export default function AddCustomerForm({
   const [siteCity, setSiteCity] = useState(customer?.site_city ?? "");
   const [siteState, setSiteState] = useState(customer?.site_state ?? "");
   const [sitePinCode, setSitePinCode] = useState(customer?.site_pin_code ?? "");
+  const [gst, setGst] = useState(customer?.gst ?? "");
+  const [pan, setPan] = useState(customer?.pan ?? "");
+
 
   const [loading, setLoading] = useState(false);
   // const [stateid, setstateid] = useState(null);
@@ -63,6 +66,8 @@ export default function AddCustomerForm({
     setPocContactNumber(customer.poc_contact_number || "");
     setAddress(customer.address || "");
     setPinCode(customer.pin_code || "");
+    setGst(customer.gst || "");
+    setPan(customer.pan || "");
     setBothAddressSame(Boolean(customer.both_address_is_same));
     setSiteAddress(customer.site_address || "");
     setSitePinCode(customer.site_pin_code || "");
@@ -186,6 +191,8 @@ export default function AddCustomerForm({
         poc_name: pocName.trim(),
         poc_contact_number: pocContactNumber.toString(),
         address: address.trim(),
+        gst: gst.trim().toUpperCase(),
+        pan: pan.trim().toUpperCase(),
         city: city.trim(),
         state: stateVal.trim(),
         pin_code: pinCode.toString().trim(),
@@ -257,15 +264,10 @@ export default function AddCustomerForm({
     } finally {
       setLoading(false);
     }
-
-
-
-
   };
 
   return (
     <>
-
       <div className="fixed inset-0 mt-8  bg-black/40 flex items-start sm:items-center justify-center z-50">
         <div className="bg-white rounded-md shadow-lg w-full max-w-lg relative max-h-[85vh] flex flex-col">
 
@@ -336,15 +338,36 @@ export default function AddCustomerForm({
                   value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
               </div>
 
+                            {/* GST */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">GST Number <small>(optional)</small></label>
+                <input 
+                  className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={gst} 
+                  onChange={e => setGst(e.target.value.toUpperCase())}
+                  maxLength={15}
+                  placeholder="Enter GST number"
+                />
+              </div>
+
+              {/* PAN */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">PAN Number <small>(optional)</small></label>
+                <input 
+                  className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  value={pan} 
+                  onChange={e => setPan(e.target.value.toUpperCase())}
+                  maxLength={10}
+                  placeholder="Enter PAN number"
+                />
+              </div>
+
               {/* Billing Address */}
               <div>
                 <label className="text-sm text-slate-700 mb-1 block">Address</label>
                 <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
                   value={address} onChange={e => setAddress(e.target.value)} />
               </div>
-
-
-
 
               {/* City / State / Pin */}
               <div className="grid grid-cols-3 gap-3">
@@ -498,11 +521,7 @@ export default function AddCustomerForm({
             </form>
           </div>
         </div>
-
-
       </div>
-
-
 
       <style>
         {`
@@ -540,15 +559,8 @@ export default function AddCustomerForm({
             .input-like-select .rsc-select-input {
               padding-right: 0.75rem !important;
             }
-            
-
-
-
-            `
-        }</style>
+        `}
+      </style>
     </>
   );
-
 }
-
-
