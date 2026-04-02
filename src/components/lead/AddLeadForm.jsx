@@ -618,10 +618,10 @@ export default function AddLeadForm({
       return false;
     }
 
-    if (!formData.email && !customerId) {
-      showError("email", "Email is required");
-      return false;
-    }
+    // if (!formData.email && !customerId) {
+    //   showError("email", "Email is required");
+    //   return false;
+    // }
 
     // 📧 validate format ONLY if email exists
     if (formData.email && !emailRegex.test(formData.email)) {
@@ -686,10 +686,10 @@ export default function AddLeadForm({
       return false;
     }
 
-    if (!formData.email && !customerId) {
-      showError("email", "Email is required");
-      return false;
-    }
+    // if (!formData.email && !customerId) {
+    //   showError("email", "Email is required");
+    //   return false;
+    // }
 
     if (formData.email && !emailRegex.test(formData.email)) {
       showError("email", "Invalid email format");
@@ -1264,7 +1264,7 @@ export default function AddLeadForm({
                 {/* Email (readonly) */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
-                    Customer Email  <span className="text-red-500">*</span>
+                    Customer Email
                   </label>
                   <input
                     type="email"
