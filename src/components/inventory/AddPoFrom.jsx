@@ -16,9 +16,39 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const [vendors, setVendors] = useState([]);
     const [branches, setBranches] = useState([]);
     const [sites, setSites] = useState([]);
+    const [step, setStep] = useState(1);
 
+    // Reset step when modal opens
+    useEffect(() => {
+        if (open) {
+            setStep(1);
+        }
+    }, [open]);
 
+        // Step validation functions
+    const validateStep1 = () => {
+        if (!formData.vendor) {
+            alert("Vendor is required");
+            return false;
+        }
+        if (!formData.book_no) {
+            alert("Book No is required");
+            return false;
+        }
+        if (!formData.po_date) {
+            alert("PO Date is required");
+            return false;
+        }
+        return true;
+    };
 
+    const validateStep2 = () => {
+        if (!formData.products || formData.products.length === 0) {
+            alert("At least one product is required");
+            return false;
+        }
+        return true;
+    };
 
     useEffect(() => {
         const initTypes = async () => {
@@ -187,7 +217,8 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
     // Define form fields configuration
 
-    const fields = [
+    // Step 1 Fields - Basic Information
+    const step1Fields = [
         {
             name: "vendor",
             label: "Vendor",
@@ -281,7 +312,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 return true;
             }
         },
+    ];
 
+    // Step 2 Fields - Products
+    const step2Fields = [
         {
             name: "products_section",
             label: "Items",
@@ -300,7 +334,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             ),
             gridCols: 2,
         },
+    ];
 
+    // Step 3 Fields - Financial & Terms
+    const step3Fields = [
         {
             name: "gst_percentage",
             label: "GST %",
@@ -365,6 +402,15 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
     ];
 
+     // Get current step fields
+    const getCurrentFields = () => {
+        switch (step) {
+            case 1: return step1Fields;
+            case 2: return step2Fields;
+            case 3: return step3Fields;
+            default: return step1Fields;
+        }
+    };
     // const handleSubmit = async (data) => {
     //     try {
     //         setLoading(true);
@@ -475,48 +521,66 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
     if (!open) return null;
 
-    return (
+       return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-4xl rounded-lg shadow-lg 
-                    max-h-[90vh] flex flex-col">
+            <div className="bg-white w-full max-w-4xl rounded-lg shadow-lg max-h-[90vh] flex flex-col">
 
-                {/* Header */}
-                <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">
-                        {po ? "Edit Purchase Order" : "Add Purchase Order"}
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        className="text-xl font-bold hover:text-red-500"
-                        aria-label="Close"
-                    >
-                        ✕
-                    </button>
+                {/* Header with Step Indicator */}
+                <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-semibold">
+                            {po ? "Edit Purchase Order" : "Add Purchase Order"}
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="text-xl font-bold hover:text-red-500"
+                            aria-label="Close"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    
+                    {/* Step Indicator */}
+                    <div className="flex items-center justify-center space-x-4">
+                        <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                                1
+                            </div>
+                            <span className="ml-2">Basic Info</span>
+                        </div>
+                        <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                        <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                                2
+                            </div>
+                            <span className="ml-2">Products</span>
+                        </div>
+                        <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                        <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                                3
+                            </div>
+                            <span className="ml-2">Terms & Pricing</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Scrollable Body */}
+                {/* Scrollable Body */}
                 <div className="flex-1 overflow-y-auto p-6">
                     <ReusableForm
-                        fields={fields}
+                        fields={getCurrentFields()}
                         formData={formData}
                         onChange={setFormData}
-                        onSubmit={handleSubmit}
+                        onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
                         loading={loading}
-                        onCancel={onClose}
-                        showReset={true}
-                        onReset={() =>
-                            setFormData({
-                                vendor: "",
-                                branch: "",
-                                site: "",
-                                book_no: "",
-                                po_date: "",
-                                notes: "",
-                                is_active: true,
-                            })
-                        }
+                        showCancel={true}
+                        onCancel={step > 1 ? () => setStep(step - 1) : onClose}
+                        submitText={step === 3 ? (po ? "Update" : "Submit") : "Next"}
+                        cancelText={step > 1 ? "Back" : "Cancel"}
                     />
                 </div>
+
             </div>
         </div>
     );
