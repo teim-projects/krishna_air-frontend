@@ -8,7 +8,7 @@ import { fetchCustomerByQuery } from "../customers/customerLookup";
 import { useUserRole } from '../../hooks/useAuth';
 import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
-import { State } from "country-state-city";
+import { State, City } from "country-state-city";
 import CreatableSelect from "react-select/creatable";
 
 
@@ -88,7 +88,12 @@ export default function AddLeadForm({
     remarks: "",
   });
 
-
+  // Cities based on selected state
+  const cities = useMemo(() => {
+    if (!formData.state) return [];
+    const selectedState = states.find(state => state.name === formData.state);
+    return selectedState ? City.getCitiesOfState("IN", selectedState.isoCode) : [];
+  }, [formData.state, states]);
 
   // NEW: keep matched customer id
   const [customerId, setCustomerId] = useState(null);
@@ -1397,24 +1402,6 @@ export default function AddLeadForm({
                   />
                 </div>
 
-                {/* City */}
-                <div>
-                  <label className="text-sm font-normal text-gray-600">
-                    City  <span className="text-red-500">*</span>
-                  </label>
-
-                  <input
-                    name="city"
-                    placeholder="City"
-                    value={formData.city}
-                    onChange={(e) => {
-                      clearError(e);
-                      handleChange(e);
-                    }}
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                  />
-                </div>
-
                 {/* State */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
@@ -1427,6 +1414,8 @@ export default function AddLeadForm({
                     onChange={(e) => {
                       clearError(e);
                       handleChange(e);
+                      // Clear city when state changes
+                      setFormData(prev => ({ ...prev, city: "" }));
                     }}
                     className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
                   >
@@ -1440,10 +1429,38 @@ export default function AddLeadForm({
                   </select>
                 </div>
 
+                {/* City */}
+                <div>
+                  <label className="text-sm font-normal text-gray-600">
+                    City  <span className="text-red-500">*</span>
+                  </label>
+
+                  <select
+                    name="city"
+                    value={formData.city}
+                    onChange={(e) => {
+                      clearError(e);
+                      handleChange(e);
+                    }}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
+                    disabled={!formData.state}
+                  >
+                    <option value="">
+                      {!formData.state ? "Select State First" : "Select City"}
+                    </option>
+
+                    {cities.map((city) => (
+                      <option key={city.name} value={city.name}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Pincode */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
-                    Pincode  <span className="text-red-500">*</span>
+                    Pincode
                   </label>
 
                   <input

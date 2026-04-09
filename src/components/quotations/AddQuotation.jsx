@@ -35,6 +35,7 @@ export default function AddQuotation({ id, onBack }) {
   const [paymentTypeId, setPaymentTypeId] = useState(null);
   const [validityTypeId, setValidityTypeId] = useState(null);
   const [warrantyTypeId, setWarrantyTypeId] = useState(null);
+  const [otherTypeId, setOtherTypeId] = useState(null);
 
   // Step state for multistep form
   const [step, setStep] = useState(1);
@@ -56,7 +57,8 @@ export default function AddQuotation({ id, onBack }) {
     thank_you_note: "",
     payment_terms: [],
     validity_terms: [],
-    warranty_terms: []
+    warranty_terms: [],
+    other_terms: []
   });
 
   //branch and site data
@@ -74,6 +76,7 @@ export default function AddQuotation({ id, onBack }) {
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [validityTerms, setValidityTerms] = useState([]);
   const [warrantyTerms, setWarrantyTerms] = useState([]);
+  const [otherTerms, setOtherTerms] = useState([]);
 
   // ================= THANK YOU NOTE SUGGESTIONS =================
   const [thankYouSuggestions, setThankYouSuggestions] = useState([]);
@@ -90,10 +93,12 @@ export default function AddQuotation({ id, onBack }) {
       const paymentId = await getOrCreateTermTypeId("Quotation Payment", "Terms of Payment");
       const validityId = await getOrCreateTermTypeId("Quotation Validity", "Validity Terms");
       const warrantyId = await getOrCreateTermTypeId("Quotation Warranty", "Warranty Terms");
+      const otherId = await getOrCreateTermTypeId("Quotation Other", "Other Terms");
 
       setPaymentTypeId(paymentId);
       setValidityTypeId(validityId);
       setWarrantyTypeId(warrantyId);
+      setOtherTypeId(otherId);
     };
 
     initTypes();
@@ -107,7 +112,7 @@ export default function AddQuotation({ id, onBack }) {
     const loadQuotationData = async () => {
       try {
         // Wait for term types to be loaded first
-        if (!paymentTypeId || !validityTypeId || !warrantyTypeId) {
+        if (!paymentTypeId || !validityTypeId || !warrantyTypeId || !otherTypeId) {
           return;
         }
 
@@ -128,9 +133,14 @@ export default function AddQuotation({ id, onBack }) {
             .filter(t => t.terms_condition_type_name === "Quotation Warranty")
             .map(t => t.id);
 
+          const other = q.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Quotation Other")
+            .map(t => t.id);
+
           setPaymentTerms(payment);
           setValidityTerms(validity);
           setWarrantyTerms(warranty);
+          setOtherTerms(other);
         }
 
         setFormData(prev => ({
@@ -185,7 +195,7 @@ export default function AddQuotation({ id, onBack }) {
     };
 
     loadQuotationData();
-  }, [id, paymentTypeId, validityTypeId, warrantyTypeId]);
+  }, [id, paymentTypeId, validityTypeId, warrantyTypeId, otherTypeId]);
 
   // Remove the separate useEffect for loadedTermsData
 
@@ -331,6 +341,7 @@ export default function AddQuotation({ id, onBack }) {
     setPaymentTerms([]);
     setValidityTerms([]);
     setWarrantyTerms([]);
+    setOtherTerms([]);
 
     setItems([
       {
@@ -392,7 +403,8 @@ export default function AddQuotation({ id, onBack }) {
       terms_conditions: [
         ...paymentTerms,
         ...validityTerms,
-        ...warrantyTerms
+        ...warrantyTerms,
+        ...otherTerms
       ],
 
       versions: [{
@@ -691,6 +703,20 @@ export default function AddQuotation({ id, onBack }) {
           value={warrantyTerms}
           onChange={setWarrantyTerms}
           termsType={warrantyTypeId}
+          baseApi={BASE_API}
+          token={token}
+        />
+      ),
+      gridCols: 2,
+    },
+    {
+      name: "other_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Other Terms"
+          value={otherTerms}
+          onChange={setOtherTerms}
+          termsType={otherTypeId}
           baseApi={BASE_API}
           token={token}
         />

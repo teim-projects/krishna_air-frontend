@@ -130,8 +130,10 @@ export default function AddInvoice({ id, onBack }) {
   // ================= TERMS AND CONDITIONS =================
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [deliveryTerms, setDeliveryTerms] = useState([]);
+  const [otherTerms, setOtherTerms] = useState([]);
   const [paymentTypeId, setPaymentTypeId] = useState(null);
   const [deliveryTypeId, setDeliveryTypeId] = useState(null);
+  const [otherTypeId, setOtherTypeId] = useState(null);
 
   // ================= ITEMS =================
   const [items, setItems] = useState([]);
@@ -178,8 +180,14 @@ export default function AddInvoice({ id, onBack }) {
         "Terms of Delivery"
       );
 
+      const otherId = await getOrCreateTermTypeId(
+        "Invoice Other",
+        "Other Terms"
+      );
+
       setPaymentTypeId(paymentId);
       setDeliveryTypeId(deliveryId);
+      setOtherTypeId(otherId);
     };
 
     initTypes();
@@ -235,8 +243,13 @@ export default function AddInvoice({ id, onBack }) {
             .filter(t => t.terms_condition_type_name === "Invoice Delivery")
             .map(t => t.id);
 
+          const other = inv.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Invoice Other")
+            .map(t => t.id);
+
           setPaymentTerms(payment);
           setDeliveryTerms(delivery);
+          setOtherTerms(other);
         }
 
         // Set items
@@ -367,6 +380,7 @@ export default function AddInvoice({ id, onBack }) {
 
     setPaymentTerms([]);
     setDeliveryTerms([]);
+    setOtherTerms([]);
 
     setItems([{
       acType: "",
@@ -422,7 +436,8 @@ export default function AddInvoice({ id, onBack }) {
       branch: data.branch || null,
       terms_conditions: [
         ...paymentTerms,
-        ...deliveryTerms
+        ...deliveryTerms,
+        ...otherTerms
       ],
 
       invoice_date: data.invoice_date,
@@ -907,6 +922,20 @@ export default function AddInvoice({ id, onBack }) {
           value={deliveryTerms}
           onChange={setDeliveryTerms}
           termsType={deliveryTypeId}
+          baseApi={BASE_API}
+          token={localStorage.getItem("access")}
+        />
+      ),
+      gridCols: 2,
+    },
+    {
+      name: "other_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Other Terms"
+          value={otherTerms}
+          onChange={setOtherTerms}
+          termsType={otherTypeId}
           baseApi={BASE_API}
           token={localStorage.getItem("access")}
         />

@@ -354,6 +354,7 @@ export default function Lead() {
     { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1) },
     { key: "date", label: "Date", render: (r) => formatDate(r.date) },
     { key: "followup_date", label: "Followup Date", render: (r) => formatDate(r.followup_date) },
+    { key: "project_name", label: "Project Name", render: (r) => r.project_name || "-" },
     { key: "name", label: "Name", render: (r) => r.customer_name },
     { key: "contact", label: "Contact", render: (r) => r.customer_contact },
     // { key: "email", label: "Email", render: (r) => r.customer_email },
