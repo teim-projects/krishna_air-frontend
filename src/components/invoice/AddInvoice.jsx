@@ -71,6 +71,14 @@ export default function AddInvoice({ id, onBack }) {
 
   const isEdit = !!id;
 
+  // Step state for multistep form
+  const [step, setStep] = useState(1);
+
+  // Reset step when component mounts
+  useEffect(() => {
+    setStep(1);
+  }, [id]);
+
   // ================= FORM DATA STATE =================
   const [formData, setFormData] = useState({
     // Customer info
@@ -768,150 +776,214 @@ export default function AddInvoice({ id, onBack }) {
     }
   ];
 
+  // Step validation functions
+  const validateStep1 = () => {
+    if (!formData.customer_id) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (items.length === 0 && lowItems.length === 0) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
+      return false;
+    }
+    return true;
+  };
+
+  // Step 1 Fields - Basic & Buyer Information
+  const step1Fields = [
+    ...basicInfoFields,
+    // Add a separator or section title
+    {
+      name: "buyer_section_title",
+      label: "Buyer Information",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2 border-t pt-4 mt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Buyer Information</h4>
+        </div>
+      )
+    },
+    ...buyerInfoFields,
+    // Ship To section
+    {
+      name: "ship_to_section_title",
+      label: "Ship To Information",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2 border-t pt-4 mt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Ship To Information</h4>
+        </div>
+      )
+    },
+    ...shipToFields
+  ];
+
+  // Step 2 Fields - Items
+  const step2Fields = [
+    {
+      name: "items_section",
+      label: "Items",
+      component: () => (
+        <ItemSelectionEngine
+          baseApi={BASE_API}
+          authToken={localStorage.getItem("access")}
+          items={items}
+          setItems={setItems}
+          lowItems={lowItems}
+          setLowItems={setLowItems}
+          mode="invoice"
+          gstType={formData.gst_type}
+        />
+      ),
+      gridCols: 2,
+    },
+  ];
+
+  // Step 3 Fields - Additional Info & Terms
+  const step3Fields = [
+    // Additional Information section
+    {
+      name: "additional_section_title",
+      label: "Additional Information",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Additional Information</h4>
+        </div>
+      )
+    },
+    ...additionalInfoFields,
+    // Company/Bank Details section
+    {
+      name: "company_section_title",
+      label: "Company/Bank Details",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2 border-t pt-4 mt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Company/Bank Details</h4>
+        </div>
+      )
+    },
+    ...companyBankFields,
+    // Terms & Conditions section
+    {
+      name: "terms_section_title",
+      label: "Terms & Conditions",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2 border-t pt-4 mt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Terms & Conditions</h4>
+        </div>
+      )
+    },
+    {
+      name: "payment_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Payment Terms"
+          value={paymentTerms}
+          onChange={setPaymentTerms}
+          termsType={paymentTypeId}
+          baseApi={BASE_API}
+          token={localStorage.getItem("access")}
+        />
+      ),
+      gridCols: 2,
+    },
+    {
+      name: "delivery_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Delivery Terms"
+          value={deliveryTerms}
+          onChange={setDeliveryTerms}
+          termsType={deliveryTypeId}
+          baseApi={BASE_API}
+          token={localStorage.getItem("access")}
+        />
+      ),
+      gridCols: 2,
+    },
+  ];
+
+  // Get current step fields
+  const getCurrentFields = () => {
+    switch (step) {
+      case 1: return step1Fields;
+      case 2: return step2Fields;
+      case 3: return step3Fields;
+      default: return step1Fields;
+    }
+  };
+
   // ================= UI =================
   return (
     <>
       <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
         <div className="bg-white rounded-md shadow-lg w-full max-w-5xl relative max-h-[90vh] flex flex-col">
 
-          {/* FIXED HEADER */}
-          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">
-              {isEdit ? "Edit Invoice" : "Create New Invoice"}
-            </h2>
-            <button
-              onClick={onBack}
-              className="text-xl font-bold hover:text-red-500"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* SCROLLABLE FORM BODY */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-            {/* Basic Information */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
-              <ReusableForm
-                fields={basicInfoFields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={() => { }}
-                submitButtonClass="hidden"
-              />
+          {/* Header with Step Indicator */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">
+                {isEdit ? "Edit Invoice" : "Create New Invoice"}
+              </h2>
+              <button
+                onClick={onBack}
+                className="text-xl font-bold hover:text-red-500"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-
-            {/* Buyer Information */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Buyer Information</h3>
-              <ReusableForm
-                fields={buyerInfoFields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={() => { }}
-                submitButtonClass="hidden"
-              />
-            </div>
-
-            {/* Ship To */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Ship To</h3>
-              <ReusableForm
-                fields={shipToFields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={() => { }}
-                submitButtonClass="hidden"
-              />
-            </div>
-
-            {/* Items Selection */}
-            <div>
-              <ItemSelectionEngine
-                baseApi={BASE_API}
-                authToken={localStorage.getItem("access")}
-                items={items}
-                setItems={setItems}
-                lowItems={lowItems}
-                setLowItems={setLowItems}
-                mode="invoice"
-                gstType={formData.gst_type}
-              />
-            </div>
-
-            {/* Additional Information */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Additional Information</h3>
-              <ReusableForm
-                fields={additionalInfoFields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={() => { }}
-                submitButtonClass="hidden"
-              />
-            </div>
-
-            {/* Company/Bank Details */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Company/Bank Details</h3>
-              <ReusableForm
-                fields={companyBankFields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={() => { }}
-                submitButtonClass="hidden"
-              />
-            </div>
-
-            {/* Terms and Conditions */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
-              <div className="space-y-4">
-                <div>
-                  <TermsMultiSelect
-                    label="Payment Terms"
-                    value={paymentTerms}
-                    onChange={setPaymentTerms}
-                    termsType={paymentTypeId}
-                    baseApi={BASE_API}
-                    token={localStorage.getItem("access")}
-                  />
+            
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center space-x-4">
+              <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  1
                 </div>
-
-                <div>
-                  <TermsMultiSelect
-                    label="Delivery Terms"
-                    value={deliveryTerms}
-                    onChange={setDeliveryTerms}
-                    termsType={deliveryTypeId}
-                    baseApi={BASE_API}
-                    token={localStorage.getItem("access")}
-                  />
+                <span className="ml-2">Basic & Buyer Info</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  2
                 </div>
+                <span className="ml-2">Items</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  3
+                </div>
+                <span className="ml-2">Additional Info & Terms</span>
               </div>
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-2 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                disabled={loading_form}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit(formData)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                disabled={loading_form}
-              >
-                {loading_form ? "Saving..." : (isEdit ? "Update Invoice" : "Save Invoice")}
-              </button>
-            </div>
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <ReusableForm
+              fields={getCurrentFields()}
+              formData={formData}
+              onChange={setFormData}
+              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
+              loading={loading_form}
+              showCancel={true}
+              onCancel={step > 1 ? () => setStep(step - 1) : onBack}
+              submitText={step === 3 ? (isEdit ? "Update Invoice" : "Save Invoice") : "Next"}
+              cancelText={step > 1 ? "Back" : "Cancel"}
+            />
           </div>
         </div>
       </div>

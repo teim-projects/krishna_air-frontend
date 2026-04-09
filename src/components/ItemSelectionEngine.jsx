@@ -16,6 +16,10 @@ export default function ItemSelectionEngine({
 
   const isInvoice = mode === "invoice";
 
+  // Add GST toggle states
+  const [highSideGstEnabled, setHighSideGstEnabled] = useState(true);
+  const [lowSideGstEnabled, setLowSideGstEnabled] = useState(true);
+
   // Unit options array
   const unitOptions = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot", "m", "in"];
 
@@ -183,7 +187,7 @@ export default function ItemSelectionEngine({
       quantity: draftHighItem.quantity || 1,
       unit_price: draftHighItem.unit_price || 0,
       rate: draftHighItem.rate || 0,
-      gst_percent: draftHighItem.gst_percent || 18,
+      gst_percent: highSideGstEnabled ? (draftHighItem.gst_percent || 18) : 0,
       mathadi_charges: draftHighItem.mathadi_charges || 0,
       transportation_charges: draftHighItem.transportation_charges || 0,
 
@@ -241,7 +245,7 @@ export default function ItemSelectionEngine({
       quantity: draftLowItem.quantity || 1,
       unit_price: draftLowItem.unit_price || 0,
       rate: draftLowItem.rate || 0,
-      gst_percent: draftLowItem.gst_percent || 18,
+      gst_percent: lowSideGstEnabled ? (draftLowItem.gst_percent || 18) : 0,
       mathadi_charges: draftLowItem.mathadi_charges || 0,
       unit: mat.unit || draftLowItem.unit,
       item: mat.id,
@@ -305,8 +309,23 @@ export default function ItemSelectionEngine({
       {/* ================= HIGH SIDE ================= */}
       <div className="bg-white border border-gray-200 rounded-lg">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-          <h3 className="font-medium text-gray-700">High Side Products</h3>
-          <button onClick={addHighItem}
+          <div className="flex items-center gap-4">
+            <h3 className="font-medium text-gray-700">High Side Products</h3>
+            <button
+              type="button"
+              onClick={() => setHighSideGstEnabled(!highSideGstEnabled)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                highSideGstEnabled 
+                  ? 'bg-green-100 text-green-700 border border-green-300' 
+                  : 'bg-red-100 text-red-700 border border-red-300'
+              }`}
+            >
+              GST {highSideGstEnabled ? 'Enabled' : 'Disabled'}
+            </button>
+          </div>
+          <button 
+          type="button"
+          onClick={addHighItem}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
             + Add Product
           </button>
@@ -364,7 +383,7 @@ export default function ItemSelectionEngine({
               value={isInvoice ? draftHighItem.rate : draftHighItem.unit_price}
               onChange={e => updateHighDraft(isInvoice ? "rate" : "unit_price", e.target.value)} />
 
-            {gstType !== "NO_GST" && (
+            {highSideGstEnabled && (
               <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 type="number"
                 placeholder="GST%"
@@ -443,7 +462,9 @@ export default function ItemSelectionEngine({
                     <th className="w-20 px-2 py-2 border-r">Unit</th>
                     <th className="w-20 px-2 py-2 border-r">Qty</th>
                     <th className="w-28 px-2 py-2 border-r">{isInvoice ? "Rate" : "Price"}</th>
-                    <th className="w-20 px-2 py-2 border-r">GST%</th>
+                    {highSideGstEnabled && (
+                      <th className="w-20 px-2 py-2 border-r">GST%</th>
+                    )}
 
                     {!isInvoice && (
                       <>
@@ -519,17 +540,19 @@ export default function ItemSelectionEngine({
                           />
                         </td>
 
-                        <td className="w-20 px-2 py-2 border-r">
-                          <input type="number"
-                            className="w-full border rounded px-1 py-1"
-                            value={row.gst_percent}
-                            onChange={e => {
-                              const copy = [...items];
-                              copy[i].gst_percent = e.target.value;
-                              setItems(copy);
-                            }}
-                          />
-                        </td>
+                        {highSideGstEnabled && (
+                          <td className="w-20 px-2 py-2 border-r">
+                            <input type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={row.gst_percent}
+                              onChange={e => {
+                                const copy = [...items];
+                                copy[i].gst_percent = e.target.value;
+                                setItems(copy);
+                              }}
+                            />
+                          </td>
+                        )}
 
                         {!isInvoice && (
                           <>
@@ -590,8 +613,23 @@ export default function ItemSelectionEngine({
       {/* ================= LOW SIDE ================= */}
       <div className="bg-white border border-gray-200 rounded-lg">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-          <h3 className="font-medium text-gray-700">Low Side Items</h3>
-          <button onClick={addLowItem}
+          <div className="flex items-center gap-4">
+            <h3 className="font-medium text-gray-700">Low Side Items</h3>
+            <button
+              type="button"
+              onClick={() => setLowSideGstEnabled(!lowSideGstEnabled)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                lowSideGstEnabled 
+                  ? 'bg-green-100 text-green-700 border border-green-300' 
+                  : 'bg-red-100 text-red-700 border border-red-300'
+              }`}
+            >
+              GST {lowSideGstEnabled ? 'Enabled' : 'Disabled'}
+            </button>
+          </div>
+          <button 
+          type="button"
+          onClick={addLowItem}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
             + Add Product
           </button>
@@ -631,7 +669,7 @@ export default function ItemSelectionEngine({
             />
 
             {/* ✅ GST */}
-            {gstType !== "NO_GST" && (
+            {lowSideGstEnabled && (
               <input
                 type="number"
                 placeholder="GST%"
@@ -709,7 +747,9 @@ export default function ItemSelectionEngine({
                       <th className="w-28 px-2 py-2 border-r">
                         {isInvoice ? "Rate" : "Price"}
                       </th>
-                      <th className="w-20 px-2 py-2 border-r">GST%</th>
+                      {lowSideGstEnabled && (
+                        <th className="w-20 px-2 py-2 border-r">GST%</th>
+                      )}
 
                       {!isInvoice && (
                         <th className="w-28 px-2 py-2 border-r">Mathadi</th>
@@ -785,18 +825,21 @@ export default function ItemSelectionEngine({
                             />
                           </td>
 
-                          <td className="w-20 px-2 py-2 border-r">
-                            <input
-                              type="number"
-                              className="w-full border rounded px-1 py-1"
-                              value={row.gst_percent}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].gst_percent = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
+                          {lowSideGstEnabled && (
+                            <td className="w-20 px-2 py-2 border-r">
+                              <input
+                                type="number"
+                                className="w-full border rounded px-1 py-1"
+                                placeholder="GST%"
+                                value={row.gst_percent || ""}
+                                onChange={e => {
+                                  const copy = [...lowItems];
+                                  copy[i].gst_percent = e.target.value;
+                                  setLowItems(copy);
+                                }}
+                              />
+                            </td>
+                          )}
 
                           {!isInvoice && (
                             <td className="w-28 px-2 py-2 border-r">

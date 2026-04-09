@@ -36,6 +36,14 @@ export default function AddQuotation({ id, onBack }) {
   const [validityTypeId, setValidityTypeId] = useState(null);
   const [warrantyTypeId, setWarrantyTypeId] = useState(null);
 
+  // Step state for multistep form
+  const [step, setStep] = useState(1);
+
+  // Reset step when component mounts
+  useEffect(() => {
+    setStep(1);
+  }, [id]);
+
   // Form data state
   const [formData, setFormData] = useState({
     customer_phone: "",
@@ -66,6 +74,12 @@ export default function AddQuotation({ id, onBack }) {
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [validityTerms, setValidityTerms] = useState([]);
   const [warrantyTerms, setWarrantyTerms] = useState([]);
+
+  // ================= THANK YOU NOTE SUGGESTIONS =================
+  const [thankYouSuggestions, setThankYouSuggestions] = useState([]);
+  const [showThankYouSuggestions, setShowThankYouSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [loadingThankYou, setLoadingThankYou] = useState(false);
 
 
   // ================= LOAD MASTERS =================
@@ -195,6 +209,15 @@ export default function AddQuotation({ id, onBack }) {
     loadMasterData();
   }, []);
 
+  // Cleanup suggestions when component unmounts
+  useEffect(() => {
+    return () => {
+      setShowThankYouSuggestions(false);
+      setThankYouSuggestions([]);
+      setSelectedSuggestionIndex(-1);
+    };
+  }, []);
+
 
   // ================= PHONE SEARCH =================
   const handlePhoneSearch = async (phone) => {
@@ -215,6 +238,76 @@ export default function AddQuotation({ id, onBack }) {
         console.log("Error searching customer:", err);
       }
     }
+  };
+
+  // ================= THANK YOU NOTE SUGGESTIONS =================
+  const fetchThankYouSuggestions = async (searchTerm) => {
+    if (searchTerm.length < 2) {
+      setThankYouSuggestions([]);
+      setShowThankYouSuggestions(false);
+      return;
+    }
+
+    setLoadingThankYou(true);
+    try {
+      const response = await api.get(`quotation/thank-you-suggestions/?search=${encodeURIComponent(searchTerm)}`);
+      setThankYouSuggestions(response.data);
+      setShowThankYouSuggestions(response.data.length > 0);
+      setSelectedSuggestionIndex(-1);
+    } catch (error) {
+      console.error('Error fetching thank you suggestions:', error);
+      setThankYouSuggestions([]);
+      setShowThankYouSuggestions(false);
+    } finally {
+      setLoadingThankYou(false);
+    }
+  };
+
+  // Debounce function
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+  const debouncedThankYouSearch = debounce(fetchThankYouSuggestions, 300);
+
+  // Keyboard navigation for suggestions
+  const handleThankYouKeyDown = (e) => {
+    if (!showThankYouSuggestions) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < thankYouSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : thankYouSuggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          selectThankYouNote(thankYouSuggestions[selectedSuggestionIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowThankYouSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
+    }
+  };
+
+  // Select thank you note
+  const selectThankYouNote = (note) => {
+    setFormData(prev => ({ ...prev, thank_you_note: note.text }));
+    setShowThankYouSuggestions(false);
+    setSelectedSuggestionIndex(-1);
   };
 
   // ================= HIGH SIDE LOADERS =================
@@ -373,7 +466,30 @@ export default function AddQuotation({ id, onBack }) {
   };
 
   // ================= FIELD DEFINITIONS =================
-  const fields = [
+
+  // Step validation functions
+  const validateStep1 = () => {
+    if (!formData.customer_id) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
+      return false;
+    }
+    if (!formData.subject.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (items.length === 0 && lowItems.length === 0) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
+      return false;
+    }
+    return true;
+  };
+
+  // Step 1 Fields - Basic Information
+  const step1Fields = [
     {
       name: "customer_phone",
       label: "Customer Phone",
@@ -443,12 +559,155 @@ export default function AddQuotation({ id, onBack }) {
     {
       name: "thank_you_note",
       label: "Thank You Note",
-      type: "textarea",
-      rows: 2,
+      type: "component",
       gridCols: 2,
-      placeholder: "Enter thank you note"
+      component: ({ value, onChange }) => (
+        <div className="relative">
+          <textarea
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+            placeholder="Type to get suggestions..."
+            rows={3}
+            value={value || ""}
+            onChange={(e) => {
+              onChange(e.target.value);
+              debouncedThankYouSearch(e.target.value);
+            }}
+            onKeyDown={handleThankYouKeyDown}
+            onFocus={() => {
+              if (value && value.length >= 2) {
+                debouncedThankYouSearch(value);
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setShowThankYouSuggestions(false);
+                setSelectedSuggestionIndex(-1);
+              }, 200);
+            }}
+          />
+          
+          {loadingThankYou && (
+            <div className="absolute right-3 top-3 pointer-events-none">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
+            </div>
+          )}
+          
+          {showThankYouSuggestions && thankYouSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              {thankYouSuggestions.map((note, index) => {
+                const isSelected = index === selectedSuggestionIndex;
+                
+                return (
+                  <div
+                    key={note.id}
+                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${
+                      isSelected 
+                        ? 'bg-indigo-100 text-indigo-900' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // Prevent blur from firing
+                      selectThankYouNote(note);
+                    }}
+                    onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                  >
+                    <div className="truncate">
+                      {note.text.length > 80 ? `${note.text.substring(0, 80)}...` : note.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {showThankYouSuggestions && thankYouSuggestions.length === 0 && !loadingThankYou && value && value.length >= 2 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+              <div className="px-3 py-2 text-sm text-gray-500 italic">
+                No suggestions found. Keep typing to create a new one.
+              </div>
+            </div>
+          )}
+        </div>
+      )
     }
   ];
+
+  // Step 2 Fields - Items
+  const step2Fields = [
+    {
+      name: "items_section",
+      label: "Items",
+      component: () => (
+        <ItemSelectionEngine
+          baseApi={BASE_API}
+          authToken={localStorage.getItem("access")}
+          items={items}
+          setItems={setItems}
+          lowItems={lowItems}
+          setLowItems={setLowItems}
+          mode="quotation"
+          gstType={formData.gst_type}
+        />
+      ),
+      gridCols: 2,
+    },
+  ];
+
+  // Step 3 Fields - Terms & Conditions
+  const step3Fields = [
+    {
+      name: "payment_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Payment Terms"
+          value={paymentTerms}
+          onChange={setPaymentTerms}
+          termsType={paymentTypeId}
+          baseApi={BASE_API}
+          token={token}
+        />
+      ),
+      gridCols: 2,
+    },
+    {
+      name: "validity_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Validity Terms"
+          value={validityTerms}
+          onChange={setValidityTerms}
+          termsType={validityTypeId}
+          baseApi={BASE_API}
+          token={token}
+        />
+      ),
+      gridCols: 2,
+    },
+    {
+      name: "warranty_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Warranty Terms"
+          value={warrantyTerms}
+          onChange={setWarrantyTerms}
+          termsType={warrantyTypeId}
+          baseApi={BASE_API}
+          token={token}
+        />
+      ),
+      gridCols: 2,
+    },
+  ];
+
+  // Get current step fields
+  const getCurrentFields = () => {
+    switch (step) {
+      case 1: return step1Fields;
+      case 2: return step2Fields;
+      case 3: return step3Fields;
+      default: return step1Fields;
+    }
+  };
 
   // ================= UI =================
   return (
@@ -456,110 +715,59 @@ export default function AddQuotation({ id, onBack }) {
       <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
         <div className="bg-white rounded-md shadow-lg w-full max-w-4xl relative max-h-[90vh] flex flex-col">
 
-          {/* FIXED HEADER */}
-          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">
-              {isEdit ? "Edit Quotation" : "Add Quotation"}
-            </h2>
-            <button
-              onClick={onBack}
-              className="text-xl font-bold hover:text-red-500"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* SCROLLABLE FORM BODY */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-            {/* Basic Information Form */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Basic Information</h3>
-              <ReusableForm
-                fields={fields}
-                formData={formData}
-                onChange={setFormData}
-                onSubmit={handleSubmit}
-                loading={loading}
-                submitText={isEdit ? "Update Quotation" : "Save Quotation"}
-                onCancel={onBack}
-                showCancel={false}
-                submitButtonClass="hidden" // Hide submit button as we'll add custom one
-              />
+          {/* Header with Step Indicator */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">
+                {isEdit ? "Edit Quotation" : "Add Quotation"}
+              </h2>
+              <button
+                onClick={onBack}
+                className="text-xl font-bold hover:text-red-500"
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-
-            {/* Items Selection */}
-            <div>
-              <ItemSelectionEngine
-                baseApi={BASE_API}
-                authToken={localStorage.getItem("access")}
-                items={items}
-                setItems={setItems}
-                lowItems={lowItems}
-                setLowItems={setLowItems}
-                mode="quotation"
-              />
-            </div>
-
-            {/* Terms and Conditions */}
-            <div>
-              <h3 className="text-md font-semibold mb-4 text-gray-800">Terms & Conditions</h3>
-              <div className="space-y-4">
-                <div>
-                  <TermsMultiSelect
-                    label="Payment Terms"
-                    value={paymentTerms}
-                    onChange={setPaymentTerms}
-                    termsType={paymentTypeId}
-                    baseApi={BASE_API}
-                    token={token}
-                  />
+            
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center space-x-4">
+              <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  1
                 </div>
-
-                <div>
-                  <TermsMultiSelect
-                    label="Validity Terms"
-                    value={validityTerms}
-                    onChange={setValidityTerms}
-                    termsType={validityTypeId}
-                    baseApi={BASE_API}
-                    token={token}
-                  />
+                <span className="ml-2">Basic Info</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  2
                 </div>
-
-                <div>
-                  <TermsMultiSelect
-                    label="Warranty Terms"
-                    value={warrantyTerms}
-                    onChange={setWarrantyTerms}
-                    termsType={warrantyTypeId}
-                    baseApi={BASE_API}
-                    token={token}
-                  />
+                <span className="ml-2">Items</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  3
                 </div>
+                <span className="ml-2">Terms & Conditions</span>
               </div>
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-2 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit(formData)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? "Saving..." : (isEdit ? "Update Quotation" : "Save Quotation")}
-              </button>
-            </div>
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <ReusableForm
+              fields={getCurrentFields()}
+              formData={formData}
+              onChange={setFormData}
+              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
+              loading={loading}
+              showCancel={true}
+              onCancel={step > 1 ? () => setStep(step - 1) : onBack}
+              submitText={step === 3 ? (isEdit ? "Update Quotation" : "Save Quotation") : "Next"}
+              cancelText={step > 1 ? "Back" : "Cancel"}
+            />
           </div>
         </div>
       </div>
