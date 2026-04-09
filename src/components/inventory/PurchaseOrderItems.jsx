@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { MdDelete } from "react-icons/md";
-
+import AcMaterialList from "../AcMaterialList";
 export default function PurchaseOrderItems({
   baseApi,
   token,
@@ -15,7 +15,7 @@ export default function PurchaseOrderItems({
   });
 
   const [products, setProducts] = useState(initialProducts || []);
-  const LENGTH_UNITS = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot"];
+  const LENGTH_UNITS = ["Rmt", "Ft", "Smtr", "Meter", "Sqft", "Nos", "Kg", "Lot"];
 
   useEffect(() => {
     setProducts(initialProducts || []);
@@ -54,6 +54,9 @@ export default function PurchaseOrderItems({
   const [features, setFeatures] = useState([]);
   const [itemClasses, setItemClasses] = useState([]);
   const [items, setItems] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [resetMaterials, setResetMaterials] = useState(0);
+
 
   const [lowForm, setLowForm] = useState({
     materialType: "",
@@ -63,7 +66,7 @@ export default function PurchaseOrderItems({
     item: "",
     quantity: "",
     rate: "",
-    uom: "Meter",
+    uom: LENGTH_UNITS[0],
     description: ""
   });
 
@@ -88,7 +91,7 @@ export default function PurchaseOrderItems({
     item: "",
     quantity: "",
     rate: "",
-    uom: "Meter",
+    uom: LENGTH_UNITS[0],
     description: ""
   };
 
@@ -173,6 +176,11 @@ export default function PurchaseOrderItems({
     api.get(`/product/item/?material_type_id=${lowForm.materialType}&item_type_id=${lowForm.itemType}&item_class_id=${lowForm.itemClass}&feature_type_id=${lowForm.feature}`)
       .then(res => setItems(res.data?.results || []));
   }, [lowForm.itemType]);
+
+
+
+
+
 
 
 
@@ -276,55 +284,100 @@ export default function PurchaseOrderItems({
   };
   // ===================== ADD LOW ITEM =====================
 
+  // const addLowItem = () => {
+  //   if (!lowForm.item) return;
+  //   if (!activeSection) {
+  //     alert("Please create or select a section first.");
+  //     return;
+  //   }
+
+  //   const selected = items.find(i => i.id == lowForm.item);
+
+  //   const newProduct = {
+  //     serial_no: generateItemSerial(),
+  //     sort_order: products.length + 1,
+  //     is_section: false,
+  //     section_title: null,
+  //     product_variant: null,
+  //     item: selected.id,
+  //     item_code: selected.item_code,
+  //     description: lowForm.description,
+  //     quantity: parseFloat(lowForm.quantity),
+  //     uom: lowForm.uom,
+  //     rate: parseFloat(lowForm.rate)
+  //   };
+
+  //   const insertIndex = products.reduce((lastIndex, p, i) => {
+  //     if (p.serial_no.startsWith(activeSection + ".")) {
+  //       return i + 1;
+  //     }
+  //     if (p.serial_no === activeSection) {
+  //       return i + 1;
+  //     }
+  //     return lastIndex;
+  //   }, products.length);
+
+  //   const updated = [...products];
+  //   updated.splice(insertIndex, 0, newProduct);
+
+  //   updateProducts(updated);
+
+  //   // ✅ RESET FORM
+  //   setLowForm(DEFAULT_LOW_FORM);
+
+  //   // Optional: Clear dependent dropdown data
+  //   setMaterialTypes([]);
+  //   setItemTypes([]);
+  //   setFeatures([]);
+  //   setItemClasses([]);
+  //   setItems([]);
+  //   loadInitialData();
+
+  // };
+
   const addLowItem = () => {
-    if (!lowForm.item) return;
+    if (selectedMaterials.length === 0) return;
+
     if (!activeSection) {
       alert("Please create or select a section first.");
       return;
     }
 
-    const selected = items.find(i => i.id == lowForm.item);
-
-    const newProduct = {
-      serial_no: generateItemSerial(),
-      sort_order: products.length + 1,
-      is_section: false,
-      section_title: null,
-      product_variant: null,
-      item: selected.id,
-      item_code: selected.item_code,
-      description: lowForm.description,
-      quantity: parseFloat(lowForm.quantity),
-      uom: lowForm.uom,
-      rate: parseFloat(lowForm.rate)
-    };
-
     const insertIndex = products.reduce((lastIndex, p, i) => {
-      if (p.serial_no.startsWith(activeSection + ".")) {
-        return i + 1;
-      }
-      if (p.serial_no === activeSection) {
-        return i + 1;
-      }
+      if (p.serial_no.startsWith(activeSection + ".")) return i + 1;
+      if (p.serial_no === activeSection) return i + 1;
       return lastIndex;
     }, products.length);
 
     const updated = [...products];
-    updated.splice(insertIndex, 0, newProduct);
+
+    selectedMaterials.forEach((mat, idx) => {
+      const newProduct = {
+        serial_no: generateItemSerial(),
+        sort_order: updated.length + 1,
+        is_section: false,
+        section_title: null,
+        product_variant: null,
+        item: mat.id,
+
+        // ✅ USE NAME FROM CHILD
+        item_code: mat.material_name || `Material ${mat.id}`,
+
+        description: lowForm.description,
+        quantity: parseFloat(lowForm.quantity || 1),
+        uom: lowForm.uom,
+        rate: parseFloat(lowForm.rate || 0)
+      };
+
+      updated.splice(insertIndex + idx, 0, newProduct);
+    });
 
     updateProducts(updated);
 
-    // ✅ RESET FORM
+    // ✅ RESET AFTER ADD
+    setSelectedMaterials([]);
     setLowForm(DEFAULT_LOW_FORM);
-
-    // Optional: Clear dependent dropdown data
-    setMaterialTypes([]);
-    setItemTypes([]);
-    setFeatures([]);
-    setItemClasses([]);
-    setItems([]);
-    loadInitialData();
-
+    setResetMaterials(prev => prev + 1);
   };
 
   // ===================== EDIT ROW =====================
@@ -623,51 +676,19 @@ export default function PurchaseOrderItems({
         <div className="space-y-4">
 
           {/* Row 1 - 4 dropdowns */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select
-              className="border rounded-md px-2 py-1"
-              onChange={e => setLowForm({ ...lowForm, materialType: e.target.value })}
-            >
-              <option value="">Material Type</option>
-              {materialTypes.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="border rounded-md px-2 py-1"
-              onChange={e => setLowForm({ ...lowForm, itemType: e.target.value })}
-            >
-              <option value="">Item Type</option>
-              {itemTypes.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="border rounded-md px-2 py-1"
-              onChange={e => setLowForm({ ...lowForm, feature: e.target.value })}
-            >
-              <option value="">Feature</option>
-              {features.map(f => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="border rounded-md px-2 py-1"
-              onChange={e => setLowForm({ ...lowForm, itemClass: e.target.value })}
-            >
-              <option value="">Item Class</option>
-              {itemClasses.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+          <div className="space-y-3">
+            <AcMaterialList
+              base_api={baseApi}
+              resetTrigger={resetMaterials}
+              onSelectionChange={(data) => {
+                setSelectedMaterials(data.materials);
+              }}
+            />
           </div>
 
           {/* Row 2 - Remaining inputs except description */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <select
+            {/* <select
               className="border rounded-md px-2 py-1"
               onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
             >
@@ -675,7 +696,9 @@ export default function PurchaseOrderItems({
               {items.map(i => (
                 <option key={i.id} value={i.id}>{i.item_code}</option>
               ))}
-            </select>
+            </select> */}
+
+
 
             <input
               type="number"
@@ -769,7 +792,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        <MdDelete/>
+                        <MdDelete />
                       </button>
                     </td>
                   </>
@@ -810,7 +833,7 @@ export default function PurchaseOrderItems({
                         className="text-red-600"
                         onClick={() => removeRow(index)}
                       >
-                        <MdDelete/>
+                        <MdDelete />
                       </button>
                     </td>
                   </>

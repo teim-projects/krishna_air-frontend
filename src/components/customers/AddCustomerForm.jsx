@@ -31,6 +31,8 @@ export default function AddCustomerForm({
   const [siteCity, setSiteCity] = useState(customer?.site_city ?? "");
   const [siteState, setSiteState] = useState(customer?.site_state ?? "");
   const [sitePinCode, setSitePinCode] = useState(customer?.site_pin_code ?? "");
+  const [gst, setGst] = useState(customer?.gst ?? "");
+  const [pan, setPan] = useState(customer?.pan ?? "");
 
   const [loading, setLoading] = useState(false);
   // const [stateid, setstateid] = useState(null);
@@ -66,6 +68,8 @@ export default function AddCustomerForm({
     setBothAddressSame(Boolean(customer.both_address_is_same));
     setSiteAddress(customer.site_address || "");
     setSitePinCode(customer.site_pin_code || "");
+    setGst(customer.gst || "");
+    setPan(customer.pan || "");
 
     // 🔥 LOAD ALL STATES ONCE
     GetState(INDIA_ID).then((states) => {
@@ -190,6 +194,8 @@ export default function AddCustomerForm({
         state: stateVal.trim(),
         pin_code: pinCode.toString().trim(),
         both_address_is_same: Boolean(bothAddressSame),
+        gst: gst.trim().toUpperCase(),
+        pan: pan.trim().toUpperCase(),
       };
 
       // include site fields only when not same OR when provided (for edit)
@@ -257,20 +263,15 @@ export default function AddCustomerForm({
     } finally {
       setLoading(false);
     }
-
-
-
-
   };
 
   return (
     <>
-
       <div className="fixed inset-0 mt-8  bg-black/40 flex items-start sm:items-center justify-center z-50">
-        <div className="bg-white rounded-md shadow-lg w-full max-w-lg relative max-h-[85vh] flex flex-col">
+        <div className="bg-white rounded-md shadow-lg w-full max-w-2xl relative max-h-[85vh] flex flex-col">
 
           {/* ---- FIXED HEADER ---- */}
-          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
+          <div className="sticky top-0 bg-white z-10 border-b px-4 py-3 flex justify-between items-center">
             <h2 className="text-lg font-semibold">
               {customer ? "Edit Customer" : "Add Customer"}
             </h2>
@@ -284,56 +285,83 @@ export default function AddCustomerForm({
           </div>
 
           {/* ---- SCROLLABLE FORM BODY ---- */}
-          <div className="px-6 py-4 overflow-y-auto flex-1">
+          <div className="px-4 py-3 overflow-y-auto flex-1">
             <form className="space-y-4" onSubmit={handleSubmit}>
 
-              {/* Name */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">Name</label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={name} onChange={e => setName(e.target.value)} />
-              </div>
+              {/* Basic Information - 2 Column Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Name */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Name</label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={name} onChange={e => setName(e.target.value)} />
+                </div>
 
-              {/* Contact Number */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">Contact Number</label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
-              </div>
+                {/* Contact Number */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Contact Number</label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                </div>
 
-              {/* company landLine no */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
-              </div>
+                {/* Landline Number */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
+                </div>
 
-              {/* Email */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">Email</label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={email} onChange={e => setEmail(e.target.value)} />
-              </div>
+                {/* Email */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Email <small>(optional)</small></label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={email} onChange={e => setEmail(e.target.value)} />
+                </div>
 
-              {/* Secondary Email */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">Secondary Email <small>(optional)</small></label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={secondary_email} onChange={e => setSecondary_email(e.target.value)} />
-              </div>
+                {/* Secondary Email */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Secondary Email <small>(optional)</small></label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={secondary_email} onChange={e => setSecondary_email(e.target.value)} />
+                </div>
 
-              {/* POC name */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">POC Name</label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={pocName} onChange={e => setPocName(e.target.value)} />
-              </div>
+                {/* POC name */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">POC Name</label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={pocName} onChange={e => setPocName(e.target.value)} />
+                </div>
 
-              {/* POC contact number */}
-              <div>
-                <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
-                <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                  value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
+                {/* POC contact number */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
+                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
+                </div>
+
+                {/* GST */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">GST Number <small>(optional)</small></label>
+                  <input 
+                    className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={gst} 
+                    onChange={e => setGst(e.target.value.toUpperCase())}
+                    maxLength={15}
+                    placeholder="Enter GST number"
+                  />
+                </div>
+
+                {/* PAN */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">PAN Number <small>(optional)</small></label>
+                  <input 
+                    className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={pan} 
+                    onChange={e => setPan(e.target.value.toUpperCase())}
+                    maxLength={10}
+                    placeholder="Enter PAN number"
+                  />
+                </div>
               </div>
 
               {/* Billing Address */}
@@ -342,9 +370,6 @@ export default function AddCustomerForm({
                 <textarea className="w-full px-3 py-2 rounded-md border border-slate-200"
                   value={address} onChange={e => setAddress(e.target.value)} />
               </div>
-
-
-
 
               {/* City / State / Pin */}
               <div className="grid grid-cols-3 gap-3">
@@ -358,7 +383,6 @@ export default function AddCustomerForm({
                       onChange={(e) => {
                         setstateid(e.id);
                         setStateVal(e.name);
-                        // Reset city values to prevent crashes
                         setcityid(0);
                         setCity("");
                       }}
@@ -393,20 +417,15 @@ export default function AddCustomerForm({
                     inputMode="numeric"
                     maxLength={6}
                     pattern="\d{6}"
-                    className="w-full px-3 py-2 rounded-md border border-slate-200
-             focus:outline-none focus:ring-1 focus:ring-indigo-500
-             invalid:border-red-500"
+                    className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 invalid:border-red-500"
                     value={pinCode}
                     onChange={(e) => {
-                      // allow only numbers
                       const value = e.target.value.replace(/\D/g, "");
                       setPinCode(value);
                     }}
                     placeholder="6-digit PIN"
                   />
-
                 </div>
-
               </div>
 
               {/* Checkbox */}
@@ -417,7 +436,6 @@ export default function AddCustomerForm({
                 Both address is same
               </label>
 
-              {/* Site Address (Conditional Fields) */}
               {/* Site Address (Conditional Fields) */}
               {!bothAddressSame && (
                 <>
@@ -434,12 +452,11 @@ export default function AddCustomerForm({
                       <div className="input-like-select">
                         <StateSelect
                           countryid={INDIA_ID}
-                          // Use siteStateid for the default value
                           defaultValue={customer && siteStateid ? { id: siteStateid, name: siteState } : null}
                           onChange={(e) => {
-                            setSiteStateid(e.id); // 🔥 Updated to site-specific ID
+                            setSiteStateid(e.id);
                             setSiteState(e.name);
-                            setSiteCityid(0);     // Reset site city
+                            setSiteCityid(0);
                             setSiteCity("");
                           }}
                           placeHolder="Select State"
@@ -452,13 +469,12 @@ export default function AddCustomerForm({
                       <label className="text-sm text-slate-700 mb-1 block">Site City</label>
                       <div className="input-like-select">
                         <CitySelect
-                          // 🔥 Use siteStateid in the key to prevent blank page crash
                           key={`city-site-${siteStateid}`}
                           countryid={INDIA_ID}
-                          stateid={siteStateid} // 🔥 Use site-specific State ID
+                          stateid={siteStateid}
                           defaultValue={customer && siteCityid ? { id: siteCityid, name: siteCity } : null}
                           onChange={(e) => {
-                            setSiteCityid(e.id); // 🔥 Updated to site-specific ID
+                            setSiteCityid(e.id);
                             setSiteCity(e.name);
                           }}
                           placeHolder="Select City"
@@ -498,11 +514,7 @@ export default function AddCustomerForm({
             </form>
           </div>
         </div>
-
-
       </div>
-
-
 
       <style>
         {`
@@ -540,15 +552,8 @@ export default function AddCustomerForm({
             .input-like-select .rsc-select-input {
               padding-right: 0.75rem !important;
             }
-            
-
-
-
-            `
-        }</style>
+        `}
+      </style>
     </>
   );
-
 }
-
-

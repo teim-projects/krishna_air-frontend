@@ -80,7 +80,7 @@ export default function AddLeadForm({
       email: "",
       address: ""
     },
-    status: "",
+    status: "open",
     assignTo: "",
     creditedBy: "",
     // referance_by: "",
@@ -326,7 +326,7 @@ export default function AddLeadForm({
           email: "",
           address: ""
         },
-        status: lead.status || "",
+        status: lead.status || "open",
         assignTo: lead.assign_to || "",
         creditedBy: lead.creatd_by_details?.full_name || "",
         // referance_by: lead.referance_by || "",
@@ -618,10 +618,10 @@ export default function AddLeadForm({
       return false;
     }
 
-    if (!formData.email && !customerId) {
-      showError("email", "Email is required");
-      return false;
-    }
+    // if (!formData.email && !customerId) {
+    //   showError("email", "Email is required");
+    //   return false;
+    // }
 
     // 📧 validate format ONLY if email exists
     if (formData.email && !emailRegex.test(formData.email)) {
@@ -648,14 +648,14 @@ export default function AddLeadForm({
       opt => opt.id === formData.leadSource
     );
 
-    if (selectedSource?.needsInput) {
-      const { name, mobile } = formData.leadSourceDetails;
+    // if (selectedSource?.needsInput) {
+    //   const { name, mobile } = formData.leadSourceDetails;
 
-      if (!name || !mobile) {
-        showError("leadSource", "Reference name and mobile are required");
-        return false;
-      }
-    }
+    //   if (!name || !mobile) {
+    //     showError("leadSource", "Reference name and mobile are required");
+    //     return false;
+    //   }
+    // }
 
     // if (!formData.status) {
     //   showError("status", "Status is required");
@@ -686,10 +686,10 @@ export default function AddLeadForm({
       return false;
     }
 
-    if (!formData.email && !customerId) {
-      showError("email", "Email is required");
-      return false;
-    }
+    // if (!formData.email && !customerId) {
+    //   showError("email", "Email is required");
+    //   return false;
+    // }
 
     if (formData.email && !emailRegex.test(formData.email)) {
       showError("email", "Invalid email format");
@@ -863,7 +863,7 @@ export default function AddLeadForm({
         lead_source_input: showLeadSourceInput
           ? formData.leadSourceDetails
           : null,
-        status: "open", // default to open on create; keep unchanged on edit
+        status: lead ? formData.status : "open", // default to open on create; keep unchanged on edit
         // referance_by: formData.referance_by || null,
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
@@ -1223,7 +1223,7 @@ export default function AddLeadForm({
                       {customerSuggestions.map((c) => (
                         <div
                           key={c.id}
-                          onClick={() => handleSelectCustomer(c)}
+                          onMouseDown={() => handleSelectCustomer(c)}
                           className="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm"
                         >
                           <div className="font-medium">{c.name}</div>
@@ -1264,7 +1264,7 @@ export default function AddLeadForm({
                 {/* Email (readonly) */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
-                    Customer Email  <span className="text-red-500">*</span>
+                    Customer Email
                   </label>
                   <input
                     type="email"
@@ -1476,7 +1476,7 @@ export default function AddLeadForm({
                   <select
                     name="serviceEnquiry"
                     className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300"
-                    value={formData.serviceEnquiry || "no"}
+                    value={formData.serviceEnquiry || ""}
                     onChange={(e) => {
                       handleChange(e);
 
@@ -1489,6 +1489,7 @@ export default function AddLeadForm({
                       }
                     }}
                   >
+                    <option value="">Select Enquiry Type</option>
                     <option value="sales">Sales</option>
                     <option value="service">Service</option>
                     <option value="both">Both</option>

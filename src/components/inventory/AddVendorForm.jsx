@@ -86,6 +86,47 @@ export default function AddVendorForm({
 
   const [loading, setLoading] = useState(false);
   const [stateid, setStateid] = useState(0);
+  const [step, setStep] = useState(1);
+
+  // Reset step when modal opens
+  useEffect(() => {
+    if (open) {
+      setStep(1);
+    }
+  }, [open]);
+
+  // Step validation functions
+  const validateStep1 = () => {
+    if (!formData.name.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Name is required" });
+      return false;
+    }
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please enter a valid email" });
+      return false;
+    }
+    if (!formData.mobile.trim() || formData.mobile.length !== 10) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Mobile must be 10 digits" });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!formData.office_address.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Office address is required" });
+      return false;
+    }
+    if (!formData.gst_details.trim() || formData.gst_details.length !== 15) {
+      Swal.fire({ icon: "error", title: "Validation", text: "GST must be 15 characters" });
+      return false;
+    }
+    if (formData.pan_details && formData.pan_details.length !== 10) {
+      Swal.fire({ icon: "error", title: "Validation", text: "PAN must be 10 characters" });
+      return false;
+    }
+    return true;
+  };
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -155,35 +196,7 @@ export default function AddVendorForm({
   if (!open) return null;
 
   const validate = () => {
-    if (!formData.name.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Name is required" });
-      return false;
-    }
-    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Valid email is required" });
-      return false;
-    }
-    if (!formData.mobile.trim() || formData.mobile.length !== 10) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Mobile must be 10 digits" });
-      return false;
-    }
-    if (!formData.office_address.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Office address is required" });
-      return false;
-    }
-    if (!formData.gst_details.trim() || formData.gst_details.length !== 15) {
-      Swal.fire({ icon: "error", title: "Validation", text: "GST must be 15 characters" });
-      return false;
-    }
-    // if (!formData.office_poc_phone.trim() || formData.office_poc_phone.length !== 10) {
-    //   Swal.fire({ icon: "error", title: "Validation", text: "Office POC phone must be 10 digits" });
-    //   return false;
-    // }
-    if (formData.pan_details && formData.pan_details.length !== 10) {
-      Swal.fire({ icon: "error", title: "Validation", text: "PAN must be 10 characters" });
-      return false;
-    }
-    return true;
+    return validateStep1() && validateStep2();
   };
 
   const handleSubmit = async (data) => {
@@ -193,6 +206,7 @@ export default function AddVendorForm({
     try {
       const payload = {
         ...data,
+        email: data.email || null,
         gst_details: data.gst_details.toUpperCase(),
         pan_details: data.pan_details ? data.pan_details.toUpperCase() : null,
         company_type: data.company_type || null,
@@ -313,36 +327,124 @@ export default function AddVendorForm({
     { name: "bank_details", label: "Bank details", type: "textarea", rows: 2, gridCols: 2, placeholder: "Bank name, Account number, IFSC code" },
   ];
 
+  // Step 1 Fields - Basic Information
+  const step1Fields = [
+    { name: "name", label: "Name", type: "text", required: true, gridCols: 1, placeholder: "Enter vendor name" },
+    { name: "email", label: "Email", type: "email", required: false, gridCols: 1, placeholder: "vendor@example.com" },
+    { name: "mobile", label: "Mobile", type: "phone", required: true, maxLength: 10, gridCols: 1, placeholder: "9876543210" },
+    { name: "company_type", label: "Company type", type: "text", gridCols: 1, placeholder: "e.g., Pvt Ltd, LLP" },
+    { name: "supplier_category", label: "Supplier category", type: "text", gridCols: 1, placeholder: "e.g., Electronics, Hardware" },
+  ];
+
+  // Step 2 Fields - Address & Legal
+  const step2Fields = [
+    { name: "office_address", label: "Office address", type: "textarea", required: true, rows: 2, gridCols: 2, placeholder: "Enter office address" },
+    { name: "store_address", label: "Store address", type: "textarea", rows: 2, gridCols: 2, placeholder: "Enter store address" },
+    { name: "gst_details", label: "Gst details", type: "text", required: true, maxLength: 15, gridCols: 1, placeholder: "22AAAAA0000A1Z5" },
+    { name: "pan_details", label: "Pan details", type: "text", maxLength: 10, gridCols: 1, placeholder: "ABCDE1234F" },
+    {
+      name: "state",
+      label: "State",
+      type: "component",
+      gridCols: 1,
+      required: true,
+      component: ({ value, onChange }) => (
+        <div className="input-like-select">
+          <StateSelect
+            countryid={INDIA_ID}
+            defaultValue={vendor && stateid ? { id: stateid, name: value } : null}
+            onChange={(e) => {
+              setStateid(e.id);
+              onChange(e.name);
+              // Use our GST code mapping
+              const stateCode = getStateCode(e.name);
+              setFormData(prev => ({ ...prev, state_code: stateCode }));
+            }}
+            placeHolder="Select State"
+          />
+        </div>
+      )
+    },
+    { name: "state_code", label: "State Code", type: "text", disabled: true, gridCols: 1, placeholder: "Auto-filled" },
+  ];
+
+  // Step 3 Fields - Contacts & Bank
+  const step3Fields = [
+    { name: "office_poc_name", label: "Office poc name", type: "text", gridCols: 1, placeholder: "Contact person name" },
+    { name: "office_poc_phone", label: "Office poc phone", type: "phone", maxLength: 10, gridCols: 1, placeholder: "9876543210" },
+    { name: "store_poc_name", label: "Store poc name", type: "text", gridCols: 1, placeholder: "Store contact name" },
+    { name: "store_poc_phone", label: "Store poc phone", type: "phone", maxLength: 10, gridCols: 1, placeholder: "9876543210" },
+    { name: "website", label: "Website", type: "url", gridCols: 2, placeholder: "https://example.com" },
+    { name: "bank_details", label: "Bank details", type: "textarea", rows: 2, gridCols: 2, placeholder: "Bank name, Account number, IFSC code" },
+  ];
+
+  // Get current step fields
+  const getCurrentFields = () => {
+    switch (step) {
+      case 1: return step1Fields;
+      case 2: return step2Fields;
+      case 3: return step3Fields;
+      default: return step1Fields;
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
-        <div className="bg-white rounded-md shadow-lg w-full max-w-2xl relative max-h-[85vh] flex flex-col">
+        <div className="bg-white rounded-md shadow-lg w-full max-w-4xl relative max-h-[85vh] flex flex-col">
 
-          {/* FIXED HEADER */}
-          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 flex justify-between items-center">
-            <h2 className="text-lg font-semibold">
-              {vendor ? "Edit Vendor" : "Add Vendor"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-xl font-bold hover:text-red-500"
-              aria-label="Close"
-            >
-              ✕
-            </button>
+          {/* Header with Step Indicator */}
+          <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">
+                {vendor ? "Edit Vendor" : "Add Vendor"}
+              </h2>
+              <button
+                onClick={onClose}
+                className="text-xl font-bold hover:text-red-500"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center space-x-4">
+              <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  1
+                </div>
+                <span className="ml-2">Basic Info</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  2
+                </div>
+                <span className="ml-2">Address & Legal</span>
+              </div>
+              <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  3
+                </div>
+                <span className="ml-2">Contacts & Bank</span>
+              </div>
+            </div>
           </div>
 
-          {/* SCROLLABLE FORM BODY */}
-          <div className="px-6 py-4 overflow-y-auto flex-1">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-6">
             <ReusableForm
-              fields={fields}
+              fields={getCurrentFields()}
               formData={formData}
               onChange={setFormData}
-              onSubmit={handleSubmit}
+              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
               loading={loading}
-              submitText={vendor ? "Update" : "Save"}
-              onCancel={onClose}
               showCancel={true}
+              onCancel={step > 1 ? () => setStep(step - 1) : onClose}
+              submitText={step === 3 ? (vendor ? "Update" : "Save") : "Next"}
+              cancelText={step > 1 ? "Back" : "Cancel"}
             />
           </div>
         </div>

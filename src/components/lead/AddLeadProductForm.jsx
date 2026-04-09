@@ -312,7 +312,8 @@ const AddLeadProductForm = ({
               {/* QUANTITY */}
               <input
                 type="number"
-                min="1"
+                // min="1"
+                placeholder="Qty"
                 value={product.quantity}
                 onChange={(e) =>
                   updateProduct(index, "quantity", e.target.value)

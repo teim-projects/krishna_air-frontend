@@ -26,7 +26,8 @@ export default function TableView({
   onPageChange = () => {},
   pageSize = 10,
   actions = null,
-  emptyMessage = "No records"
+  emptyMessage = "No records",
+  rowClassName,
 }) {
   return (
     <div className="bg-white p-4 rounded-md shadow overflow-x-auto">
@@ -54,7 +55,7 @@ export default function TableView({
                   </td>
                 </tr>
               ) : rows.map((row, idx) => (
-                <tr key={row.id ?? idx} className="odd:bg-slate-50">
+                <tr key={row.id ?? idx} className={`border-b hover:bg-gray-50 ${rowClassName ? rowClassName(row) : ''}`}>
                   {columns.map(col => (
                     <td key={col.key} className="py-2 px-3 text-center">
                       {col.render ? col.render(row, idx) : (row[col.key] ?? "")}
