@@ -23,9 +23,10 @@ api.interceptors.request.use((config) => {
 });
 
 
-export default function AddQuotation({ id, onBack }) {
+export default function AddQuotation({ id, onBack, leadData }) {
 
   const isEdit = !!id;
+  const isFromLead = !!leadData;
 
   // Get token for API calls
   const token = localStorage.getItem("access") || localStorage.getItem("access_token");
@@ -229,6 +230,46 @@ export default function AddQuotation({ id, onBack }) {
   }, []);
 
 
+  // Add this useEffect to populate form with lead data
+  useEffect(() => {
+    if (leadData && !isEdit) {
+      // Map lead data to quotation form
+      setFormData(prev => ({
+        ...prev,
+        customer_phone: leadData.customer_contact || "",
+        customer_name: leadData.customer_name || "",
+        customer_id: leadData.customer || "",
+        subject: `AC Quotation - ${leadData.project_name || 'Project'}`,
+        branch: "", // You might want to map this if available
+        site: "", // You might want to map this if available
+        gst_type: "CGST_SGST",
+        thank_you_note: ""
+      }));
+
+      // If lead has products, map them to items
+      if (leadData.products && leadData.products.length > 0) {
+        const mappedItems = leadData.products.map(product => ({
+          product_variant: product.product_variant || "",
+          unit: product.unit || "NOS",
+          ac_type_name: product.ac_type_name || "",
+          ac_sub_type_name: product.ac_sub_type_name || "",
+          brand_name: product.brand_name || "",
+          model_no: product.model_no || "",
+          variant_sku: product.variant_sku || "",
+          quantity: product.quantity || 1,
+          unit_price: product.unit_price || 0,
+          gst_percent: 18,
+          mathadi_charges: 0,
+          transportation_charges: 0,
+          description: product.description || "",
+          hsn_sac: product.hsn_sac || ""
+        }));
+        setItems(mappedItems);
+      }
+    }
+  }, [leadData, isEdit]);
+
+
   // ================= PHONE SEARCH =================
   const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
@@ -325,53 +366,59 @@ export default function AddQuotation({ id, onBack }) {
 
 
 
-  const resetForm = () => {
-    setFormData({
-      customer_phone: "",
-      customer_name: "",
-      customer_id: "",
-      subject: "AC Quotation",
-      branch: "",
-      site: "",
-      gst_type: "CGST_SGST",
-      thank_you_note: ""
-    });
+const resetForm = () => {
+  if (isFromLead) {
+    // Don't reset if created from lead, just close
+    onBack && onBack();
+    return;
+  }
 
-    // Reset terms using separate state variables
-    setPaymentTerms([]);
-    setValidityTerms([]);
-    setWarrantyTerms([]);
-    setOtherTerms([]);
+  setFormData({
+    customer_phone: "",
+    customer_name: "",
+    customer_id: "",
+    subject: "AC Quotation",
+    branch: "",
+    site: "",
+    gst_type: "CGST_SGST",
+    thank_you_note: ""
+  });
 
-    setItems([
-      {
-        acType: "",
-        subType: "",
-        brand: "",
-        model: "",
-        product_variant: "",
-        quantity: 1,
-        unit_price: 0,
-        gst_percent: 18,
-        mathadi_charges: 0,
-        transportation_charges: 0
-      }
-    ]);
+  // Reset terms using separate state variables
+  setPaymentTerms([]);
+  setValidityTerms([]);
+  setWarrantyTerms([]);
+  setOtherTerms([]);
 
-    setLowItems([
-      {
-        material_type_id: "",
-        item_type_id: "",
-        feature_type_id: "",
-        item_class_id: "",
-        item: "",
-        quantity: 1,
-        unit_price: 0,
-        gst_percent: 18,
-        mathadi_charges: 0
-      }
-    ]);
-  };
+  setItems([
+    {
+      acType: "",
+      subType: "",
+      brand: "",
+      model: "",
+      product_variant: "",
+      quantity: 1,
+      unit_price: 0,
+      gst_percent: 18,
+      mathadi_charges: 0,
+      transportation_charges: 0
+    }
+  ]);
+
+  setLowItems([
+    {
+      material_type_id: "",
+      item_type_id: "",
+      feature_type_id: "",
+      item_class_id: "",
+      item: "",
+      quantity: 1,
+      unit_price: 0,
+      gst_percent: 18,
+      mathadi_charges: 0
+    }
+  ]);
+};
 
 
   // ================= SUBMIT =================
@@ -385,6 +432,10 @@ export default function AddQuotation({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
       return;
     }
+    if (!data.branch) {
+    Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+    return;
+  }
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
@@ -489,6 +540,10 @@ export default function AddQuotation({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
       return false;
     }
+    if (!formData.branch) {
+    Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+    return false;
+  }
     return true;
   };
 
@@ -541,20 +596,21 @@ export default function AddQuotation({ id, onBack }) {
       placeholder: "Enter quotation subject"
     },
     {
+      name: "branch",
+      label: "Branch",
+      type: "select",
+      required: true,
+      gridCols: 1,
+      placeholder: "Select Branch",
+      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
+    },
+    {
       name: "site",
       label: "Site",
       type: "select",
       gridCols: 1,
       placeholder: "Select Site",
       options: sites.map(site => ({ value: site.id, label: site.name }))
-    },
-    {
-      name: "branch",
-      label: "Branch",
-      type: "select",
-      gridCols: 1,
-      placeholder: "Select Branch",
-      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
     },
     {
       name: "gst_type",
@@ -745,7 +801,7 @@ export default function AddQuotation({ id, onBack }) {
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">
-                {isEdit ? "Edit Quotation" : "Add Quotation"}
+                {isEdit ? "Edit Quotation" : isFromLead ? "Create Quotation from Enquiry" : "Add Quotation"}
               </h2>
               <button
                 onClick={onBack}
