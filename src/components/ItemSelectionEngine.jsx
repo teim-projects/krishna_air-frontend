@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import SmartProductSelect from "./SmartProductSelect";
 import { MdDelete } from "react-icons/md";
 import AcMaterialList from "./AcMaterialList";
 
@@ -35,11 +36,13 @@ export default function ItemSelectionEngine({
   /* ================= DRAFT STATES ================= */
 
   const [draftHighItem, setDraftHighItem] = useState({
-    acType: "",
-    subType: "",
-    brand: "",
-    model: "",
+    // Removed old dropdown fields - now using SmartProductSelect
     product_variant: "",
+    ac_type_name: "",
+    ac_sub_type_name: "",
+    brand_name: "",
+    model_no: "",
+    variant_sku: "",
     description: "",
     hsn_sac: "",
     unit: "Nos",
@@ -68,54 +71,27 @@ export default function ItemSelectionEngine({
   });
 
   /* ================= MASTERS ================= */
+  // Removed old dropdown states - now using SmartProductSelect
+  // const [acTypes, setAcTypes] = useState([]);
+  // const [subTypes, setSubTypes] = useState([]);
+  // const [brands, setBrands] = useState([]);
+  // const [models, setModels] = useState([]);
+  // const [variants, setVariants] = useState([]);
 
-  const [acTypes, setAcTypes] = useState([]);
-  const [subTypes, setSubTypes] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [models, setModels] = useState([]);
-  const [variants, setVariants] = useState([]);
-
-  // const [materialTypes, setMaterialTypes] = useState([]);
-  // const [itemTypes, setItemTypes] = useState([]);
-  // const [featureTypes, setFeatureTypes] = useState([]);
-  // const [itemClasses, setItemClasses] = useState([]);
-  // const [lowItemsMaster, setLowItemsMaster] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [resetMaterials, setResetMaterials] = useState(0);
+  const [lowItemsMaster, setLowItemsMaster] = useState([]);
 
 
   /* ================= LOADERS ================= */
-  const loadAcTypes = async () => {
-    const r = await api.get("product/actype/");
-    setAcTypes(normalize(r.data));
-  };
-
-  useEffect(() => {
-    loadAcTypes();
-  }, []);
-
-  const loadSubTypes = async (id) => {
-    const r = await api.get(`product/ac-subtypes/?ac_type_id=${id}`);
-    setSubTypes(normalize(r.data));
-  };
-
-  const loadBrands = async (id) => {
-    const r = await api.get(`product/ac-brand/?subtype=${id}`);
-    setBrands(normalize(r.data));
-  };
-
-  const loadModels = async (subType, brand) => {
-    const r = await api.get(`product/product-model/?ac_sub_type_id=${subType}&brand_id=${brand}`);
-    setModels(normalize(r.data));
-  };
-
-  const loadVariants = async (id) => {
-    const r = await api.get(`product/product-variant/?product_model=${id}`);
-    setVariants(normalize(r.data));
-  };
+  // Removed old dropdown loaders - now using SmartProductSelect
+  // const loadAcTypes = async () => { ... };
+  // const loadSubTypes = async (id) => { ... };
+  // const loadBrands = async (id) => { ... };
+  // const loadModels = async (subType, brand) => { ... };
+  // const loadVariants = async (id) => { ... };
 
   const loadLowSideItems = async (data) => {
-
     const params = {};
 
     if (data.material_type_id) params.material_type_id = data.material_type_id;
@@ -127,33 +103,11 @@ export default function ItemSelectionEngine({
 
     setLowItemsMaster(normalize(r.data));
   };
-  /* ================= UPDATE DRAFT HIGH ================= */
 
+  /* ================= UPDATE DRAFT HIGH ================= */
   const updateHighDraft = (field, value) => {
     const copy = { ...draftHighItem, [field]: value };
-
-    if (field === "acType") {
-      copy.subType = "";
-      copy.brand = "";
-      copy.model = "";
-      loadSubTypes(value);
-    }
-
-    if (field === "subType") {
-      copy.brand = "";
-      copy.model = "";
-      loadBrands(value);
-    }
-
-    if (field === "brand") {
-      copy.model = "";
-      loadModels(copy.subType, value);
-    }
-
-    if (field === "model") {
-      loadVariants(value);
-    }
-
+    // Removed cascading dropdown logic - now handled by SmartProductSelect
     setDraftHighItem(copy);
   };
 
@@ -177,36 +131,27 @@ export default function ItemSelectionEngine({
       return;
     }
 
-    const selectedVariant = variants.find(
-      v => String(v.id) === String(draftHighItem.product_variant)
-    );
-
     const newRow = {
       ...draftHighItem,
-      unit: selectedVariant?.unit || draftHighItem.unit,
       quantity: draftHighItem.quantity || 1,
       unit_price: draftHighItem.unit_price || 0,
       rate: draftHighItem.rate || 0,
       gst_percent: highSideGstEnabled ? (draftHighItem.gst_percent || 18) : 0,
       mathadi_charges: draftHighItem.mathadi_charges || 0,
       transportation_charges: draftHighItem.transportation_charges || 0,
-
-      // ⭐ inject display fields
-      ac_type_name: selectedVariant?.ac_type_name,
-      ac_sub_type_name: selectedVariant?.ac_sub_type_name,
-      brand_name: selectedVariant?.brand_name,
-      model_no: selectedVariant?.model_no,
-      variant_sku: selectedVariant?.variant_sku,
+      // Product details are already set by SmartProductSelect
     };
 
     setItems(prev => [...prev, newRow]);
 
+    // Reset form but keep unit
     setDraftHighItem({
-      acType: "",
-      subType: "",
-      brand: "",
-      model: "",
       product_variant: "",
+      ac_type_name: "",
+      ac_sub_type_name: "",
+      brand_name: "",
+      model_no: "",
+      variant_sku: "",
       description: "",
       hsn_sac: "",
       unit: "Nos",
@@ -219,20 +164,7 @@ export default function ItemSelectionEngine({
     });
   };
 
-  useEffect(() => {
-    if (draftHighItem.product_variant) {
-      const v = variants.find(
-        x => String(x.id) === String(draftHighItem.product_variant)
-      );
-
-      if (v) {
-        setDraftHighItem(prev => ({
-          ...prev,
-          unit: v.unit || prev.unit
-        }));
-      }
-    }
-  }, [draftHighItem.product_variant, variants]);
+  // Removed old useEffect for variants - no longer needed with SmartProductSelect
 
   const addLowItem = () => {
     if (selectedMaterials.length === 0) {
@@ -332,45 +264,28 @@ export default function ItemSelectionEngine({
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Row 1 - 4 dropdowns */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.acType}
-              onChange={e => updateHighDraft("acType", e.target.value)}>
-              <option>AC Type</option>
-              {acTypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.subType}
-              onChange={e => updateHighDraft("subType", e.target.value)}>
-              <option>SubType</option>
-              {subTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.brand}
-              onChange={e => updateHighDraft("brand", e.target.value)}>
-              <option>Brand</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.model}
-              onChange={e => updateHighDraft("model", e.target.value)}>
-              <option>Model</option>
-              {models.map(m => <option key={m.id} value={m.id}>{m.model_no}</option>)}
-            </select>
+          {/* Smart Product Selection - Replaces 5 dropdowns */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Select Product *
+            </label>
+            <SmartProductSelect
+              baseApi={baseApi}
+              authToken={authToken}
+              placeholder="Search: LG 1.5 ton split, Daikin inverter, Blue Star window..."
+              onSelect={(product) => {
+                updateHighDraft("product_variant", product.id);
+                updateHighDraft("ac_type_name", product.ac_type_name);
+                updateHighDraft("ac_sub_type_name", product.ac_sub_type_name);
+                updateHighDraft("brand_name", product.brand_name);
+                updateHighDraft("model_no", product.model_name);
+                updateHighDraft("variant_sku", product.variant_sku);
+              }}
+            />
           </div>
-          {/* Row 2 - remaining inputs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.product_variant}
-              onChange={e => updateHighDraft("product_variant", e.target.value)}>
-              <option>Variant</option>
-              {variants.map(v => <option key={v.id} value={v.id}>{v.sku}</option>)}
-            </select>
 
+          {/* Row 1 - Quantity, Price, GST */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               type="number"
               placeholder="Qty"
@@ -390,6 +305,14 @@ export default function ItemSelectionEngine({
                 value={draftHighItem.gst_percent}
                 onChange={e => updateHighDraft("gst_percent", e.target.value)} />
             )}
+
+            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={draftHighItem.unit}
+              onChange={e => updateHighDraft("unit", e.target.value)}>
+              {unitOptions.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
           </div>
 
           {/* Row 3 - Additional fields for non-invoice mode */}

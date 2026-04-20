@@ -541,9 +541,13 @@ const resetForm = () => {
       return false;
     }
     if (!formData.branch) {
-    Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
-    return false;
-  }
+      Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+      return false;
+    }
+    if (!formData.thank_you_note || !formData.thank_you_note.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Thank You Note is required" });
+      return false;
+    }
     return true;
   };
 
@@ -628,6 +632,7 @@ const resetForm = () => {
       name: "thank_you_note",
       label: "Thank You Note",
       type: "component",
+      required: true,
       gridCols: 2,
       component: ({ value, onChange }) => (
         <div className="relative">
@@ -843,7 +848,15 @@ const resetForm = () => {
               fields={getCurrentFields()}
               formData={formData}
               onChange={setFormData}
-              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
+              onSubmit={
+                step === 3 
+                  ? handleSubmit 
+                  : step === 1 
+                    ? () => { if (validateStep1()) setStep(2); }
+                    : step === 2 
+                      ? () => { if (validateStep2()) setStep(3); }
+                      : () => {}
+              }
               loading={loading}
               showCancel={true}
               onCancel={step > 1 ? () => setStep(step - 1) : onBack}
