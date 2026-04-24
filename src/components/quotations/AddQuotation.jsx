@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import ItemSelectionEngine from "../ItemSelectionEngine";
 import TermsMultiSelect from "../TermsMultiSelect";
@@ -82,9 +82,14 @@ export default function AddQuotation({ id, onBack, leadData }) {
   // ================= THANK YOU NOTE SUGGESTIONS =================
   const [thankYouSuggestions, setThankYouSuggestions] = useState([]);
   const [showThankYouSuggestions, setShowThankYouSuggestions] = useState(false);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [loadingThankYou, setLoadingThankYou] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
+  // ================= SUBJECT SUGGESTIONS ================= ADD THIS SECTION
+  const [subjectSuggestions, setSubjectSuggestions] = useState([]);
+  const [showSubjectSuggestions, setShowSubjectSuggestions] = useState(false);
+  const [loadingSubject, setLoadingSubject] = useState(false);
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(-1);
 
   // ================= LOAD MASTERS =================
 
@@ -239,7 +244,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
         customer_phone: leadData.customer_contact || "",
         customer_name: leadData.customer_name || "",
         customer_id: leadData.customer || "",
-        subject: `AC Quotation - ${leadData.project_name || 'Project'}`,
+        subject: "",
         branch: "", // You might want to map this if available
         site: "", // You might want to map this if available
         gst_type: "CGST_SGST",
@@ -327,17 +332,17 @@ export default function AddQuotation({ id, onBack, leadData }) {
   // Keyboard navigation for suggestions
   const handleThankYouKeyDown = (e) => {
     if (!showThankYouSuggestions) return;
-    
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
+        setSelectedSuggestionIndex(prev =>
           prev < thankYouSuggestions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
+        setSelectedSuggestionIndex(prev =>
           prev > 0 ? prev - 1 : thankYouSuggestions.length - 1
         );
         break;
@@ -361,64 +366,140 @@ export default function AddQuotation({ id, onBack, leadData }) {
     setSelectedSuggestionIndex(-1);
   };
 
+  // ================= SUBJECT SUGGESTIONS =================
+  const fetchSubjectSuggestions = async (searchTerm) => {
+    if (searchTerm.length < 2) {
+      setSubjectSuggestions([]);
+      setShowSubjectSuggestions(false);
+      return;
+    }
+
+    setLoadingSubject(true);
+    try {
+      const response = await fetch(
+        `${BASE_API}/quotation/subject-suggestions/?search=${encodeURIComponent(searchTerm)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSubjectSuggestions(data);
+        setShowSubjectSuggestions(data.length > 0);
+      }
+    } catch (error) {
+      console.error("Error fetching subject suggestions:", error);
+    } finally {
+      setLoadingSubject(false);
+    }
+  };
+
+  // Debounced subject search
+  const debouncedSubjectSearch = useCallback(
+    debounce((searchTerm) => {
+      fetchSubjectSuggestions(searchTerm);
+    }, 300),
+    []
+  );
+
+  // Handle keyboard navigation for subject suggestions
+  const handleSubjectKeyDown = (e) => {
+    if (!showSubjectSuggestions || subjectSuggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSubjectIndex(prev =>
+          prev < subjectSuggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSubjectIndex(prev => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSubjectIndex >= 0) {
+          selectSubject(subjectSuggestions[selectedSubjectIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowSubjectSuggestions(false);
+        setSelectedSubjectIndex(-1);
+        break;
+    }
+  };
+
+  // Select subject
+  const selectSubject = (suggestion) => {
+    setFormData(prev => ({ ...prev, subject: suggestion.text }));
+    setShowSubjectSuggestions(false);
+    setSelectedSubjectIndex(-1);
+  };
+
+
   // ================= HIGH SIDE LOADERS =================
 
 
 
 
-const resetForm = () => {
-  if (isFromLead) {
-    // Don't reset if created from lead, just close
-    onBack && onBack();
-    return;
-  }
-
-  setFormData({
-    customer_phone: "",
-    customer_name: "",
-    customer_id: "",
-    subject: "AC Quotation",
-    branch: "",
-    site: "",
-    gst_type: "CGST_SGST",
-    thank_you_note: ""
-  });
-
-  // Reset terms using separate state variables
-  setPaymentTerms([]);
-  setValidityTerms([]);
-  setWarrantyTerms([]);
-  setOtherTerms([]);
-
-  setItems([
-    {
-      acType: "",
-      subType: "",
-      brand: "",
-      model: "",
-      product_variant: "",
-      quantity: 1,
-      unit_price: 0,
-      gst_percent: 18,
-      mathadi_charges: 0,
-      transportation_charges: 0
+  const resetForm = () => {
+    if (isFromLead) {
+      // Don't reset if created from lead, just close
+      onBack && onBack();
+      return;
     }
-  ]);
 
-  setLowItems([
-    {
-      material_type_id: "",
-      item_type_id: "",
-      feature_type_id: "",
-      item_class_id: "",
-      item: "",
-      quantity: 1,
-      unit_price: 0,
-      gst_percent: 18,
-      mathadi_charges: 0
-    }
-  ]);
-};
+    setFormData({
+      customer_phone: "",
+      customer_name: "",
+      customer_id: "",
+      subject: "AC Quotation",
+      branch: "",
+      site: "",
+      gst_type: "CGST_SGST",
+      thank_you_note: ""
+    });
+
+    // Reset terms using separate state variables
+    setPaymentTerms([]);
+    setValidityTerms([]);
+    setWarrantyTerms([]);
+    setOtherTerms([]);
+
+    setItems([
+      {
+        acType: "",
+        subType: "",
+        brand: "",
+        model: "",
+        product_variant: "",
+        quantity: 1,
+        unit_price: 0,
+        gst_percent: 18,
+        mathadi_charges: 0,
+        transportation_charges: 0
+      }
+    ]);
+
+    setLowItems([
+      {
+        material_type_id: "",
+        item_type_id: "",
+        feature_type_id: "",
+        item_class_id: "",
+        item: "",
+        quantity: 1,
+        unit_price: 0,
+        gst_percent: 18,
+        mathadi_charges: 0
+      }
+    ]);
+  };
 
 
   // ================= SUBMIT =================
@@ -433,9 +514,9 @@ const resetForm = () => {
       return;
     }
     if (!data.branch) {
-    Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
-    return;
-  }
+      Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+      return;
+    }
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
@@ -507,7 +588,7 @@ const resetForm = () => {
       console.log("Error details:", err);
       console.log("Response status:", err.response?.status);
       console.log("Response data:", err.response?.data);
-      
+
       // If quotation was actually saved (status 200-201), show success
       if (err.response?.status === 200 || err.response?.status === 201) {
         Swal.fire({
@@ -520,7 +601,7 @@ const resetForm = () => {
         onBack && onBack();
         return;
       }
-      
+
       console.log(err.response?.data);
       Swal.fire({ icon: "error", title: "Error", text: "Error saving quotation" });
     } finally {
@@ -594,10 +675,76 @@ const resetForm = () => {
     {
       name: "subject",
       label: "Subject",
-      type: "text",
+      type: "component",
       required: true,
       gridCols: 1,
-      placeholder: "Enter quotation subject"
+      component: ({ value, onChange }) => (
+        <div className="relative">
+          <input
+            type="text"
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Type to get suggestions..."
+            value={value || ""}
+            onChange={(e) => {
+              onChange(e.target.value);
+              debouncedSubjectSearch(e.target.value);
+            }}
+            onKeyDown={handleSubjectKeyDown}
+            onFocus={() => {
+              if (value && value.length >= 2) {
+                debouncedSubjectSearch(value);
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setShowSubjectSuggestions(false);
+                setSelectedSubjectIndex(-1);
+              }, 200);
+            }}
+          />
+
+          {loadingSubject && (
+            <div className="absolute right-3 top-3 pointer-events-none">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
+            </div>
+          )}
+
+          {showSubjectSuggestions && subjectSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              {subjectSuggestions.map((suggestion, index) => {
+                const isSelected = index === selectedSubjectIndex;
+
+                return (
+                  <div
+                    key={suggestion.id}
+                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${isSelected
+                        ? 'bg-indigo-100 text-indigo-900'
+                        : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectSubject(suggestion);
+                    }}
+                    onMouseEnter={() => setSelectedSubjectIndex(index)}
+                  >
+                    <div className="truncate">
+                      {suggestion.text.length > 80 ? `${suggestion.text.substring(0, 80)}...` : suggestion.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {showSubjectSuggestions && subjectSuggestions.length === 0 && !loadingSubject && value && value.length >= 2 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+              <div className="px-3 py-2 text-sm text-gray-500 italic">
+                No suggestions found. Keep typing to create a new one.
+              </div>
+            </div>
+          )}
+        </div>
+      )
     },
     {
       name: "branch",
@@ -658,26 +805,25 @@ const resetForm = () => {
               }, 200);
             }}
           />
-          
+
           {loadingThankYou && (
             <div className="absolute right-3 top-3 pointer-events-none">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
             </div>
           )}
-          
+
           {showThankYouSuggestions && thankYouSuggestions.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
               {thankYouSuggestions.map((note, index) => {
                 const isSelected = index === selectedSuggestionIndex;
-                
+
                 return (
                   <div
                     key={note.id}
-                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${
-                      isSelected 
-                        ? 'bg-indigo-100 text-indigo-900' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${isSelected
+                      ? 'bg-indigo-100 text-indigo-900'
+                      : 'hover:bg-gray-50 text-gray-700'
+                      }`}
                     onMouseDown={(e) => {
                       e.preventDefault(); // Prevent blur from firing
                       selectThankYouNote(note);
@@ -692,7 +838,7 @@ const resetForm = () => {
               })}
             </div>
           )}
-          
+
           {showThankYouSuggestions && thankYouSuggestions.length === 0 && !loadingThankYou && value && value.length >= 2 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
               <div className="px-3 py-2 text-sm text-gray-500 italic">
@@ -816,7 +962,7 @@ const resetForm = () => {
                 ✕
               </button>
             </div>
-            
+
             {/* Step Indicator */}
             <div className="flex items-center justify-center space-x-4">
               <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -849,13 +995,13 @@ const resetForm = () => {
               formData={formData}
               onChange={setFormData}
               onSubmit={
-                step === 3 
-                  ? handleSubmit 
-                  : step === 1 
+                step === 3
+                  ? handleSubmit
+                  : step === 1
                     ? () => { if (validateStep1()) setStep(2); }
-                    : step === 2 
+                    : step === 2
                       ? () => { if (validateStep2()) setStep(3); }
-                      : () => {}
+                      : () => { }
               }
               loading={loading}
               showCancel={true}

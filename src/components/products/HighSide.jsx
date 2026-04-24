@@ -116,7 +116,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         rows.forEach((row) => fetchAcSubTypesByType(row.id));
     };
 
-    
+
     const fetchAcSubTypesByType = async (acTypeId) => {
         // console.log("acType",acTypeId)
         const res = await axios.get(
@@ -129,7 +129,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     };
 
 
-   
+
 
     const fetchBrands = async () => {
         const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
@@ -139,7 +139,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
 
 
-    
+
     const filterModel = async (filters = {}, page = 1) => {
         try {
             const params = new URLSearchParams();
@@ -370,7 +370,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         );
 
         fetchBrands();   // refresh list
-    };  
+    };
 
     const handleDeleteModel = async (id) => {
         if (!window.confirm("Delete this model?")) return;
@@ -405,7 +405,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     });
 
 
- 
+
 
 
     // Model related handlers will go here 
@@ -878,6 +878,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     const [form, setForm] = useState({
         id: null,
         capacity: "",
+        unit: "TR",
         star: "",
         mrp: "",
         dp: "",
@@ -920,8 +921,8 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
 
     // Add or Update variant
     const saveVariant = async () => {
-        if (!form.capacity || !form.star || !form.mrp || !form.dp) {
-            alert("Fill all fields");
+        if (!form.capacity || !form.star) {
+            alert("Fill required fields");
             return;
         }
 
@@ -981,24 +982,46 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 </div>
 
                 {/* 🔹 Single Add/Edit Form */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
-                    <input value={form.capacity} onChange={e => updateForm("capacity", e.target.value)} placeholder="Capacity" className="border px-3 py-2 rounded" />
-                    <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded">
-                        <option value="">Star</option>
-                        <option value="1">1 Star</option>
-                        <option value="2">2 Star</option>
-                        <option value="3">3 Star</option>
-                        <option value="4">4 Star</option>
-                        <option value="5">5 Star</option>
-                    </select>
-                    <input value={form.mrp} onChange={e => updateForm("mrp", e.target.value)} placeholder="MRP" className="border px-3 py-2 rounded" />
-                    <input value={form.dp} onChange={e => updateForm("dp", e.target.value)} placeholder="DP" className="border px-3 py-2 rounded" />
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={form.active} onChange={e => updateForm("active", e.target.checked)} />
-                        Active
-                    </label>
+                <div className="mb-6">
+                    {/* Input fields row */}
+                    <div className="flex gap-3 mb-3">
+                        <input 
+                            value={form.capacity} 
+                            onChange={e => updateForm("capacity", e.target.value)} 
+                            placeholder="Capacity(required)" 
+                            className="border px-3 py-2 rounded flex-1" 
+                        />
+                        <select
+                            className="border rounded px-2 py-2 w-20"
+                            value={form.unit || ''}
+                            onChange={(e) => {
+                                const updated = [...variants];
+                                updated[index].unit = e.target.value;
+                                setVariants(updated);
+                            }}
+                        >
+                            <option value="">Unit</option>
+                            <option value="TR">TR</option>
+                            <option value="HP">HP</option>
+                        </select>
+                        <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded flex-1">
+                            <option value="">Star(required)</option>
+                            <option value="1">1 Star</option>
+                            <option value="2">2 Star</option>
+                            <option value="3">3 Star</option>
+                            <option value="4">4 Star</option>
+                            <option value="5">5 Star</option>
+                        </select>
+                        <input value={form.mrp} onChange={e => updateForm("mrp", e.target.value)} placeholder="MRP" className="border px-3 py-2 rounded flex-1" />
+                        <input value={form.dp} onChange={e => updateForm("dp", e.target.value)} placeholder="DP" className="border px-3 py-2 rounded flex-1" />
+                    </div>
 
-                    <div className="col-span-full flex gap-2 mt-2">
+                    {/* Active checkbox and Add button row */}
+                    <div className="flex gap-2 items-center">
+                        <label className="flex items-center gap-2">
+                            <input type="checkbox" checked={form.active} onChange={e => updateForm("active", e.target.checked)} />
+                            Active
+                        </label>
                         <button onClick={saveVariant} className="px-4 py-2 bg-blue-600 text-white rounded">
                             {form.id ? "Update" : "Add"}
                         </button>
@@ -1017,6 +1040,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                             <tr>
                                 <th className="px-4 py-3 font-medium text-gray-700">SKU No</th>
                                 <th className="px-4 py-3 font-medium text-gray-700">Capacity</th>
+                                <th className="px-4 py-3 font-medium text-gray-700">Unit</th>
                                 <th className="px-4 py-3 font-medium text-gray-700">Star</th>
                                 <th className="px-4 py-3 font-medium text-gray-700">MRP</th>
                                 <th className="px-4 py-3 font-medium text-gray-700">DP</th>
@@ -1030,6 +1054,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                                 <tr key={v.id} className="hover:bg-gray-50 transition">
                                     <td className="px-4 py-3">{v.sku}</td>
                                     <td className="px-4 py-3">{v.capacity}</td>
+                                    <td className="px-4 py-3">{v.unit || 'TR'}</td>
                                     <td className="px-4 py-3">{v.star}</td>
                                     <td className="px-4 py-3">₹{Number(v.mrp).toLocaleString()}</td>
                                     <td className="px-4 py-3">₹{Number(v.dp).toLocaleString()}</td>

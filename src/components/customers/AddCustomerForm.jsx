@@ -123,55 +123,79 @@ export default function AddCustomerForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Name is required" });
       return false;
     }
-    if (!contactNumber.toString().trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Contact number is required" });
-      return false;
+    
+    // Contact number validation - 10 digits if provided
+    if (contactNumber && contactNumber.toString().trim()) {
+      const cleanNumber = contactNumber.toString().replace(/\D/g, "");
+      if (cleanNumber.length !== 10) {
+        Swal.fire({ icon: "error", title: "Validation", text: "Contact number must be exactly 10 digits" });
+        return false;
+      }
     }
-    // basic email check (optional)
+    
+    // POC contact number validation - 10 digits if provided
+    if (pocContactNumber && pocContactNumber.toString().trim()) {
+      const cleanPocNumber = pocContactNumber.toString().replace(/\D/g, "");
+      if (cleanPocNumber.length !== 10) {
+        Swal.fire({ icon: "error", title: "Validation", text: "POC contact number must be exactly 10 digits" });
+        return false;
+      }
+    }
+    
+    // Landline validation - if provided
+    if (landLineNumber && landLineNumber.toString().trim()) {
+      const cleanLandline = landLineNumber.toString().replace(/\D/g, "");
+      if (cleanLandline.length < 6 || cleanLandline.length > 15) {
+        Swal.fire({ icon: "error", title: "Validation", text: "Landline number must be between 6 and 15 digits" });
+        return false;
+      }
+    }
+    
+    // Email validation (optional)
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       Swal.fire({ icon: "error", title: "Validation", text: "Email is invalid" });
       return false;
     }
 
     if (secondary_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(secondary_email)) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Email is invalid" });
+      Swal.fire({ icon: "error", title: "Validation", text: "Secondary email is invalid" });
       return false;
     }
-    if (!address.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Address is required" });
-      return false;
-    }
-    if (!city.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "City is required" });
-      return false;
-    }
-    if (!stateVal.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "State is required" });
-      return false;
-    }
-    if (!pinCode.toString().trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Pin code is required" });
-      return false;
-    }
-    // if both_address_is_same false then site fields required
-    if (!bothAddressSame) {
-      if (!siteAddress.trim()) {
-        Swal.fire({ icon: "error", title: "Validation", text: "Site address is required" });
-        return false;
-      }
-      if (!siteCity.trim()) {
-        Swal.fire({ icon: "error", title: "Validation", text: "Site city is required" });
-        return false;
-      }
-      if (!siteState.trim()) {
-        Swal.fire({ icon: "error", title: "Validation", text: "Site state is required" });
-        return false;
-      }
-      if (!sitePinCode.toString().trim()) {
-        Swal.fire({ icon: "error", title: "Validation", text: "Site pin code is required" });
+    
+    // GST validation - 15 characters if provided
+    if (gst && gst.trim()) {
+      if (gst.trim().length !== 15) {
+        Swal.fire({ icon: "error", title: "Validation", text: "GST number must be exactly 15 characters" });
         return false;
       }
     }
+    
+    // PAN validation - 10 characters if provided
+    if (pan && pan.trim()) {
+      if (pan.trim().length !== 10) {
+        Swal.fire({ icon: "error", title: "Validation", text: "PAN number must be exactly 10 characters" });
+        return false;
+      }
+    }
+    
+    // Pin code validation - 6 digits if provided
+    if (pinCode && pinCode.toString().trim()) {
+      const cleanPin = pinCode.toString().replace(/\D/g, "");
+      if (cleanPin.length !== 6) {
+        Swal.fire({ icon: "error", title: "Validation", text: "Pin code must be exactly 6 digits" });
+        return false;
+      }
+    }
+    
+    // Site pin code validation - 6 digits if provided
+    if (!bothAddressSame && sitePinCode && sitePinCode.toString().trim()) {
+      const cleanSitePin = sitePinCode.toString().replace(/\D/g, "");
+      if (cleanSitePin.length !== 6) {
+        Swal.fire({ icon: "error", title: "Validation", text: "Site pin code must be exactly 6 digits" });
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -292,7 +316,7 @@ export default function AddCustomerForm({
               <div className="grid grid-cols-2 gap-4">
                 {/* Name */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Name</label>
+                  <label className="text-sm text-slate-700 mb-1 block">Name <span className="text-red-500">*</span></label>
                   <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={name} onChange={e => setName(e.target.value)} />
                 </div>
@@ -300,27 +324,37 @@ export default function AddCustomerForm({
                 {/* Contact Number */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">Contact Number</label>
-                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                    value={contactNumber} onChange={e => setContactNumber(e.target.value)} />
+                  <input 
+                    className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={contactNumber} 
+                    onChange={e => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      setContactNumber(value);
+                    }}
+                    placeholder="10-digit mobile number"
+                  />
                 </div>
 
                 {/* Landline Number */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Landline Number <small>(optional)</small></label>
+                  <label className="text-sm text-slate-700 mb-1 block">Landline Number</label>
                   <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={landLineNumber} onChange={e => setLandLineNumber(e.target.value)} />
                 </div>
 
                 {/* Email */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Email <small>(optional)</small></label>
+                  <label className="text-sm text-slate-700 mb-1 block">Email</label>
                   <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
 
                 {/* Secondary Email */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Secondary Email <small>(optional)</small></label>
+                  <label className="text-sm text-slate-700 mb-1 block">Secondary Email</label>
                   <input className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={secondary_email} onChange={e => setSecondary_email(e.target.value)} />
                 </div>
@@ -335,13 +369,23 @@ export default function AddCustomerForm({
                 {/* POC contact number */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">POC Contact</label>
-                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                    value={pocContactNumber} onChange={e => setPocContactNumber(e.target.value)} />
+                  <input 
+                    className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={pocContactNumber} 
+                    onChange={e => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      setPocContactNumber(value);
+                    }}
+                    placeholder="10-digit mobile number"
+                  />
                 </div>
 
                 {/* GST */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">GST Number <small>(optional)</small></label>
+                  <label className="text-sm text-slate-700 mb-1 block">GST Number</label>
                   <input 
                     className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={gst} 
@@ -353,7 +397,7 @@ export default function AddCustomerForm({
 
                 {/* PAN */}
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">PAN Number <small>(optional)</small></label>
+                  <label className="text-sm text-slate-700 mb-1 block">PAN Number</label>
                   <input 
                     className="w-full px-3 py-2 rounded-md border border-slate-200"
                     value={pan} 

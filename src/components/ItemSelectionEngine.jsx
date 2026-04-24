@@ -246,18 +246,17 @@ export default function ItemSelectionEngine({
             <button
               type="button"
               onClick={() => setHighSideGstEnabled(!highSideGstEnabled)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                highSideGstEnabled 
-                  ? 'bg-green-100 text-green-700 border border-green-300' 
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${highSideGstEnabled
+                  ? 'bg-green-100 text-green-700 border border-green-300'
                   : 'bg-red-100 text-red-700 border border-red-300'
-              }`}
+                }`}
             >
               GST {highSideGstEnabled ? 'Enabled' : 'Disabled'}
             </button>
           </div>
-          <button 
-          type="button"
-          onClick={addHighItem}
+          <button
+            type="button"
+            onClick={addHighItem}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
             + Add Product
           </button>
@@ -274,12 +273,16 @@ export default function ItemSelectionEngine({
               authToken={authToken}
               placeholder="Search: LG 1.5 ton split, Daikin inverter, Blue Star window..."
               onSelect={(product) => {
-                updateHighDraft("product_variant", product.id);
-                updateHighDraft("ac_type_name", product.ac_type_name);
-                updateHighDraft("ac_sub_type_name", product.ac_sub_type_name);
-                updateHighDraft("brand_name", product.brand_name);
-                updateHighDraft("model_no", product.model_name);
-                updateHighDraft("variant_sku", product.variant_sku);
+                // Update all fields at once to avoid state race conditions
+                setDraftHighItem(prev => ({
+                  ...prev,
+                  product_variant: product.id,
+                  ac_type_name: product.ac_type_name,
+                  ac_sub_type_name: product.ac_sub_type_name,
+                  brand_name: product.brand_name,
+                  model_no: product.model_name,
+                  variant_sku: product.variant_sku
+                }));
               }}
             />
           </div>
@@ -541,18 +544,17 @@ export default function ItemSelectionEngine({
             <button
               type="button"
               onClick={() => setLowSideGstEnabled(!lowSideGstEnabled)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                lowSideGstEnabled 
-                  ? 'bg-green-100 text-green-700 border border-green-300' 
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${lowSideGstEnabled
+                  ? 'bg-green-100 text-green-700 border border-green-300'
                   : 'bg-red-100 text-red-700 border border-red-300'
-              }`}
+                }`}
             >
               GST {lowSideGstEnabled ? 'Enabled' : 'Disabled'}
             </button>
           </div>
-          <button 
-          type="button"
-          onClick={addLowItem}
+          <button
+            type="button"
+            onClick={addLowItem}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
             + Add Product
           </button>
