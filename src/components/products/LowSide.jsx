@@ -74,11 +74,17 @@ const LowSide = ({ base_api, filters }) => {
 
       // Calculate pagination
       const count = data?.count ?? rows.length;
-      const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+      const calculatedPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
       setTotalCount(count);
-      setTotalPages(pages);
-      setCurrentPage(page);
+      setTotalPages(calculatedPages);
+      
+      // Ensure current page doesn't exceed total pages
+      if (page > calculatedPages && calculatedPages > 0) {
+        setCurrentPage(calculatedPages);
+      } else {
+        setCurrentPage(page);
+      }
 
     } catch (err) {
       console.error("Error fetching items:", err);
@@ -113,11 +119,17 @@ const LowSide = ({ base_api, filters }) => {
       setItems(rows);
 
       const count = data?.count ?? rows.length;
-      const pages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+      const calculatedPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
       setTotalCount(count);
-      setTotalPages(pages);
-      setCurrentPage(page);
+      setTotalPages(calculatedPages);
+      
+      // Ensure current page doesn't exceed total pages
+      if (page > calculatedPages && calculatedPages > 0) {
+        setCurrentPage(calculatedPages);
+      } else {
+        setCurrentPage(page);
+      }
 
     } catch (err) {
       console.error("Error filtering items:", err);
@@ -291,6 +303,12 @@ const LowSide = ({ base_api, filters }) => {
           totalPages={totalPages}
           totalItems={totalCount}
           onPageChange={(newPage) => {
+            // Safeguard: Don't allow navigation beyond total pages
+            if (newPage < 1 || newPage > totalPages) {
+              console.warn(`Invalid page ${newPage}. Total pages: ${totalPages}`);
+              return;
+            }
+            
             // Check if filters are active
             const hasAnyFilter = filters && Object.values(filters).some(
               v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)

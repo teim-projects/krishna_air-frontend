@@ -320,9 +320,9 @@ export default function ItemSelectionEngine({
 
           {/* Row 3 - Additional fields for non-invoice mode */}
           {!isInvoice && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-5 gap-3">
               <input
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 col-span-1"
                 type="number"
                 placeholder="Mathadi Charges"
                 value={draftHighItem.mathadi_charges}
@@ -330,39 +330,30 @@ export default function ItemSelectionEngine({
               />
 
               <input
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 col-span-1"
                 type="number"
                 placeholder="Transportation Charges"
                 value={draftHighItem.transportation_charges}
                 onChange={e => updateHighDraft("transportation_charges", e.target.value)}
               />
+
+              <input 
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 col-span-3"
+                placeholder="HSN"
+                value={draftHighItem.hsn_sac}
+                onChange={e => updateHighDraft("hsn_sac", e.target.value)} 
+              />
             </div>
           )}
           {/* Row 4 - Invoice specific fields */}
-
-          <div className="grid grid-cols-2 gap-3">
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="HSN"
-              value={draftHighItem.hsn_sac}
-              onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
-            {/* <div className="col-span-full">
-              <textarea
-                className="w-full px-3 py-2 rounded-md border border-black"
-                placeholder="Enter product description..."
-                value={draftHighItem.description}
-                onChange={e => updateHighDraft("description", e.target.value)}
-                rows={2}
-              />
-            </div> */}
-
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftHighItem.unit}
-              onChange={e => updateHighDraft("unit", e.target.value)}>
-              {unitOptions.map(unit => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </div>
+          {isInvoice && (
+            <div className="grid grid-cols-2 gap-3">
+              <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="HSN"
+                value={draftHighItem.hsn_sac}
+                onChange={e => updateHighDraft("hsn_sac", e.target.value)} />
+            </div>
+          )}
 
 
           {/* Row 5 - Description full width */}

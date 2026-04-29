@@ -101,7 +101,8 @@ export default function AddVendorForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Name is required" });
       return false;
     }
-    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Email is optional, but if provided, must be valid
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please enter a valid email" });
       return false;
     }

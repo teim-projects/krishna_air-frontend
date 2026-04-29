@@ -141,9 +141,9 @@ export default function PurchaseOrderItems({
   // Models depend on subtype and brand
   useEffect(() => {
     if (!highForm.brand || !highForm.subType) return;
-    api.get(`/product/product-model/?brand_id=${highForm.brand}&ac_sub_type_id__ac_type_id=1&ac_sub_type_id=${highForm.subType}`)
+    api.get(`/product/product-model/?brand_id=${highForm.brand}&ac_sub_type_id=${highForm.subType}`)
       .then(res => setModels(res.data?.results || []));
-  }, [highForm.brand]);
+  }, [highForm.brand, highForm.subType]);
 
   useEffect(() => {
     if (!highForm.model) return;

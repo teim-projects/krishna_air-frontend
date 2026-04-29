@@ -898,6 +898,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 id: v.id,
                 sku: v.sku,
                 capacity: v.capacity,
+                unit: v.unit || "",
                 star: String(v.star_rating),
                 mrp: v.mrp,
                 dp: v.dp,
@@ -916,7 +917,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     };
 
     const resetForm = () => {
-        setForm({ id: null, capacity: "", star: "", mrp: "", dp: "", active: true });
+        setForm({ id: null, capacity: "", unit: "", star: "", mrp: "", dp: "", active: true });
     };
 
     // Add or Update variant
@@ -929,6 +930,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
         const payload = {
             product_model: model.id,
             capacity: form.capacity,
+            unit: form.unit || null,
             star_rating: Number(form.star),
             mrp: Number(form.mrp),
             dp: Number(form.dp),
@@ -992,18 +994,14 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                             className="border px-3 py-2 rounded flex-1" 
                         />
                         <select
-                            className="border rounded px-2 py-2 w-20"
-                            value={form.unit || ''}
-                            onChange={(e) => {
-                                const updated = [...variants];
-                                updated[index].unit = e.target.value;
-                                setVariants(updated);
-                            }}
-                        >
-                            <option value="">Unit</option>
-                            <option value="TR">TR</option>
-                            <option value="HP">HP</option>
-                        </select>
+    className="border rounded px-2 py-2 w-20"
+    value={form.unit || ''}
+    onChange={(e) => updateForm("unit", e.target.value)}
+>
+    <option value="">Unit</option>
+    <option value="TR">TR</option>
+    <option value="HP">HP</option>
+</select>
                         <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded flex-1">
                             <option value="">Star(required)</option>
                             <option value="1">1 Star</option>

@@ -65,20 +65,30 @@ export default function Customer() {
         const items = data.results;
         const count = Number.isFinite(data.count) ? data.count : items.length;
         const pageSize = items.length || PAGE_SIZE_FALLBACK;
+        const calculatedPages = Math.max(1, Math.ceil(count / pageSize));
+        
         setRows(items);
         setTotalCount(count);
-        setTotalPages(Math.max(1, Math.ceil(count / pageSize)));
-        setCurrentPage(page);
+        setTotalPages(calculatedPages);
+        
+        // Ensure current page doesn't exceed total pages
+        if (page > calculatedPages && calculatedPages > 0) {
+          setCurrentPage(calculatedPages);
+        } else {
+          setCurrentPage(page);
+        }
       } else if (Array.isArray(data)) {
+        const calculatedPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE_FALLBACK));
         setRows(data);
         setTotalCount(data.length);
-        setTotalPages(Math.max(1, Math.ceil(data.length / PAGE_SIZE_FALLBACK)));
+        setTotalPages(calculatedPages);
         setCurrentPage(1);
       } else {
         const items = Array.isArray(data?.results) ? data.results : Array.isArray(data?.data) ? data.data : [];
+        const calculatedPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE_FALLBACK));
         setRows(items);
         setTotalCount(items.length);
-        setTotalPages(Math.max(1, Math.ceil(items.length / PAGE_SIZE_FALLBACK)));
+        setTotalPages(calculatedPages);
         setCurrentPage(1);
       }
     } catch (err) {
@@ -198,7 +208,14 @@ export default function Customer() {
           error={error}
           page={currentPage}
           totalPages={totalPages}
-          onPageChange={(p) => setCurrentPage(p)}
+          onPageChange={(p) => {
+            // Safeguard: Don't allow navigation beyond total pages
+            if (p < 1 || p > totalPages) {
+              console.warn(`Invalid page ${p}. Total pages: ${totalPages}`);
+              return;
+            }
+            setCurrentPage(p);
+          }}
           pageSize={PAGE_SIZE_FALLBACK}
           actions={actionsRenderer}
           emptyMessage="No customers found"
@@ -212,8 +229,19 @@ export default function Customer() {
         baseApi={BASE_API}
         customer={editingCustomer}
         onSuccess={() => {
-          // refresh list after add/update and close modal handled in form
-          fetchData(currentPage);
+          // After adding a new customer, calculate which page it should be on
+          if (!editingCustomer) {
+            // This is a new customer (not editing)
+            const newTotalCount = totalCount + 1;
+            const lastPage = Math.ceil(newTotalCount / PAGE_SIZE_FALLBACK);
+            
+            // Navigate to the last page where the new item will be
+            fetchData(lastPage);
+          } else {
+            // Editing existing customer, stay on current page
+            fetchData(currentPage);
+          }
+          
           setEditingCustomer(null);
         }}
       />

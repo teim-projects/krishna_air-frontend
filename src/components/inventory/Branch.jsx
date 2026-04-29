@@ -50,14 +50,22 @@ export default function Branch({ base_api, filters }) {
       if (data.results) {
         setBranches(data.results);
         setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+        const calculatedPages = Math.ceil((data.count || 0) / PAGE_SIZE);
+        setTotalPages(calculatedPages);
+        
+        // Ensure current page doesn't exceed total pages
+        if (page > calculatedPages && calculatedPages > 0) {
+          setCurrentPage(calculatedPages);
+        } else {
+          setCurrentPage(page);
+        }
       } else {
         setBranches(data);
         setTotalCount(data.length);
         setTotalPages(1);
+        setCurrentPage(1);
       }
 
-      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching branches:", error);
       Swal.fire({
@@ -101,14 +109,22 @@ export default function Branch({ base_api, filters }) {
       if (data.results) {
         setBranches(data.results);
         setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+        const calculatedPages = Math.ceil((data.count || 0) / PAGE_SIZE);
+        setTotalPages(calculatedPages);
+        
+        // Ensure current page doesn't exceed total pages
+        if (page > calculatedPages && calculatedPages > 0) {
+          setCurrentPage(calculatedPages);
+        } else {
+          setCurrentPage(page);
+        }
       } else {
         setBranches(data);
         setTotalCount(data.length);
         setTotalPages(1);
+        setCurrentPage(1);
       }
 
-      setCurrentPage(page);
     } catch (error) {
       console.error("Error filtering branches:", error);
       Swal.fire({
@@ -197,11 +213,26 @@ export default function Branch({ base_api, filters }) {
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Branch saved:", data);
-    // Refresh branch list with current filters
-    const hasAnyFilter = filters && Object.values(filters).some(
-      v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
-    );
-    hasAnyFilter ? filterBranches(filters, currentPage) : fetchBranches(currentPage);
+    
+    // After adding a new branch, calculate which page it should be on
+    if (!editingBranch) {
+      // This is a new branch (not editing)
+      const newTotalCount = totalCount + 1;
+      const lastPage = Math.ceil(newTotalCount / PAGE_SIZE);
+      
+      // Navigate to the last page where the new item will be
+      const hasAnyFilter = filters && Object.values(filters).some(
+        v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+      );
+      hasAnyFilter ? filterBranches(filters, lastPage) : fetchBranches(lastPage);
+    } else {
+      // Editing existing branch, stay on current page
+      const hasAnyFilter = filters && Object.values(filters).some(
+        v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
+      );
+      hasAnyFilter ? filterBranches(filters, currentPage) : fetchBranches(currentPage);
+    }
+    
     setEditingBranch(null);
   };
 
@@ -299,6 +330,12 @@ export default function Branch({ base_api, filters }) {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={(newPage) => {
+            // Safeguard: Don't allow navigation beyond total pages
+            if (newPage < 1 || newPage > totalPages) {
+              console.warn(`Invalid page ${newPage}. Total pages: ${totalPages}`);
+              return;
+            }
+            
             const hasAnyFilter = filters && Object.values(filters).some(
               v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
             );
