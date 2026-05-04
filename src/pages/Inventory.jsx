@@ -4,10 +4,12 @@ import Vendor from '../components/inventory/Vendor';
 import Site from '../components/inventory/Site';
 import Branch from '../components/inventory/Branch';
 import PurchaseOrder from '../components/inventory/PurchaseOrder';
+import AddGrnForm from '../components/inventory/AddGrnForm';
+import GRN from '../components/inventory/GRN';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
-  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock'
+  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN'
 
   const [filters, setFilters] = useState({});
 
@@ -27,6 +29,10 @@ const Inventory = () => {
   const purchaseFiltersConfig = [
     { key: "search", label: "Search", type: "search", placeholder: "Search by PO number, vendor, site..." }
   ];
+  
+  const grnFiltersConfig=[
+    { key: "search" , label: "Search" , type: "search" , placeholder :"Seach by  GRN number , PO number , vendor ..."}
+  ]
 
   const handleFilterChange = (vals) => {
     setFilters(vals);
@@ -40,6 +46,7 @@ const Inventory = () => {
           activeTab === 'site' ? 'Site Filters' :
             activeTab === 'branch' ? 'Branch Filters' :
               activeTab === 'purchase' ? 'Purchase Order Filters' :
+                activeTab === 'grn'  ? 'GRN Filters':
                 'Filters'
       }
       filtersConfig={
@@ -47,6 +54,7 @@ const Inventory = () => {
           activeTab === 'site' ? siteFiltersConfig :
             activeTab === 'branch' ? branchFiltersConfig :
               activeTab === 'purchase' ? purchaseFiltersConfig :
+                activeTab === 'grn'  ? grnFiltersConfig :
                 null
       }
       initialFilterValues={filters}
@@ -84,6 +92,11 @@ const Inventory = () => {
           >
             Purchase Order
           </button>
+          <button className={`px-4 py-2 rounded ${activeTab==='grn'? 'bg-blue-600 text-white' :'bg-blue-100' }`}
+          onClick={()=>setActiveTab('grn')}
+          >
+            GRN
+          </button>
         </div>
 
         {/* Render based on active tab */}
@@ -91,6 +104,7 @@ const Inventory = () => {
         {activeTab === 'branch' && <Branch base_api={BASE_API} filters={filters} />}
         {activeTab === 'vendor' && <Vendor base_api={BASE_API} filters={filters} />}
         {activeTab === 'purchase' && <PurchaseOrder base_api={BASE_API} filters={filters} />}
+        {activeTab === 'grn' && <GRN base_api={BASE_API} filters ={filters}/>}
 
       </div>
     </Base>
