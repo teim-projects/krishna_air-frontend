@@ -15,14 +15,12 @@ export default function AddGrnForm({
   const [formData, setFormData] = useState({
     purchase_order: "",
     grn_date: "",
-    products: [],
   });
 
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [poProducts, setPoProducts] = useState([]);
-  const [selectedPoId, setSelectedPoId] = useState(null);
+  const [selectedPoData, setSelectedPoData] = useState(null);
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -31,22 +29,6 @@ export default function AddGrnForm({
     localStorage.getItem("authToken") ||
     ""
   ), []);
-
-  // Reset step when modal opens
-  useEffect(() => {
-    if (open) {
-      setStep(1);
-      if (!grn) {
-        setFormData({
-          purchase_order: "",
-          grn_date: "",
-          products: [],
-        });
-        setSelectedPoId(null);
-        setPoProducts([]);
-      }
-    }
-  }, [open]);
 
   // Fetch purchase orders on modal open
   useEffect(() => {
@@ -76,48 +58,15 @@ export default function AddGrnForm({
     }
   };
 
-  // Fetch PO products when PO is selected
+  // When PO changes, fetch its products
   useEffect(() => {
-    if (selectedPoId && open) {
-      fetchPoProducts(selectedPoId);
+    if (formData.purchase_order && open) {
+      const po = purchaseOrders.find((p) => p.id === parseInt(formData.purchase_order));
+      if (po) {
+        setSelectedPoData(po);
+      }
     }
-  }, [selectedPoId, open]);
-
-  const fetchPoProducts = async (poId) => {
-    try {
-      const response = await axios.get(
-        `${BASE_API}/inventory/purchase-orders/${poId}/products/`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        }
-      );
-
-      const products = response.data.results || response.data;
-      const productsWithQty = Array.isArray(products)
-        ? products.map((p) => ({
-            ...p,
-            received_quantity: 0,
-            rejected_quantity: 0,
-          }))
-        : [];
-
-      setPoProducts(productsWithQty);
-      setFormData((prev) => ({
-        ...prev,
-        products: productsWithQty,
-      }));
-    } catch (error) {
-      console.error("Error fetching PO products:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to fetch purchase order products",
-      });
-    }
-  };
+  }, [formData.purchase_order, purchaseOrders, open]);
 
   // If editing existing GRN
   useEffect(() => {
@@ -125,40 +74,51 @@ export default function AddGrnForm({
       setFormData({
         purchase_order: grn.purchase_order || "",
         grn_date: grn.grn_date || "",
-        products: grn.products || [],
       });
-      setSelectedPoId(grn.purchase_order);
+      setStep(1);
+    } else if (open) {
+      setFormData({
+        purchase_order: "",
+        grn_date: "",
+      });
+      setStep(1);
     }
   }, [grn, open]);
 
   // Step validation functions
   const validateStep1 = () => {
     if (!formData.purchase_order) {
-      alert("Purchase Order is required");
+      Swal.fire({ icon: "error", title: "Validation", text: "Purchase Order is required" });
       return false;
     }
     if (!formData.grn_date) {
-      alert("GRN Date is required");
+      Swal.fire({ icon: "error", title: "Validation", text: "GRN Date is required" });
       return false;
     }
     return true;
   };
 
   const validateStep2 = () => {
-    const hasAnyQuantity = formData.products.some(
-      (p) => (p.received_quantity || 0) > 0 || (p.rejected_quantity || 0) > 0
-    );
+    const hasAnyQuantity = formData.received_quantities?.some((q) => q > 0) || 
+                           formData.rejected_quantities?.some((q) => q > 0);
 
     if (!hasAnyQuantity) {
-      alert("At least one product must have received or rejected quantity");
+      Swal.fire({
+        icon: "error",
+        title: "Validation",
+        text: "At least one product must have received or rejected quantity",
+      });
       return false;
     }
 
-    for (const product of formData.products) {
-      if ((product.rejected_quantity || 0) > (product.received_quantity || 0)) {
-        alert(
-          `"${product.description}" - Rejected quantity cannot exceed received quantity`
-        );
+    // Check rejected doesn't exceed received
+    for (let i = 0; i < (selectedPoData?.products?.length || 0); i++) {
+      if ((formData.rejected_quantities?.[i] || 0) > (formData.received_quantities?.[i] || 0)) {
+        Swal.fire({
+          icon: "error",
+          title: "Validation",
+          text: `Rejected quantity cannot exceed received quantity`,
+        });
         return false;
       }
     }
@@ -168,42 +128,31 @@ export default function AddGrnForm({
 
   const handleFormChange = (updatedData) => {
     setFormData(updatedData);
-    
-    // If PO changed, fetch new products
-    if (updatedData.purchase_order !== formData.purchase_order) {
-      setSelectedPoId(updatedData.purchase_order);
+  };
+
+  const handleStep1Submit = () => {
+    if (validateStep1()) {
+      // Initialize quantity arrays for step 2
+      const products = selectedPoData?.products || [];
+      const receivedQties = new Array(products.length).fill(0);
+      const rejectedQties = new Array(products.length).fill(0);
+      
+      setFormData((prev) => ({
+        ...prev,
+        received_quantities: formData.received_quantities || receivedQties,
+        rejected_quantities: formData.rejected_quantities || rejectedQties,
+      }));
+      setStep(2);
     }
   };
 
-  const handleProductChange = (index, field, value) => {
-    setFormData((prev) => {
-      const updatedProducts = [...prev.products];
-      updatedProducts[index] = {
-        ...updatedProducts[index],
-        [field]: parseFloat(value) || 0,
-      };
-      return {
-        ...prev,
-        products: updatedProducts,
-      };
-    });
-  };
-
-  const handleNextStep = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-    } else if (step === 2 && validateStep2()) {
+  const handleStep2Submit = () => {
+    if (validateStep2()) {
       setStep(3);
     }
   };
 
-  const handlePreviousStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleFinalSubmit = async () => {
     if (!validateStep2()) {
       return;
     }
@@ -211,19 +160,20 @@ export default function AddGrnForm({
     setLoading(true);
 
     try {
+      const products = selectedPoData?.products || [];
       const payload = {
         purchase_order: formData.purchase_order,
         grn_date: formData.grn_date,
-        products: formData.products.map((p) => ({
+        products: products.map((p, index) => ({
           purchase_order_product: p.id,
-          received_quantity: p.received_quantity || 0,
-          rejected_quantity: p.rejected_quantity || 0,
+          received_quantity: formData.received_quantities?.[index] || 0,
+          rejected_quantity: formData.rejected_quantities?.[index] || 0,
         })),
       };
 
       const url = grn
-        ? `${BASE_API}/inventory/grns/${grn.id}/`
-        : `${BASE_API}/inventory/grns/`;
+        ? `${BASE_API}/inventory/grn/${grn.id}/`
+        : `${BASE_API}/inventory/grn/`;
 
       const method = grn ? "PUT" : "POST";
 
@@ -262,7 +212,7 @@ export default function AddGrnForm({
 
   if (!open) return null;
 
-  // Step 1 Fields - Basic Information
+  // ========== STEP 1: PO Selection ==========
   const step1Fields = [
     {
       name: "purchase_order",
@@ -286,9 +236,103 @@ export default function AddGrnForm({
     },
   ];
 
+  // ========== STEP 2: Received Items ==========
+  const step2Fields = selectedPoData?.products?.map((product, index) => [
+    {
+      name: `product_${index}_desc`,
+      label: `${product.description || "Product"} (PO Qty: ${product.quantity})`,
+      type: "text",
+      disabled: true,
+      gridCols: 2,
+      value: product.description,
+    },
+    {
+      name: `received_${index}`,
+      label: "Received Qty",
+      type: "number",
+      gridCols: 1,
+      min: "0",
+      step: "0.01",
+      value: formData.received_quantities?.[index] || 0,
+      onChange: (e) => {
+        const newArr = [...(formData.received_quantities || new Array(selectedPoData.products.length).fill(0))];
+        newArr[index] = parseFloat(e.target.value) || 0;
+        setFormData((prev) => ({ ...prev, received_quantities: newArr }));
+      },
+    },
+    {
+      name: `rejected_${index}`,
+      label: "Rejected Qty",
+      type: "number",
+      gridCols: 1,
+      min: "0",
+      step: "0.01",
+      value: formData.rejected_quantities?.[index] || 0,
+      onChange: (e) => {
+        const newArr = [...(formData.rejected_quantities || new Array(selectedPoData.products.length).fill(0))];
+        newArr[index] = parseFloat(e.target.value) || 0;
+        setFormData((prev) => ({ ...prev, rejected_quantities: newArr }));
+      },
+    },
+  ]).flat() || [];
+
+  // ========== STEP 3: Review ==========
+  const step3Fields = [
+    {
+      name: "review_po",
+      label: "Purchase Order",
+      type: "text",
+      disabled: true,
+      gridCols: 2,
+      value: purchaseOrders.find((p) => p.id === parseInt(formData.purchase_order))?.purchase_order_no || "N/A",
+    },
+    {
+      name: "review_vendor",
+      label: "Vendor",
+      type: "text",
+      disabled: true,
+      gridCols: 2,
+      value: selectedPoData?.vendor_details?.name || "N/A",
+    },
+    {
+      name: "review_date",
+      label: "GRN Date",
+      type: "text",
+      disabled: true,
+      gridCols: 2,
+      value: formData.grn_date,
+    },
+  ];
+
   const getCurrentFields = () => {
-    if (step === 1) return step1Fields;
-    return [];
+    switch (step) {
+      case 1:
+        return step1Fields;
+      case 2:
+        return step2Fields;
+      case 3:
+        return step3Fields;
+      default:
+        return step1Fields;
+    }
+  };
+
+  const handleSubmit = () => {
+    if (step === 1) {
+      handleStep1Submit();
+    } else if (step === 2) {
+      handleStep2Submit();
+    } else if (step === 3) {
+      handleFinalSubmit();
+    }
+  };
+
+  const handleCancel = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    } else {
+      onClose();
+    }
   };
 
   return (
@@ -348,177 +392,37 @@ export default function AddGrnForm({
             </div>
           </div>
 
-          {/* Content */}
+          {/* Content - Using ReusableForm for ALL steps */}
           <div className="flex-1 overflow-y-auto p-6">
-            {step === 1 && (
-              <div className="space-y-4">
-                <ReusableForm
-                  fields={step1Fields}
-                  formData={formData}
-                  onChange={handleFormChange}
-                  loading={loading}
-                  showCancel={true}
-                  onCancel={onClose}
-                  submitText="Next"
-                  cancelText="Cancel"
-                  onSubmit={() => {}}
-                />
-              </div>
-            )}
+            <ReusableForm
+              fields={getCurrentFields()}
+              formData={formData}
+              onChange={handleFormChange}
+              loading={loading}
+              showCancel={true}
+              onCancel={handleCancel}
+              submitText={step === 3 ? (grn ? "Update GRN" : "Create GRN") : "Next"}
+              cancelText={step > 1 ? "Back" : "Cancel"}
+              onSubmit={handleSubmit}
+            />
 
-            {step === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Enter Received Quantities
-                </h3>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="border px-3 py-2 text-left">Description</th>
-                        <th className="border px-3 py-2 text-center">PO Qty</th>
-                        <th className="border px-3 py-2 text-center">UOM</th>
-                        <th className="border px-3 py-2 text-center">Received Qty</th>
-                        <th className="border px-3 py-2 text-center">Rejected Qty</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formData.products && formData.products.length > 0 ? (
-                        formData.products.map((product, index) => (
-                          <tr key={index} className="border-b hover:bg-gray-50">
-                            <td className="border px-3 py-2">
-                              {product.description || "N/A"}
-                            </td>
-                            <td className="border px-3 py-2 text-center">
-                              {product.quantity || 0}
-                            </td>
-                            <td className="border px-3 py-2 text-center">
-                              {product.uom || ""}
-                            </td>
-                            <td className="border px-3 py-2 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={product.received_quantity || 0}
-                                onChange={(e) =>
-                                  handleProductChange(
-                                    index,
-                                    "received_quantity",
-                                    e.target.value
-                                  )
-                                }
-                                className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="border px-3 py-2 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={product.rejected_quantity || 0}
-                                onChange={(e) =>
-                                  handleProductChange(
-                                    index,
-                                    "rejected_quantity",
-                                    e.target.value
-                                  )
-                                }
-                                className="w-24 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              />
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="5" className="border px-3 py-4 text-center text-gray-500">
-                            No products found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Review GRN Details
-                </h3>
-
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 font-medium">Purchase Order:</span>
-                    <span>
-                      {purchaseOrders.find((p) => p.id == formData.purchase_order)
-                        ?.purchase_order_no || "N/A"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 font-medium">GRN Date:</span>
-                    <span>{formData.grn_date}</span>
-                  </div>
-
-                  <div className="border-t pt-3">
-                    <p className="text-gray-600 font-medium mb-2">Products Summary:</p>
-                    <div className="text-sm space-y-2">
-                      {formData.products.map((product, index) => (
-                        <div key={index} className="flex justify-between text-gray-700">
-                          <span>{product.description || "N/A"}</span>
-                          <span>
-                            Received: {product.received_quantity || 0}, Rejected:{" "}
-                            {product.rejected_quantity || 0}
-                          </span>
-                        </div>
-                      ))}
+            {/* Step 2 & 3 Product Summary */}
+            {(step === 2 || step === 3) && selectedPoData?.products && selectedPoData.products.length > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-3">Products Summary:</h4>
+                <div className="space-y-2 text-sm">
+                  {selectedPoData.products.map((product, index) => (
+                    <div key={index} className="flex justify-between text-gray-700">
+                      <span>{product.description} (PO: {product.quantity})</span>
+                      <span>
+                        Received: {formData.received_quantities?.[index] || 0}, Rejected:{" "}
+                        {formData.rejected_quantities?.[index] || 0}
+                      </span>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Footer */}
-          <div className="bg-gray-100 p-6 flex justify-between gap-3 sticky bottom-0 border-t">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition"
-            >
-              Cancel
-            </button>
-
-            <div className="flex gap-3">
-              {step > 1 && (
-                <button
-                  onClick={handlePreviousStep}
-                  className="px-4 py-2 text-gray-700 bg-gray-300 rounded-md hover:bg-gray-400 transition"
-                >
-                  Back
-                </button>
-              )}
-
-              {step < 3 ? (
-                <button
-                  onClick={handleNextStep}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50"
-                  disabled={loading}
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:opacity-50"
-                >
-                  {loading ? "Saving..." : grn ? "Update GRN" : "Create GRN"}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>

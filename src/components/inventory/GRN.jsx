@@ -27,7 +27,7 @@ export default function GRN({ base_api, filters }) {
   const fetchGrns = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BASE_API}/inventory/grns/?page=${page}`, {
+      const response = await axios.get(`${BASE_API}/inventory/grn/?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -78,7 +78,7 @@ export default function GRN({ base_api, filters }) {
     if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${BASE_API}/inventory/grns/${id}/`, {
+      await axios.delete(`${BASE_API}/inventory/grn/${id}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -101,7 +101,7 @@ export default function GRN({ base_api, filters }) {
   const handleComplete = async (id) => {
     try {
       await axios.post(
-        `${BASE_API}/inventory/grns/${id}/complete/`,
+        `${BASE_API}/inventory/grn/${id}/complete/`,
         {},
         {
           headers: {
