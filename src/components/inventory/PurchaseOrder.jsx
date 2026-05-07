@@ -55,14 +55,22 @@ export default function PurchaseOrder({ base_api, filters }) {
       if (data.results) {
         setPo(data.results);
         setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+        const calculatedPages = Math.ceil((data.count || 0) / PAGE_SIZE);
+        setTotalPages(calculatedPages);
+        
+        // Ensure current page doesn't exceed total pages
+        if (page > calculatedPages && calculatedPages > 0) {
+          setCurrentPage(calculatedPages);
+        } else {
+          setCurrentPage(page);
+        }
       } else {
         setPo(data);
         setTotalCount(data.length);
         setTotalPages(1);
+        setCurrentPage(1);
       }
 
-      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
     } finally {
@@ -97,14 +105,22 @@ export default function PurchaseOrder({ base_api, filters }) {
       if (data.results) {
         setPo(data.results);
         setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+        const calculatedPages = Math.ceil((data.count || 0) / PAGE_SIZE);
+        setTotalPages(calculatedPages);
+        
+        // Ensure current page doesn't exceed total pages
+        if (page > calculatedPages && calculatedPages > 0) {
+          setCurrentPage(calculatedPages);
+        } else {
+          setCurrentPage(page);
+        }
       } else {
         setPo(data);
         setTotalCount(data.length);
         setTotalPages(1);
+        setCurrentPage(1);
       }
 
-      setCurrentPage(page);
     } catch (error) {
       console.error("Error filtering purchase orders:", error);
     } finally {
@@ -534,6 +550,12 @@ export default function PurchaseOrder({ base_api, filters }) {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={(page) => {
+            // Safeguard: Don't allow navigation beyond total pages
+            if (page < 1 || page > totalPages) {
+              console.warn(`Invalid page ${page}. Total pages: ${totalPages}`);
+              return;
+            }
+            
             if (filters && Object.keys(filters).length > 0) {
               filterPO(page);
             } else {

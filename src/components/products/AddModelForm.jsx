@@ -6,7 +6,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
   const BASE_API = base_api;
   const [isPart, setIsPart] = useState(false);
   const [variants, setVariants] = useState([
-    { capacity: "", star: "", mrp: "", dp: "", active: true },
+    { capacity: "", unit: "", star: "", mrp: "", dp: "", active: true },
   ]);
 
   // fetch Ac Types, Subtypes, Brands here using BASE_API and populate the dropdowns
@@ -110,7 +110,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
   const addVariant = () => {
     setVariants((prev) => [
       ...prev,
-      { capacity: "", star: "", mrp: "", dp: "", active: true },
+      { capacity: "", unit: "", star: "", mrp: "", dp: "", active: true },
     ]);
   };
 
@@ -179,7 +179,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
       model_no: modelNumber,
       ac_sub_type_id: selectedSubtype || null,
       brand_id: selectedBrand || null,
-      phase,
+      phase: phase || null,  // ✅ Optional - send null if empty
       inverter,
       is_active: isActive,
       year_of_manufacture: year || null,
@@ -199,6 +199,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
         alert("✅ Model updated");
       } else {
         // ✅ CREATE model
+        console.log("📤 Creating model with payload:", payload);
         res = await axios.post(
           `${BASE_API}/product/product-model/`,
           payload,
@@ -206,49 +207,82 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
         );
 
         const productModelId = res.data.id;   // 👈 IMPORTANT
+        console.log("✅ Model created with ID:", productModelId);
 
         // ✅ CREATE variants after model is created
         if (variants.length > 0) {
+          console.log("📦 Attempting to create variants:", variants);
           await createVariants(productModelId);
+        } else {
+          console.log("⚠️ No variants to create");
         }
 
         alert("✅ Model + Variants created");
       }
 
+      // Reset form after successful creation
+      if (!model?.id) {
+        setModelName("");
+        setModelNumber("");
+        setSelectedAcType("");
+        setSelectedSubtype("");
+        setSelectedBrand("");
+        setPhase("");
+        setYear("");
+        setInverter(false);
+        setIsActive(true);
+        setDescription("");
+        setVariants([{ capacity: "", unit: "", star: "", mrp: "", dp: "", active: true }]);
+      }
+
       onSuccess();
+      onClose();
     } catch (err) {
       console.error("❌ Save model failed:", err?.response?.data || err);
-      alert("Failed to save model");
+      alert(`Failed to save model: ${err?.response?.data?.detail || err.message}`);
     }
   };
 
 
 
   const createVariants = async (productModelId) => {
-    const validVariants = variants.filter(v =>
-      v.capacity && v.star && v.mrp && v.dp
-    );
+    // Check which variants have at least capacity and star (minimum required)
+    const validVariants = variants.filter(v => v.capacity && v.star);
 
-    if (validVariants.length === 0) return;
+    if (validVariants.length === 0) {
+      console.log("⚠️ No valid variants to create (need at least Capacity and Star Rating)");
+      return;
+    }
 
-    const requests = validVariants.map((v) => {
-      const variantPayload = {
-        product_model: productModelId,
-        capacity: v.capacity,
-        star_rating: Number(v.star),
-        mrp: Number(v.mrp),
-        dp: Number(v.dp),
-        is_active: v.active ?? true,
-      };
+    console.log("📦 Creating variants:", validVariants);
 
-      return axios.post(
-        `${BASE_API}/product/product-variant/`,
-        variantPayload,
-        authHeaders()
-      );
-    });
+    try {
+      const requests = validVariants.map((v) => {
+        const variantPayload = {
+          product_model: productModelId,
+          capacity: v.capacity,
+          unit: v.unit || null,
+          star_rating: Number(v.star),
+          mrp: v.mrp ? Number(v.mrp) : null,  // ✅ Optional - send null if empty
+          dp: v.dp ? Number(v.dp) : null,      // ✅ Optional - send null if empty
+          is_active: v.active ?? true,
+        };
 
-    await Promise.all(requests);
+        console.log("📤 Variant payload:", variantPayload);
+
+        return axios.post(
+          `${BASE_API}/product/product-variant/`,
+          variantPayload,
+          authHeaders()
+        );
+      });
+
+      await Promise.all(requests);
+      console.log("✅ All variants created successfully");
+    } catch (err) {
+      console.error("❌ Error creating variants:", err?.response?.data || err);
+      throw err;  // Re-throw to be caught by saveModel
+    }
   };
 
 
@@ -352,7 +386,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
               value={phase}
               onChange={(e) => setPhase(e.target.value)}
             >
-              <option>Select Phase</option>
+              <option value="">Select Phase</option>
               <option>1 Phase</option>
               <option>3 Phase</option>
 
@@ -456,14 +490,14 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
                   className="flex items-start gap-3 border border-gray-200 rounded-xl p-4 bg-white shadow-sm"
                 >
                   {/* Inputs */}
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Capacity
+                        Capacity *
                       </label>
                       <input
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        placeholder="e.g. 1.5 Ton"
+                        placeholder="e.g. 1.5"
                         value={v.capacity}
                         onChange={(e) => updateVariant(idx, "capacity", e.target.value)}
                       />
@@ -471,14 +505,29 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Star Rating
+                        Unit
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                        value={v.unit || ''}
+                        onChange={(e) => updateVariant(idx, "unit", e.target.value)}
+                      >
+                        <option value="">Unit</option>
+                        <option value="TR">TR</option>
+                        <option value="HP">HP</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Star Rating *
                       </label>
                       <select
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                         value={v.star}
                         onChange={(e) => updateVariant(idx, "star", e.target.value)}
                       >
-                        <option>Select</option>
+                        <option value="">Select</option>
                         <option value="1">1 Star</option>
                         <option value="2">2 Star</option>
                         <option value="3">3 Star</option>
@@ -492,6 +541,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
                         MRP
                       </label>
                       <input
+                        type="number"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="Enter MRP"
                         value={v.mrp}
@@ -504,6 +554,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
                         DP
                       </label>
                       <input
+                        type="number"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                         placeholder="Enter DP"
                         value={v.dp}

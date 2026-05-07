@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import ItemSelectionEngine from "../ItemSelectionEngine";
 import TermsMultiSelect from "../TermsMultiSelect";
@@ -23,9 +23,10 @@ api.interceptors.request.use((config) => {
 });
 
 
-export default function AddQuotation({ id, onBack }) {
+export default function AddQuotation({ id, onBack, leadData }) {
 
   const isEdit = !!id;
+  const isFromLead = !!leadData;
 
   // Get token for API calls
   const token = localStorage.getItem("access") || localStorage.getItem("access_token");
@@ -35,6 +36,7 @@ export default function AddQuotation({ id, onBack }) {
   const [paymentTypeId, setPaymentTypeId] = useState(null);
   const [validityTypeId, setValidityTypeId] = useState(null);
   const [warrantyTypeId, setWarrantyTypeId] = useState(null);
+  const [otherTypeId, setOtherTypeId] = useState(null);
 
   // Step state for multistep form
   const [step, setStep] = useState(1);
@@ -56,7 +58,8 @@ export default function AddQuotation({ id, onBack }) {
     thank_you_note: "",
     payment_terms: [],
     validity_terms: [],
-    warranty_terms: []
+    warranty_terms: [],
+    other_terms: []
   });
 
   //branch and site data
@@ -74,13 +77,19 @@ export default function AddQuotation({ id, onBack }) {
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [validityTerms, setValidityTerms] = useState([]);
   const [warrantyTerms, setWarrantyTerms] = useState([]);
+  const [otherTerms, setOtherTerms] = useState([]);
 
   // ================= THANK YOU NOTE SUGGESTIONS =================
   const [thankYouSuggestions, setThankYouSuggestions] = useState([]);
   const [showThankYouSuggestions, setShowThankYouSuggestions] = useState(false);
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [loadingThankYou, setLoadingThankYou] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
+  // ================= SUBJECT SUGGESTIONS ================= ADD THIS SECTION
+  const [subjectSuggestions, setSubjectSuggestions] = useState([]);
+  const [showSubjectSuggestions, setShowSubjectSuggestions] = useState(false);
+  const [loadingSubject, setLoadingSubject] = useState(false);
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(-1);
 
   // ================= LOAD MASTERS =================
 
@@ -90,10 +99,12 @@ export default function AddQuotation({ id, onBack }) {
       const paymentId = await getOrCreateTermTypeId("Quotation Payment", "Terms of Payment");
       const validityId = await getOrCreateTermTypeId("Quotation Validity", "Validity Terms");
       const warrantyId = await getOrCreateTermTypeId("Quotation Warranty", "Warranty Terms");
+      const otherId = await getOrCreateTermTypeId("Quotation Other", "Other Terms");
 
       setPaymentTypeId(paymentId);
       setValidityTypeId(validityId);
       setWarrantyTypeId(warrantyId);
+      setOtherTypeId(otherId);
     };
 
     initTypes();
@@ -107,7 +118,7 @@ export default function AddQuotation({ id, onBack }) {
     const loadQuotationData = async () => {
       try {
         // Wait for term types to be loaded first
-        if (!paymentTypeId || !validityTypeId || !warrantyTypeId) {
+        if (!paymentTypeId || !validityTypeId || !warrantyTypeId || !otherTypeId) {
           return;
         }
 
@@ -128,9 +139,14 @@ export default function AddQuotation({ id, onBack }) {
             .filter(t => t.terms_condition_type_name === "Quotation Warranty")
             .map(t => t.id);
 
+          const other = q.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Quotation Other")
+            .map(t => t.id);
+
           setPaymentTerms(payment);
           setValidityTerms(validity);
           setWarrantyTerms(warranty);
+          setOtherTerms(other);
         }
 
         setFormData(prev => ({
@@ -185,7 +201,7 @@ export default function AddQuotation({ id, onBack }) {
     };
 
     loadQuotationData();
-  }, [id, paymentTypeId, validityTypeId, warrantyTypeId]);
+  }, [id, paymentTypeId, validityTypeId, warrantyTypeId, otherTypeId]);
 
   // Remove the separate useEffect for loadedTermsData
 
@@ -217,6 +233,46 @@ export default function AddQuotation({ id, onBack }) {
       setSelectedSuggestionIndex(-1);
     };
   }, []);
+
+
+  // Add this useEffect to populate form with lead data
+  useEffect(() => {
+    if (leadData && !isEdit) {
+      // Map lead data to quotation form
+      setFormData(prev => ({
+        ...prev,
+        customer_phone: leadData.customer_contact || "",
+        customer_name: leadData.customer_name || "",
+        customer_id: leadData.customer || "",
+        subject: "",
+        branch: "", // You might want to map this if available
+        site: "", // You might want to map this if available
+        gst_type: "CGST_SGST",
+        thank_you_note: ""
+      }));
+
+      // If lead has products, map them to items
+      if (leadData.products && leadData.products.length > 0) {
+        const mappedItems = leadData.products.map(product => ({
+          product_variant: product.product_variant || "",
+          unit: product.unit || "NOS",
+          ac_type_name: product.ac_type_name || "",
+          ac_sub_type_name: product.ac_sub_type_name || "",
+          brand_name: product.brand_name || "",
+          model_no: product.model_no || "",
+          variant_sku: product.variant_sku || "",
+          quantity: product.quantity || 1,
+          unit_price: product.unit_price || 0,
+          gst_percent: 18,
+          mathadi_charges: 0,
+          transportation_charges: 0,
+          description: product.description || "",
+          hsn_sac: product.hsn_sac || ""
+        }));
+        setItems(mappedItems);
+      }
+    }
+  }, [leadData, isEdit]);
 
 
   // ================= PHONE SEARCH =================
@@ -276,17 +332,17 @@ export default function AddQuotation({ id, onBack }) {
   // Keyboard navigation for suggestions
   const handleThankYouKeyDown = (e) => {
     if (!showThankYouSuggestions) return;
-    
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
+        setSelectedSuggestionIndex(prev =>
           prev < thankYouSuggestions.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
+        setSelectedSuggestionIndex(prev =>
           prev > 0 ? prev - 1 : thankYouSuggestions.length - 1
         );
         break;
@@ -310,12 +366,94 @@ export default function AddQuotation({ id, onBack }) {
     setSelectedSuggestionIndex(-1);
   };
 
+  // ================= SUBJECT SUGGESTIONS =================
+  const fetchSubjectSuggestions = async (searchTerm) => {
+    if (searchTerm.length < 2) {
+      setSubjectSuggestions([]);
+      setShowSubjectSuggestions(false);
+      return;
+    }
+
+    setLoadingSubject(true);
+    try {
+      const response = await fetch(
+        `${BASE_API}/quotation/subject-suggestions/?search=${encodeURIComponent(searchTerm)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSubjectSuggestions(data);
+        setShowSubjectSuggestions(data.length > 0);
+      }
+    } catch (error) {
+      console.error("Error fetching subject suggestions:", error);
+    } finally {
+      setLoadingSubject(false);
+    }
+  };
+
+  // Debounced subject search
+  const debouncedSubjectSearch = useCallback(
+    debounce((searchTerm) => {
+      fetchSubjectSuggestions(searchTerm);
+    }, 300),
+    []
+  );
+
+  // Handle keyboard navigation for subject suggestions
+  const handleSubjectKeyDown = (e) => {
+    if (!showSubjectSuggestions || subjectSuggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSubjectIndex(prev =>
+          prev < subjectSuggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSubjectIndex(prev => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSubjectIndex >= 0) {
+          selectSubject(subjectSuggestions[selectedSubjectIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowSubjectSuggestions(false);
+        setSelectedSubjectIndex(-1);
+        break;
+    }
+  };
+
+  // Select subject
+  const selectSubject = (suggestion) => {
+    setFormData(prev => ({ ...prev, subject: suggestion.text }));
+    setShowSubjectSuggestions(false);
+    setSelectedSubjectIndex(-1);
+  };
+
+
   // ================= HIGH SIDE LOADERS =================
 
 
 
 
   const resetForm = () => {
+    if (isFromLead) {
+      // Don't reset if created from lead, just close
+      onBack && onBack();
+      return;
+    }
+
     setFormData({
       customer_phone: "",
       customer_name: "",
@@ -331,6 +469,7 @@ export default function AddQuotation({ id, onBack }) {
     setPaymentTerms([]);
     setValidityTerms([]);
     setWarrantyTerms([]);
+    setOtherTerms([]);
 
     setItems([
       {
@@ -374,6 +513,10 @@ export default function AddQuotation({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
       return;
     }
+    if (!data.branch) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+      return;
+    }
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
@@ -392,7 +535,8 @@ export default function AddQuotation({ id, onBack }) {
       terms_conditions: [
         ...paymentTerms,
         ...validityTerms,
-        ...warrantyTerms
+        ...warrantyTerms,
+        ...otherTerms
       ],
 
       versions: [{
@@ -444,7 +588,7 @@ export default function AddQuotation({ id, onBack }) {
       console.log("Error details:", err);
       console.log("Response status:", err.response?.status);
       console.log("Response data:", err.response?.data);
-      
+
       // If quotation was actually saved (status 200-201), show success
       if (err.response?.status === 200 || err.response?.status === 201) {
         Swal.fire({
@@ -457,7 +601,7 @@ export default function AddQuotation({ id, onBack }) {
         onBack && onBack();
         return;
       }
-      
+
       console.log(err.response?.data);
       Swal.fire({ icon: "error", title: "Error", text: "Error saving quotation" });
     } finally {
@@ -475,6 +619,14 @@ export default function AddQuotation({ id, onBack }) {
     }
     if (!formData.subject.trim()) {
       Swal.fire({ icon: "error", title: "Validation", text: "Subject is required" });
+      return false;
+    }
+    if (!formData.branch) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
+      return false;
+    }
+    if (!formData.thank_you_note || !formData.thank_you_note.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Thank You Note is required" });
       return false;
     }
     return true;
@@ -523,10 +675,85 @@ export default function AddQuotation({ id, onBack }) {
     {
       name: "subject",
       label: "Subject",
-      type: "text",
+      type: "component",
       required: true,
       gridCols: 1,
-      placeholder: "Enter quotation subject"
+      component: ({ value, onChange }) => (
+        <div className="relative">
+          <input
+            type="text"
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Type to get suggestions..."
+            value={value || ""}
+            onChange={(e) => {
+              onChange(e.target.value);
+              debouncedSubjectSearch(e.target.value);
+            }}
+            onKeyDown={handleSubjectKeyDown}
+            onFocus={() => {
+              if (value && value.length >= 2) {
+                debouncedSubjectSearch(value);
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setShowSubjectSuggestions(false);
+                setSelectedSubjectIndex(-1);
+              }, 200);
+            }}
+          />
+
+          {loadingSubject && (
+            <div className="absolute right-3 top-3 pointer-events-none">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
+            </div>
+          )}
+
+          {showSubjectSuggestions && subjectSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              {subjectSuggestions.map((suggestion, index) => {
+                const isSelected = index === selectedSubjectIndex;
+
+                return (
+                  <div
+                    key={suggestion.id}
+                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${isSelected
+                        ? 'bg-indigo-100 text-indigo-900'
+                        : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectSubject(suggestion);
+                    }}
+                    onMouseEnter={() => setSelectedSubjectIndex(index)}
+                  >
+                    <div className="truncate">
+                      {suggestion.text.length > 80 ? `${suggestion.text.substring(0, 80)}...` : suggestion.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {showSubjectSuggestions && subjectSuggestions.length === 0 && !loadingSubject && value && value.length >= 2 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+              <div className="px-3 py-2 text-sm text-gray-500 italic">
+                No suggestions found. Keep typing to create a new one.
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      name: "branch",
+      label: "Branch",
+      type: "select",
+      required: true,
+      gridCols: 1,
+      placeholder: "Select Branch",
+      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
     },
     {
       name: "site",
@@ -535,14 +762,6 @@ export default function AddQuotation({ id, onBack }) {
       gridCols: 1,
       placeholder: "Select Site",
       options: sites.map(site => ({ value: site.id, label: site.name }))
-    },
-    {
-      name: "branch",
-      label: "Branch",
-      type: "select",
-      gridCols: 1,
-      placeholder: "Select Branch",
-      options: branches.map(branch => ({ value: branch.id, label: branch.name }))
     },
     {
       name: "gst_type",
@@ -560,6 +779,7 @@ export default function AddQuotation({ id, onBack }) {
       name: "thank_you_note",
       label: "Thank You Note",
       type: "component",
+      required: true,
       gridCols: 2,
       component: ({ value, onChange }) => (
         <div className="relative">
@@ -585,26 +805,25 @@ export default function AddQuotation({ id, onBack }) {
               }, 200);
             }}
           />
-          
+
           {loadingThankYou && (
             <div className="absolute right-3 top-3 pointer-events-none">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
             </div>
           )}
-          
+
           {showThankYouSuggestions && thankYouSuggestions.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
               {thankYouSuggestions.map((note, index) => {
                 const isSelected = index === selectedSuggestionIndex;
-                
+
                 return (
                   <div
                     key={note.id}
-                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${
-                      isSelected 
-                        ? 'bg-indigo-100 text-indigo-900' 
-                        : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    className={`px-3 py-2 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 transition-colors ${isSelected
+                      ? 'bg-indigo-100 text-indigo-900'
+                      : 'hover:bg-gray-50 text-gray-700'
+                      }`}
                     onMouseDown={(e) => {
                       e.preventDefault(); // Prevent blur from firing
                       selectThankYouNote(note);
@@ -619,7 +838,7 @@ export default function AddQuotation({ id, onBack }) {
               })}
             </div>
           )}
-          
+
           {showThankYouSuggestions && thankYouSuggestions.length === 0 && !loadingThankYou && value && value.length >= 2 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
               <div className="px-3 py-2 text-sm text-gray-500 italic">
@@ -697,6 +916,20 @@ export default function AddQuotation({ id, onBack }) {
       ),
       gridCols: 2,
     },
+    {
+      name: "other_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Other Terms"
+          value={otherTerms}
+          onChange={setOtherTerms}
+          termsType={otherTypeId}
+          baseApi={BASE_API}
+          token={token}
+        />
+      ),
+      gridCols: 2,
+    },
   ];
 
   // Get current step fields
@@ -719,7 +952,7 @@ export default function AddQuotation({ id, onBack }) {
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">
-                {isEdit ? "Edit Quotation" : "Add Quotation"}
+                {isEdit ? "Edit Quotation" : isFromLead ? "Create Quotation from Enquiry" : "Add Quotation"}
               </h2>
               <button
                 onClick={onBack}
@@ -729,7 +962,7 @@ export default function AddQuotation({ id, onBack }) {
                 ✕
               </button>
             </div>
-            
+
             {/* Step Indicator */}
             <div className="flex items-center justify-center space-x-4">
               <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -761,7 +994,15 @@ export default function AddQuotation({ id, onBack }) {
               fields={getCurrentFields()}
               formData={formData}
               onChange={setFormData}
-              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
+              onSubmit={
+                step === 3
+                  ? handleSubmit
+                  : step === 1
+                    ? () => { if (validateStep1()) setStep(2); }
+                    : step === 2
+                      ? () => { if (validateStep2()) setStep(3); }
+                      : () => { }
+              }
               loading={loading}
               showCancel={true}
               onCancel={step > 1 ? () => setStep(step - 1) : onBack}

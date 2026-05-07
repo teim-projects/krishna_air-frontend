@@ -117,7 +117,15 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       setMaterialShortcutInput("");
       setEditingMaterialId(null);
       setMaterialSearchTerm(''); // Clear search when adding
-      fetchMaterialTypes(materialPage);
+      
+      // Fetch updated data
+      const res = await axios.get(`${base_api}/product/material-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setMaterialTypes(rows);
+      
+      // Calculate last page and navigate to it to show the newly added item
+      const lastPage = Math.ceil(rows.length / itemsPerPage);
+      setMaterialPage(lastPage);
     } catch (err) {
       console.error("Error saving Material Type:", err);
     }
@@ -153,7 +161,15 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       setItemShortcutInput("");
       setEditingItemId(null);
       setItemSearchTerm('');
-      fetchItemTypes(itemPage);
+      
+      // Fetch updated data
+      const res = await axios.get(`${base_api}/product/item-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setItemTypes(rows);
+      
+      // Calculate last page and navigate to it to show the newly added item
+      const lastPage = Math.ceil(rows.length / itemsPerPage);
+      setItemPage(lastPage);
     } catch (err) {
       console.error("Error saving Item Type:", err);
     }
@@ -189,7 +205,15 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       setFeatureShortcutInput("");
       setEditingFeatureId(null);
       setFeatureSearchTerm('');
-      fetchFeatureTypes(featurePage);
+      
+      // Fetch updated data
+      const res = await axios.get(`${base_api}/product/feature-type/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setFeatureTypes(rows);
+      
+      // Calculate last page and navigate to it to show the newly added item
+      const lastPage = Math.ceil(rows.length / itemsPerPage);
+      setFeaturePage(lastPage);
     } catch (err) {
       console.error("Error saving Feature Type:", err);
     }
@@ -225,7 +249,15 @@ const ManageItemTypes = ({ open, onClose, base_api }) => {
       setClassShortcutInput("");
       setEditingClassId(null);
       setClassSearchTerm('');
-      fetchClasses(classPage);
+      
+      // Fetch updated data
+      const res = await axios.get(`${base_api}/product/item-class/`, authHeaders());
+      const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+      setClasses(rows);
+      
+      // Calculate last page and navigate to it to show the newly added item
+      const lastPage = Math.ceil(rows.length / itemsPerPage);
+      setClassPage(lastPage);
     } catch (err) {
       console.error("Error saving Class:", err);
     }

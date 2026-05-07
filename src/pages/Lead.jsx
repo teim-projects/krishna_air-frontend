@@ -4,9 +4,10 @@ import TableView from "../components/TableView";
 import LeadDetails from "../components/lead/LeadDetails";
 import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
-import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument } from "react-icons/md";
+import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument, MdAdd } from "react-icons/md";
 import Swal from "sweetalert2";
 import { useUserRole } from '../hooks/useAuth';
+import AddQuotation from "../components/quotations/AddQuotation";
 
 
 export default function Lead() {
@@ -30,6 +31,10 @@ export default function Lead() {
 
 
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
+
+  //forn connect enquiry to quotattion
+  const [showQuotationForm, setShowQuotationForm] = useState(false);
+  const [quotationLeadData, setQuotationLeadData] = useState(null);
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -328,25 +333,25 @@ export default function Lead() {
     return `${day}-${month}-${year}`;
   };
 
-    const getRowClassName = (lead) => {
+  const getRowClassName = (lead) => {
     if (!lead.followup_date) return "";
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const followupDate = new Date(lead.followup_date);
     followupDate.setHours(0, 0, 0, 0);
-    
+
     // Today's followup - Yellow
     if (followupDate.getTime() === today.getTime()) {
       return "bg-yellow-100";
     }
-    
+
     // Missed followup - Red
     if (followupDate < today) {
       return "bg-red-100";
     }
-    
+
     return "";
   };
 
@@ -354,6 +359,7 @@ export default function Lead() {
     { key: "sr", label: "Sr.No", render: (_, idx) => (currentPage - 1) * PAGE_SIZE + (idx + 1) },
     { key: "date", label: "Date", render: (r) => formatDate(r.date) },
     { key: "followup_date", label: "Followup Date", render: (r) => formatDate(r.followup_date) },
+    { key: "project_name", label: "Project Name", render: (r) => r.project_name || "-" },
     { key: "name", label: "Name", render: (r) => r.customer_name },
     { key: "contact", label: "Contact", render: (r) => r.customer_contact },
     // { key: "email", label: "Email", render: (r) => r.customer_email },
@@ -395,6 +401,17 @@ export default function Lead() {
         <MdEditDocument />
       </button>
 
+      {/* NEW QUOTATION BUTTON */}
+      <button
+        onClick={() => {
+          setQuotationLeadData(row);
+          setShowQuotationForm(true);
+        }}
+        className="px-2 py-1 bg-green-200 text-green-800 rounded"
+        title="Create Quotation"
+      >
+        <MdAdd />
+      </button>
 
       <button
         onClick={() => { setEditingLead(row); setShowLeadForm(true); }}
@@ -490,6 +507,18 @@ export default function Lead() {
         }}
       />
 
+      {/* ADD QUOTATION FORM */}
+      {showQuotationForm && (
+        <AddQuotation
+          leadData={quotationLeadData}
+          onBack={() => {
+            setShowQuotationForm(false);
+            setQuotationLeadData(null);
+            // Refresh the leads list
+            fetchData(currentPage);
+          }}
+        />
+      )}
 
     </Base>
   );

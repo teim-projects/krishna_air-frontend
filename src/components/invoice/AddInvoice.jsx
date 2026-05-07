@@ -87,7 +87,6 @@ export default function AddInvoice({ id, onBack }) {
     customer_id: "",
 
     // Invoice header
-    invoice_no: "",
     invoice_date: new Date().toISOString().split('T')[0],
     branch: "",
     site: "",
@@ -106,9 +105,11 @@ export default function AddInvoice({ id, onBack }) {
     // Additional info
     delivery_note: "",
     delivery_note_date: "",
+    delivery_chalan_date: "",
     supplier_ref: "",
     other_references: "",
     buyer_order_no: "",
+    buyer_dated: "",
     dispatch_doc_no: "",
     dispatched_through: "",
     destination: "",
@@ -130,8 +131,10 @@ export default function AddInvoice({ id, onBack }) {
   // ================= TERMS AND CONDITIONS =================
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [deliveryTerms, setDeliveryTerms] = useState([]);
+  const [otherTerms, setOtherTerms] = useState([]);
   const [paymentTypeId, setPaymentTypeId] = useState(null);
   const [deliveryTypeId, setDeliveryTypeId] = useState(null);
+  const [otherTypeId, setOtherTypeId] = useState(null);
 
   // ================= ITEMS =================
   const [items, setItems] = useState([]);
@@ -178,8 +181,14 @@ export default function AddInvoice({ id, onBack }) {
         "Terms of Delivery"
       );
 
+      const otherId = await getOrCreateTermTypeId(
+        "Invoice Other",
+        "Other Terms"
+      );
+
       setPaymentTypeId(paymentId);
       setDeliveryTypeId(deliveryId);
+      setOtherTypeId(otherId);
     };
 
     initTypes();
@@ -187,7 +196,7 @@ export default function AddInvoice({ id, onBack }) {
 
   // ================= EDIT LOAD =================
   useEffect(() => {
-    if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
+    if (!isEdit || !paymentTypeId || !deliveryTypeId || !otherTypeId) return;
 
     const loadInvoiceData = async () => {
       try {
@@ -199,7 +208,6 @@ export default function AddInvoice({ id, onBack }) {
           customer_phone: inv.customer_phone || "",
           customer_name: inv.buyer_name || "",
           customer_id: inv.customer || "",
-          invoice_no: inv.invoice_no,
           invoice_date: inv.invoice_date,
           branch: inv.branch || "",
           site: inv.site || "",
@@ -212,6 +220,7 @@ export default function AddInvoice({ id, onBack }) {
           same_as_buyer: !inv.ship_to_address,
           delivery_note: inv.delivery_note || "",
           delivery_note_date: inv.delivery_note_date || "",
+          delivery_chalan_date: inv.delivery_chalan_date || "",
           supplier_ref: inv.supplier_ref || "",
           other_references: inv.other_references || "",
           buyer_order_no: inv.buyer_order_no || "",
@@ -235,8 +244,20 @@ export default function AddInvoice({ id, onBack }) {
             .filter(t => t.terms_condition_type_name === "Invoice Delivery")
             .map(t => t.id);
 
+          const other = inv.terms_conditions_details
+            .filter(t => t.terms_condition_type_name === "Invoice Other")
+            .map(t => t.id);
+
+          console.log("📋 Loading Terms:", {
+            payment,
+            delivery,
+            other,
+            allTerms: inv.terms_conditions_details
+          });
+
           setPaymentTerms(payment);
           setDeliveryTerms(delivery);
+          setOtherTerms(other);
         }
 
         // Set items
@@ -274,7 +295,7 @@ export default function AddInvoice({ id, onBack }) {
     };
 
     loadInvoiceData();
-  }, [id, paymentTypeId, deliveryTypeId]);
+  }, [id, paymentTypeId, deliveryTypeId, otherTypeId]);
   // ================= CUSTOMER SEARCH =================
   const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
@@ -339,7 +360,6 @@ export default function AddInvoice({ id, onBack }) {
       customer_phone: "",
       customer_name: "",
       customer_id: "",
-      invoice_no: "",
       invoice_date: new Date().toISOString().split('T')[0],
       branch: "",
       site: "",
@@ -352,9 +372,11 @@ export default function AddInvoice({ id, onBack }) {
       same_as_buyer: true,
       delivery_note: "",
       delivery_note_date: "",
+      delivery_chalan_date: "",
       supplier_ref: "",
       other_references: "",
       buyer_order_no: "",
+      buyer_dated: "",
       dispatch_doc_no: "",
       dispatched_through: "",
       destination: "",
@@ -367,6 +389,7 @@ export default function AddInvoice({ id, onBack }) {
 
     setPaymentTerms([]);
     setDeliveryTerms([]);
+    setOtherTerms([]);
 
     setItems([{
       acType: "",
@@ -416,13 +439,13 @@ export default function AddInvoice({ id, onBack }) {
     setLoadingForm(true);
 
     const payload = {
-      invoice_no: data.invoice_no,
       customer: data.customer_id ? Number(data.customer_id) : null,
       site: data.site || null,
       branch: data.branch || null,
       terms_conditions: [
         ...paymentTerms,
-        ...deliveryTerms
+        ...deliveryTerms,
+        ...otherTerms
       ],
 
       invoice_date: data.invoice_date,
@@ -444,24 +467,26 @@ export default function AddInvoice({ id, onBack }) {
       declaration: data.declaration,
 
       // Header fields
-      delivery_note: data.delivery_note,
-      delivery_note_date: data.delivery_note_date,
-      supplier_ref: data.supplier_ref,
-      other_references: data.other_references,
-      buyer_order_no: data.buyer_order_no,
-      dispatch_doc_no: data.dispatch_doc_no,
-      dispatched_through: data.dispatched_through,
-      destination: data.destination,
-      work_description: data.work_description,
+      delivery_note: data.delivery_note || "",
+      delivery_note_date: data.delivery_note_date || null,
+      delivery_chalan_date: data.delivery_chalan_date || null,
+      supplier_ref: data.supplier_ref || "",
+      other_references: data.other_references || "",
+      buyer_order_no: data.buyer_order_no || "",
+      buyer_dated: data.buyer_dated || null,
+      dispatch_doc_no: data.dispatch_doc_no || "",
+      dispatched_through: data.dispatched_through || "",
+      destination: data.destination || "",
+      work_description: data.work_description || "",
 
       // GST Type
       gst_type: data.gst_type,
 
       high_side_items: items.map(i => ({
         product_variant: Number(i.product_variant),
-        description: i.description,
-        hsn_sac: i.hsn_sac,
-        gst_percent: Number(i.gst_percent),
+        description: i.description || "",
+        hsn_sac: i.hsn_sac || "",
+        gst_percent: Number(i.gst_percent || 0),
         quantity: Number(i.quantity),
         unit: i.unit,
         rate: Number(i.rate)
@@ -469,8 +494,9 @@ export default function AddInvoice({ id, onBack }) {
 
       low_side_items: lowItems.map(l => ({
         item: Number(l.item),
-        description: l.description,
-        gst_percent: Number(l.gst_percent),
+        description: l.description || "",
+        hsn_sac: l.hsn_sac || "",
+        gst_percent: Number(l.gst_percent || 0),
         quantity: Number(l.quantity),
         unit: l.unit,
         rate: Number(l.rate)
@@ -495,8 +521,35 @@ export default function AddInvoice({ id, onBack }) {
       if (onBack) onBack();
 
     } catch (err) {
-      console.log(err.response?.data);
-      Swal.fire({ icon: "error", title: "Error", text: "Error saving invoice" });
+      console.log("❌ Error saving invoice:", err.response?.data);
+      
+      // Display detailed error message
+      let errorMessage = "Error saving invoice";
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        // If it's a validation error with field details
+        if (typeof errorData === 'object') {
+          const errorFields = Object.entries(errorData)
+            .map(([field, messages]) => {
+              const msg = Array.isArray(messages) ? messages.join(", ") : messages;
+              return `${field}: ${msg}`;
+            })
+            .join("\n");
+          
+          errorMessage = errorFields || "Validation error occurred";
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      }
+      
+      Swal.fire({ 
+        icon: "error", 
+        title: "Error", 
+        text: errorMessage,
+        width: '600px'
+      });
     } finally {
       setLoadingForm(false);
     }
@@ -592,8 +645,22 @@ export default function AddInvoice({ id, onBack }) {
       name: "buyer_gstin",
       label: "Buyer GSTIN",
       type: "text",
+      required: true,
       gridCols: 1,
-      placeholder: "Enter GSTIN"
+      placeholder: "Enter 15-character GSTIN",
+      component: ({ value, onChange }) => (
+        <input
+          type="text"
+          className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          value={value}
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+            onChange(val.slice(0, 15));
+          }}
+          placeholder="Enter 15-character GSTIN"
+          maxLength={15}
+        />
+      )
     },
     {
       name: "buyer_state",
@@ -693,6 +760,12 @@ export default function AddInvoice({ id, onBack }) {
       gridCols: 1
     },
     {
+      name: "delivery_chalan_date",
+      label: "Delivery Challan Date",
+      type: "date",
+      gridCols: 1
+    },
+    {
       name: "supplier_ref",
       label: "Supplier Reference",
       type: "text",
@@ -712,6 +785,12 @@ export default function AddInvoice({ id, onBack }) {
       type: "text",
       gridCols: 1,
       placeholder: "Enter buyer order number"
+    },
+    {
+      name: "buyer_dated",
+      label: "Buyer Order Date",
+      type: "date",
+      gridCols: 1
     },
     {
       name: "dispatch_doc_no",
@@ -749,6 +828,7 @@ export default function AddInvoice({ id, onBack }) {
       name: "bank_name",
       label: "Bank Name",
       type: "text",
+      required: true,
       gridCols: 1,
       placeholder: "Enter bank name"
     },
@@ -756,6 +836,7 @@ export default function AddInvoice({ id, onBack }) {
       name: "account_no",
       label: "Account Number",
       type: "text",
+      required: true,
       gridCols: 1,
       placeholder: "Enter account number"
     },
@@ -763,6 +844,7 @@ export default function AddInvoice({ id, onBack }) {
       name: "ifsc_code",
       label: "IFSC Code",
       type: "text",
+      required: true,
       gridCols: 1,
       placeholder: "Enter IFSC code"
     },
@@ -782,12 +864,52 @@ export default function AddInvoice({ id, onBack }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
       return false;
     }
+    if (!formData.buyer_gstin || !formData.buyer_gstin.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Buyer GSTIN is required" });
+      return false;
+    }
+    
+    // GSTIN validation - must be exactly 15 characters
+    const gstin = formData.buyer_gstin.trim();
+    if (gstin.length !== 15) {
+      Swal.fire({ icon: "error", title: "Validation", text: "GSTIN must be exactly 15 characters" });
+      return false;
+    }
+    
+    // GSTIN format validation (basic pattern check)
+    // Format: 2 digits (state code) + 10 alphanumeric (PAN) + 1 digit + 1 letter + 1 alphanumeric
+    const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstinPattern.test(gstin)) {
+      Swal.fire({ 
+        icon: "error", 
+        title: "Validation", 
+        text: "Invalid GSTIN format. Please enter a valid GSTIN number" 
+      });
+      return false;
+    }
+    
     return true;
   };
 
   const validateStep2 = () => {
     if (items.length === 0 && lowItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep3 = () => {
+    if (!formData.bank_name || !formData.bank_name.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Bank Name is required" });
+      return false;
+    }
+    if (!formData.account_no || !formData.account_no.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Account Number is required" });
+      return false;
+    }
+    if (!formData.ifsc_code || !formData.ifsc_code.trim()) {
+      Swal.fire({ icon: "error", title: "Validation", text: "IFSC Code is required" });
       return false;
     }
     return true;
@@ -913,6 +1035,20 @@ export default function AddInvoice({ id, onBack }) {
       ),
       gridCols: 2,
     },
+    {
+      name: "other_terms",
+      component: ({ value, onChange }) => (
+        <TermsMultiSelect
+          label="Other Terms"
+          value={otherTerms}
+          onChange={setOtherTerms}
+          termsType={otherTypeId}
+          baseApi={BASE_API}
+          token={localStorage.getItem("access")}
+        />
+      ),
+      gridCols: 2,
+    },
   ];
 
   // Get current step fields
@@ -977,7 +1113,13 @@ export default function AddInvoice({ id, onBack }) {
               fields={getCurrentFields()}
               formData={formData}
               onChange={setFormData}
-              onSubmit={step === 3 ? handleSubmit : (step === 1 && validateStep1) ? () => setStep(2) : (step === 2 && validateStep2) ? () => setStep(3) : () => {}}
+              onSubmit={
+                step === 1 
+                  ? () => { if (validateStep1()) setStep(2); }
+                  : step === 2 
+                  ? () => { if (validateStep2()) setStep(3); }
+                  : () => { if (validateStep3()) handleSubmit(formData); }
+              }
               loading={loading_form}
               showCancel={true}
               onCancel={step > 1 ? () => setStep(step - 1) : onBack}
