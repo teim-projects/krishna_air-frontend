@@ -105,6 +105,7 @@ export default function AddInvoice({ id, onBack }) {
     // Additional info
     delivery_note: "",
     delivery_note_date: "",
+    delivery_chalan_date: "",
     supplier_ref: "",
     other_references: "",
     buyer_order_no: "",
@@ -195,7 +196,7 @@ export default function AddInvoice({ id, onBack }) {
 
   // ================= EDIT LOAD =================
   useEffect(() => {
-    if (!isEdit || !paymentTypeId || !deliveryTypeId) return;
+    if (!isEdit || !paymentTypeId || !deliveryTypeId || !otherTypeId) return;
 
     const loadInvoiceData = async () => {
       try {
@@ -219,6 +220,7 @@ export default function AddInvoice({ id, onBack }) {
           same_as_buyer: !inv.ship_to_address,
           delivery_note: inv.delivery_note || "",
           delivery_note_date: inv.delivery_note_date || "",
+          delivery_chalan_date: inv.delivery_chalan_date || "",
           supplier_ref: inv.supplier_ref || "",
           other_references: inv.other_references || "",
           buyer_order_no: inv.buyer_order_no || "",
@@ -245,6 +247,13 @@ export default function AddInvoice({ id, onBack }) {
           const other = inv.terms_conditions_details
             .filter(t => t.terms_condition_type_name === "Invoice Other")
             .map(t => t.id);
+
+          console.log("📋 Loading Terms:", {
+            payment,
+            delivery,
+            other,
+            allTerms: inv.terms_conditions_details
+          });
 
           setPaymentTerms(payment);
           setDeliveryTerms(delivery);
@@ -286,7 +295,7 @@ export default function AddInvoice({ id, onBack }) {
     };
 
     loadInvoiceData();
-  }, [id, paymentTypeId, deliveryTypeId]);
+  }, [id, paymentTypeId, deliveryTypeId, otherTypeId]);
   // ================= CUSTOMER SEARCH =================
   const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
@@ -363,6 +372,7 @@ export default function AddInvoice({ id, onBack }) {
       same_as_buyer: true,
       delivery_note: "",
       delivery_note_date: "",
+      delivery_chalan_date: "",
       supplier_ref: "",
       other_references: "",
       buyer_order_no: "",
@@ -459,6 +469,7 @@ export default function AddInvoice({ id, onBack }) {
       // Header fields
       delivery_note: data.delivery_note || "",
       delivery_note_date: data.delivery_note_date || null,
+      delivery_chalan_date: data.delivery_chalan_date || null,
       supplier_ref: data.supplier_ref || "",
       other_references: data.other_references || "",
       buyer_order_no: data.buyer_order_no || "",
@@ -745,6 +756,12 @@ export default function AddInvoice({ id, onBack }) {
     {
       name: "delivery_note_date",
       label: "Delivery Note Date",
+      type: "date",
+      gridCols: 1
+    },
+    {
+      name: "delivery_chalan_date",
+      label: "Delivery Challan Date",
       type: "date",
       gridCols: 1
     },

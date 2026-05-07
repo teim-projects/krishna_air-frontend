@@ -27,7 +27,7 @@ export default function GRN({ base_api, filters }) {
   const fetchGrns = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BASE_API}/inventory/grns/?page=${page}`, {
+      const response = await axios.get(`${BASE_API}/inventory/grn/?page=${page}`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -60,11 +60,30 @@ export default function GRN({ base_api, filters }) {
   }, [currentPage]);
 
   const handleEdit = (grn) => {
+    if (grn.is_completed) {
+      Swal.fire({
+        icon: "error",
+        title: "Cannot Edit",
+        text: "Cannot edit completed GRN. Inventory has already been updated.",
+      });
+      return;
+    }
     setEditingGrn(grn);
     setShowGrnForm(true);
   };
 
   const handleDelete = async (id) => {
+    const grn = grns.find(g => g.id === id);
+    
+    if (grn?.is_completed) {
+      Swal.fire({
+        icon: "error",
+        title: "Cannot Delete",
+        text: "Cannot delete completed GRN. Inventory has already been updated.",
+      });
+      return;
+    }
+
     const confirm = await Swal.fire({
       title: "Delete GRN?",
       text: "This action cannot be undone",
@@ -78,7 +97,7 @@ export default function GRN({ base_api, filters }) {
     if (!confirm.isConfirmed) return;
 
     try {
-      await axios.delete(`${BASE_API}/inventory/grns/${id}/`, {
+      await axios.delete(`${BASE_API}/inventory/grn/${id}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -86,6 +105,7 @@ export default function GRN({ base_api, filters }) {
         icon: "success",
         title: "Deleted",
         text: "GRN deleted successfully",
+        timer: 1500,
       });
 
       fetchGrns(currentPage);
@@ -93,15 +113,27 @@ export default function GRN({ base_api, filters }) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: error.response?.data?.detail || "Failed to delete GRN",
+        text: error.response?.data?.error || error.response?.data?.detail || "Failed to delete GRN",
       });
     }
   };
 
   const handleComplete = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Complete GRN?",
+      text: "This will update inventory and cannot be undone",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, Complete",
+    });
+
+    if (!confirm.isConfirmed) return;
+
     try {
       await axios.post(
-        `${BASE_API}/inventory/grns/${id}/complete/`,
+        `${BASE_API}/inventory/grn/${id}/complete/`,
         {},
         {
           headers: {
@@ -114,7 +146,8 @@ export default function GRN({ base_api, filters }) {
       Swal.fire({
         icon: "success",
         title: "Completed",
-        text: "GRN completed",
+        text: "GRN completed successfully! Inventory has been updated.",
+        timer: 2000,
       });
 
       fetchGrns(currentPage);
@@ -122,24 +155,37 @@ export default function GRN({ base_api, filters }) {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: error.response?.data?.detail || "Failed to complete GRN",
+        text: error.response?.data?.error || error.response?.data?.detail || "Failed to complete GRN",
       });
     }
   };
 
   const columns = [
-    { key: "grn_no", label: "GRN No" },
     {
-      key: "purchase_order_details",
-      label: "PO No",
-      render: (row) => row.purchase_order_details?.purchase_order_no || "N/A",
+      key: "sr_no",
+      label: "Sr. No.",
+      render: (row, index) => (currentPage - 1) * PAGE_SIZE + index + 1,
+    },
+    { 
+      key: "grn_no", 
+      label: "GRN No",
+      render: (row) => row.grn_no || "N/A",
     },
     {
-      key: "vendor",
+      key: "purchase_order_no",
+      label: "PO Number",
+      render: (row) => row.purchase_order_no || "N/A",
+    },
+    {
+      key: "vendor_name",
       label: "Vendor",
-      render: (row) => row.purchase_order_details?.vendor_details?.name || "N/A",
+      render: (row) => row.vendor_name || "N/A",
     },
-    { key: "grn_date", label: "GRN Date" },
+    { 
+      key: "grn_date", 
+      label: "GRN Date",
+      render: (row) => row.grn_date || "N/A",
+    },
     {
       key: "is_completed",
       label: "Status",
@@ -149,7 +195,7 @@ export default function GRN({ base_api, filters }) {
             ? "bg-green-100 text-green-800"
             : "bg-yellow-100 text-yellow-800"
         }`}>
-          {row.is_completed ? "Completed" : "Pending"}
+          {row.is_completed ? "✓ Completed" : "⏳ Pending"}
         </span>
       ),
     },
@@ -178,31 +224,38 @@ export default function GRN({ base_api, filters }) {
         totalPages={totalPages}
         onPageChange={setCurrentPage}
         actions={(row) => (
-          <>
-            <button
-              onClick={() => handleEdit(row)}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
-              title="Edit"
-            >
-              <MdEdit size={18} />
-            </button>
+          <div className="flex gap-2">
             {!row.is_completed && (
-              <button
-                onClick={() => handleComplete(row.id)}
-                className="p-2 text-green-600 hover:bg-green-50 rounded transition"
-                title="Complete"
-              >
-                <MdCheckCircle size={18} />
-              </button>
+              <>
+                <button
+                  onClick={() => handleEdit(row)}
+                  className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300 transition"
+                  title="Edit"
+                >
+                  <MdEdit size={18} />
+                </button>
+                <button
+                  onClick={() => handleComplete(row.id)}
+                  className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition"
+                  title="Complete GRN"
+                >
+                  <MdCheckCircle size={18} />
+                </button>
+              </>
             )}
             <button
               onClick={() => handleDelete(row.id)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded transition"
-              title="Delete"
+              className={`px-2 py-1 rounded transition ${
+                row.is_completed
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-red-200 text-red-800 hover:bg-red-300"
+              }`}
+              title={row.is_completed ? "Cannot delete completed GRN" : "Delete"}
+              disabled={row.is_completed}
             >
               <MdDelete size={18} />
             </button>
-          </>
+          </div>
         )}
         emptyMessage="No GRNs found"
       />
