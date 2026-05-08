@@ -6,10 +6,11 @@ import Branch from '../components/inventory/Branch';
 import PurchaseOrder from '../components/inventory/PurchaseOrder';
 import AddGrnForm from '../components/inventory/AddGrnForm';
 import GRN from '../components/inventory/GRN';
+import MaterialIssue from '../components/inventory/MaterialIssue';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
-  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN'
+  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN' | 'materialIssue'
 
   const [filters, setFilters] = useState({});
 
@@ -30,9 +31,13 @@ const Inventory = () => {
     { key: "search", label: "Search", type: "search", placeholder: "Search by PO number, vendor, site..." }
   ];
   
-  const grnFiltersConfig=[
-    { key: "search" , label: "Search" , type: "search" , placeholder :"Seach by  GRN number , PO number , vendor ..."}
-  ]
+  const grnFiltersConfig = [
+    { key: "search", label: "Search", type: "search", placeholder: "Search by GRN number, PO number, vendor..." }
+  ];
+
+  const materialIssueFiltersConfig = [
+    { key: "search", label: "Search", type: "search", placeholder: "Search by issue number, site, technician..." }
+  ];
 
   const handleFilterChange = (vals) => {
     setFilters(vals);
@@ -46,16 +51,18 @@ const Inventory = () => {
           activeTab === 'site' ? 'Site Filters' :
             activeTab === 'branch' ? 'Branch Filters' :
               activeTab === 'purchase' ? 'Purchase Order Filters' :
-                activeTab === 'grn'  ? 'GRN Filters':
-                'Filters'
+                activeTab === 'grn' ? 'GRN Filters' :
+                  activeTab === 'materialIssue' ? 'Material Issue Filters' :
+                    'Filters'
       }
       filtersConfig={
         activeTab === 'vendor' ? vendorFiltersConfig :
           activeTab === 'site' ? siteFiltersConfig :
             activeTab === 'branch' ? branchFiltersConfig :
               activeTab === 'purchase' ? purchaseFiltersConfig :
-                activeTab === 'grn'  ? grnFiltersConfig :
-                null
+                activeTab === 'grn' ? grnFiltersConfig :
+                  activeTab === 'materialIssue' ? materialIssueFiltersConfig :
+                    null
       }
       initialFilterValues={filters}
       onFiltersChange={handleFilterChange}
@@ -92,10 +99,17 @@ const Inventory = () => {
           >
             Purchase Order
           </button>
-          <button className={`px-4 py-2 rounded ${activeTab==='grn'? 'bg-blue-600 text-white' :'bg-blue-100' }`}
-          onClick={()=>setActiveTab('grn')}
+          <button 
+            className={`px-4 py-2 rounded ${activeTab === 'grn' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            onClick={() => setActiveTab('grn')}
           >
             GRN
+          </button>
+          <button 
+            className={`px-4 py-2 rounded ${activeTab === 'materialIssue' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            onClick={() => setActiveTab('materialIssue')}
+          >
+            Material Issue
           </button>
         </div>
 
@@ -104,7 +118,8 @@ const Inventory = () => {
         {activeTab === 'branch' && <Branch base_api={BASE_API} filters={filters} />}
         {activeTab === 'vendor' && <Vendor base_api={BASE_API} filters={filters} />}
         {activeTab === 'purchase' && <PurchaseOrder base_api={BASE_API} filters={filters} />}
-        {activeTab === 'grn' && <GRN base_api={BASE_API} filters ={filters}/>}
+        {activeTab === 'grn' && <GRN base_api={BASE_API} filters={filters} />}
+        {activeTab === 'materialIssue' && <MaterialIssue base_api={BASE_API} filters={filters} />}
 
       </div>
     </Base>
