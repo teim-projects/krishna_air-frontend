@@ -34,11 +34,11 @@ const AcMaterials = ({ open, onClose, base_api }) => {
     const fetchItems = async () => {
         try {
             const res = await axios.get(
-                `${base_api}/product/item/`,
+                `${base_api}/product/item/?all=true`,
                 authHeaders()
             );
-            const data = res.data?.results || res.data;
-            setItems(data || []);
+            const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+            setItems(data);
         } catch (err) {
             console.error("Items error:", err);
         }
