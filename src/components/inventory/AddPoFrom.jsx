@@ -158,8 +158,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 }
             });
 
-            setVendors(response.data.results || response.data);
-            console.log("vendors", response.data.results || response.data);
+            // Handle both paginated (results) and non-paginated (direct array) responses
+            const vendorData = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            setVendors(vendorData);
+            console.log("vendors", vendorData);
         } catch (error) {
             console.error("Error fetching vendors:", error);
         } finally {
@@ -176,7 +178,9 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
                 }
             });
-            setBranches(response.data.results || response.data);
+            // Handle both paginated (results) and non-paginated (direct array) responses
+            const branchData = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            setBranches(branchData);
         } catch (error) {
             console.error("Error fetching branches:", error);
         }
@@ -196,7 +200,9 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
                 }
             });
-            setSites(response.data.results || response.data);
+            setSites(response.data.results || response.data); // Handle both paginated (results) and non-paginated (direct array) responses
+            const siteData = Array.isArray(response.data) ? response.data : (response.data.results || []);
+            setSites(siteData);
         } catch (error) {
             console.error("Error fetching sites:", error);
         }

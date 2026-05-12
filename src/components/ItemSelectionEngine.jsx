@@ -21,6 +21,26 @@ export default function ItemSelectionEngine({
   const [highSideGstEnabled, setHighSideGstEnabled] = useState(true);
   const [lowSideGstEnabled, setLowSideGstEnabled] = useState(true);
 
+  // Update existing high side items when GST toggle changes
+  useEffect(() => {
+    setItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        gst_percent: highSideGstEnabled ? (item.gst_percent || 18) : 0
+      }))
+    );
+  }, [highSideGstEnabled]);
+
+  // Update existing low side items when GST toggle changes
+  useEffect(() => {
+    setLowItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        gst_percent: lowSideGstEnabled ? (item.gst_percent || 18) : 0
+      }))
+    );
+  }, [lowSideGstEnabled]);
+
   // Unit options array
   const unitOptions = ["Rmt", "Ft", "Smtr", "Sqft", "Nos", "Kg", "Lot", "m", "in"];
 

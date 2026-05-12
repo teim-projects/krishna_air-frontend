@@ -92,13 +92,31 @@ export default function AddMaterialIssueForm({
 
   const fetchTechnicians = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/auth/users/`, {
+      // First, get all roles to find the "Technician" role ID
+      const rolesResponse = await axios.get(`${BASE_API}/auth/roles/`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      setTechnicians(response.data.results || response.data);
+      
+      const roles = Array.isArray(rolesResponse.data) ? rolesResponse.data : rolesResponse.data.results || [];
+      const technicianRole = roles.find(role => role.name.toLowerCase() === 'technician');
+      
+      // Fetch staff filtered by technician role
+      let url = `${BASE_API}/auth/staff/all/`;
+      if (technicianRole) {
+        url += `?role=${technicianRole.id}`;
+      }
+      
+      const response = await axios.get(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      setTechnicians(Array.isArray(response.data) ? response.data : response.data.results || []);
     } catch (error) {
       console.error("Error fetching technicians:", error);
     }
@@ -469,7 +487,7 @@ export default function AddMaterialIssueForm({
                       <option value="">Select Technician</option>
                       {technicians.map((tech) => (
                         <option key={tech.id} value={tech.id}>
-                          {tech.username} - {tech.email}
+                          {tech.first_name} {tech.last_name}
                         </option>
                       ))}
                     </select>
@@ -604,7 +622,10 @@ export default function AddMaterialIssueForm({
                     <div>
                       <span className="text-gray-600 font-medium">Technician:</span>
                       <p className="text-gray-900 mt-1">
-                        {technicians.find(t => t.id === parseInt(formData.technician))?.username || "N/A"}
+                        {(() => {
+                          const tech = technicians.find(t => t.id === parseInt(formData.technician));
+                          return tech ? `${tech.first_name} ${tech.last_name}` : "N/A";
+                        })()}
                       </p>
                     </div>
                   )}

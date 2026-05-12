@@ -52,7 +52,8 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                 authHeaders()
             );
 
-            const data = res.data?.results || [];
+            // Handle both paginated (results) and non-paginated (direct array) responses
+            const data = Array.isArray(res.data) ? res.data : (res.data?.results || []);
 
             setMappedMaterials(data);
 
