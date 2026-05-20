@@ -64,6 +64,7 @@ export default function PurchaseOrderItems({
     feature: "",
     itemClass: "",
     item: "",
+    brand: "",  // Add brand field
     quantity: "",
     rate: "",
     uom: LENGTH_UNITS[0],
@@ -89,6 +90,7 @@ export default function PurchaseOrderItems({
     feature: "",
     itemClass: "",
     item: "",
+    brand: "",  // Add brand field
     quantity: "",
     rate: "",
     uom: LENGTH_UNITS[0],
@@ -363,6 +365,7 @@ export default function PurchaseOrderItems({
         // ✅ USE NAME FROM CHILD
         item_code: mat.material_name || `Material ${mat.id}`,
 
+        brand: lowForm.brand,  // Include brand
         description: lowForm.description,
         quantity: parseFloat(lowForm.quantity || 1),
         uom: lowForm.uom,
@@ -687,7 +690,7 @@ export default function PurchaseOrderItems({
           </div>
 
           {/* Row 2 - Remaining inputs except description */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {/* <select
               className="border rounded-md px-2 py-1"
               onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
@@ -715,6 +718,20 @@ export default function PurchaseOrderItems({
               value={lowForm.rate}
               onChange={e => setLowForm({ ...lowForm, rate: e.target.value })}
             />
+
+            {/* Brand Dropdown */}
+            <select
+              className="border rounded-md px-2 py-1"
+              value={lowForm.brand}
+              onChange={e => setLowForm({ ...lowForm, brand: e.target.value })}
+            >
+              <option value="">Select Brand</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
 
             <select
               className="border rounded-md px-2 py-1"

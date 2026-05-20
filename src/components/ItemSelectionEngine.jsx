@@ -80,6 +80,7 @@ export default function ItemSelectionEngine({
     feature_type_id: "",
     item_class_id: "",
     item: "",
+    brand: "",  // Add brand field
     description: "",
     hsn_sac: "",
     unit: "Nos",
@@ -101,12 +102,24 @@ export default function ItemSelectionEngine({
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [resetMaterials, setResetMaterials] = useState(0);
   const [lowItemsMaster, setLowItemsMaster] = useState([]);
+  const [brands, setBrands] = useState([]);  // Add brands state for low side
 
 
   /* ================= LOADERS ================= */
   // Removed old dropdown loaders - now using SmartProductSelect
   // const loadAcTypes = async () => { ... };
   // const loadSubTypes = async (id) => { ... };
+  
+  // Load brands for low side items
+  const loadBrands = async () => {
+    try {
+      const res = await api.get("product/brand/");
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setBrands(data);
+    } catch (err) {
+      console.error("Error loading brands:", err);
+    }
+  };
   // const loadBrands = async (id) => { ... };
   // const loadModels = async (subType, brand) => { ... };
   // const loadVariants = async (id) => { ... };
@@ -184,7 +197,12 @@ export default function ItemSelectionEngine({
     });
   };
 
-  // Removed old useEffect for variants - no longer needed with SmartProductSelect
+  // Removed old useEffect for variants - now longer needed with SmartProductSelect
+  
+  // Load brands on component mount
+  useEffect(() => {
+    loadBrands();
+  }, []);
 
   const addLowItem = () => {
     if (selectedMaterials.length === 0) {
@@ -201,7 +219,8 @@ export default function ItemSelectionEngine({
       mathadi_charges: draftLowItem.mathadi_charges || 0,
       unit: mat.unit || draftLowItem.unit,
       item: mat.id,
-      item_code: mat.material_name || mat.item_code
+      item_code: mat.material_name || mat.item_code,
+      brand: draftLowItem.brand  // Include brand
     }));
 
     setLowItems(prev => [...prev, ...newItems]);
@@ -216,6 +235,7 @@ export default function ItemSelectionEngine({
       feature_type_id: "",
       item_class_id: "",
       item: "",
+      brand: "",  // Reset brand
       description: "",
       hsn_sac: "",
       unit: "Nos",
@@ -604,6 +624,20 @@ export default function ItemSelectionEngine({
               onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
             />
 
+            {/* ✅ BRAND DROPDOWN */}
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftLowItem.brand}
+              onChange={e => updateLowDraft("brand", e.target.value)}
+            >
+              <option value="">Select Brand</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+
             {/* ✅ GST */}
             {lowSideGstEnabled && (
               <input
@@ -675,6 +709,7 @@ export default function ItemSelectionEngine({
                     <tr>
                       <th className="w-12 px-2 py-2 border-r">#</th>
                       <th className="w-40 px-2 py-2 border-r">Item</th>
+                      <th className="w-32 px-2 py-2 border-r">Brand</th>
 
                       <th className="w-24 px-2 py-2 border-r">HSN</th>
                       <th className="w-20 px-2 py-2 border-r">Unit</th>
@@ -699,6 +734,7 @@ export default function ItemSelectionEngine({
                   <tbody className="bg-white">
                     {lowItems.map((row, i) => {
                       const itemName = row.item_code || row.item;
+                      const brandName = brands.find(b => b.id == row.brand)?.name || "";
 
                       return (
                         <tr key={i} className="border-b hover:bg-gray-50">
@@ -706,6 +742,25 @@ export default function ItemSelectionEngine({
 
                           <td className="w-40 px-2 py-2 border-r truncate">
                             {itemName}
+                          </td>
+
+                          <td className="w-32 px-2 py-2 border-r">
+                            <select
+                              className="w-full border rounded px-1 py-1"
+                              value={row.brand || ""}
+                              onChange={e => {
+                                const copy = [...lowItems];
+                                copy[i].brand = e.target.value;
+                                setLowItems(copy);
+                              }}
+                            >
+                              <option value="">Select Brand</option>
+                              {brands.map(brand => (
+                                <option key={brand.id} value={brand.id}>
+                                  {brand.name}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           <td className="w-24 px-2 py-2 border-r">

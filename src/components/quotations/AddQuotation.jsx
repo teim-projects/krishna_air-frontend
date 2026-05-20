@@ -66,6 +66,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
   const [branches, setBranches] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [versionName, setVersionName] = useState("");  // Add state for version name
 
   // ================= HIGH SIDE ITEMS =================
   const [items, setItems] = useState([]);
@@ -125,6 +126,12 @@ export default function AddQuotation({ id, onBack, leadData }) {
         const res = await api.get(`quotation/quotation/${id}/`);
         const q = res.data;
 
+        // Get active version and set version name
+        const active = q.versions.find(v => v.is_active);
+        if (active && active.version_no) {
+          setVersionName(active.version_no);
+        }
+
         // Load Terms (exactly like invoice)
         if (q.terms_conditions_details) {
           const payment = q.terms_conditions_details
@@ -158,11 +165,10 @@ export default function AddQuotation({ id, onBack, leadData }) {
           branch: q.branch || "",
           site: q.site || "",
           thank_you_note: q.thank_you_note || "",
-          gst_type: q.versions.find(v => v.is_active)?.gst_type || "CGST_SGST"
+          gst_type: active?.gst_type || "CGST_SGST"  // Use the active variable we already declared
         }));
 
-        const active = q.versions.find(v => v.is_active);
-
+        // Use the active variable we already declared above
         setItems(
           active.high_side_items.map(i => ({
             product_variant: i.product_variant,
@@ -952,7 +958,12 @@ export default function AddQuotation({ id, onBack, leadData }) {
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">
-                {isEdit ? "Edit Quotation" : isFromLead ? "Create Quotation from Enquiry" : "Add Quotation"}
+                {isEdit 
+                  ? (versionName ? `${versionName} - Edit Quotation` : "Edit Quotation")
+                  : isFromLead 
+                    ? "Create Quotation from Enquiry" 
+                    : "Add Quotation"
+                }
               </h2>
               <button
                 onClick={onBack}

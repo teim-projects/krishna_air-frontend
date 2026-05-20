@@ -8,10 +8,11 @@ import AddGrnForm from '../components/inventory/AddGrnForm';
 import GRN from '../components/inventory/GRN';
 import MaterialIssue from '../components/inventory/MaterialIssue';
 import MaterialReturn from '../components/inventory/MaterialReturn';
+import StockDashboard from '../components/inventory/StockDashboard';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
-  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN' | 'materialIssue' | 'materialReturn'
+  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN' | 'materialIssue' | 'materialReturn' | 'stockDashboard'
 
   const [filters, setFilters] = useState({});
 
@@ -44,6 +45,10 @@ const Inventory = () => {
     { key: "search", label: "Search", type: "search", placeholder: "Search by return number, issue number..." }
   ];
 
+  const stockDashboardFiltersConfig = [
+    { key: "search", label: "Search", type: "search", placeholder: "Search by item code, SKU..." }
+  ];
+
   const handleFilterChange = (vals) => {
     setFilters(vals);
   };
@@ -59,7 +64,8 @@ const Inventory = () => {
                 activeTab === 'grn' ? 'GRN Filters' :
                   activeTab === 'materialIssue' ? 'Material Issue Filters' :
                     activeTab === 'materialReturn' ? 'Material Return Filters' :
-                      'Filters'
+                      activeTab === 'stockDashboard' ? 'Stock Filters' :
+                        'Filters'
       }
       filtersConfig={
         activeTab === 'vendor' ? vendorFiltersConfig :
@@ -69,7 +75,8 @@ const Inventory = () => {
                 activeTab === 'grn' ? grnFiltersConfig :
                   activeTab === 'materialIssue' ? materialIssueFiltersConfig :
                     activeTab === 'materialReturn' ? materialReturnFiltersConfig :
-                      null
+                      activeTab === 'stockDashboard' ? stockDashboardFiltersConfig :
+                        null
       }
       initialFilterValues={filters}
       onFiltersChange={handleFilterChange}
@@ -124,6 +131,12 @@ const Inventory = () => {
           >
             MRN
           </button>
+          <button 
+            className={`px-4 py-2 rounded ${activeTab === 'stockDashboard' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            onClick={() => setActiveTab('stockDashboard')}
+          >
+            Stock
+          </button>
         </div>
 
         {/* Render based on active tab */}
@@ -134,6 +147,7 @@ const Inventory = () => {
         {activeTab === 'grn' && <GRN base_api={BASE_API} filters={filters} />}
         {activeTab === 'materialIssue' && <MaterialIssue base_api={BASE_API} filters={filters} />}
         {activeTab === 'materialReturn' && <MaterialReturn base_api={BASE_API} filters={filters} />}
+        {activeTab === 'stockDashboard' && <StockDashboard base_api={BASE_API} filters={filters} />}
 
       </div>
     </Base>

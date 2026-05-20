@@ -17,6 +17,8 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const [branches, setBranches] = useState([]);
     const [sites, setSites] = useState([]);
     const [step, setStep] = useState(1);
+    const [poNumber, setPoNumber] = useState("");  // Add state for PO number
+    const [poVersion, setPoVersion] = useState(1);  // Add state for PO version
 
     // Reset step when modal opens
     useEffect(() => {
@@ -29,6 +31,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const validateStep1 = () => {
         if (!formData.vendor) {
             alert("Vendor is required");
+            return false;
+        }
+        if (!formData.branch) {
+            alert("Branch is required");
             return false;
         }
         if (!formData.book_no) {
@@ -92,6 +98,9 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     // If editing existing PO
     useEffect(() => {
         if (po) {
+            // Set PO number and version for heading
+            setPoNumber(po.purchase_order_no || "");
+            setPoVersion(po.version || 1);
 
             const paymentTerms =
                 po.terms_conditions_details
@@ -181,6 +190,14 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
             // Handle both paginated (results) and non-paginated (direct array) responses
             const branchData = Array.isArray(response.data) ? response.data : (response.data.results || []);
             setBranches(branchData);
+            
+            // Set first branch as default if not editing and branches exist
+            if (!po && branchData.length > 0 && !formData.branch) {
+                setFormData(prev => ({
+                    ...prev,
+                    branch: branchData[0].id
+                }));
+            }
         } catch (error) {
             console.error("Error fetching branches:", error);
         }
@@ -238,9 +255,10 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
         {
             name: "branch",
-            label: "Branch",
+            label: "Branch",  // Add required indicator
             type: "select",
             placeholder: "Select Branch",
+            required: true,  // Mark as required
             options: branches.map(branch => ({
                 value: branch.id,
                 label: branch.name
@@ -290,7 +308,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
         },
         {
             name: "quotation_date",
-            label: "Quotation Date",
+            label: "Vendor Quotation Date",
             type: "date",
             required: false,
         },
@@ -535,7 +553,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
                 <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-semibold">
-                            {po ? "Edit Purchase Order" : "Add Purchase Order"}
+                            {po ? (poNumber ? `${poNumber} (v${poVersion}) - Edit Purchase Order` : "Edit Purchase Order") : "Add Purchase Order"}
                         </h2>
                         <button
                             onClick={onClose}
