@@ -35,7 +35,9 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                 .filter(mat => selectedItems.includes(mat.material_id))
                 .map(mat => ({
                     id: mat.material_id,
-                    material_name: mat.material_name
+                    material_name: mat.material_name,
+                    brand_id: mat.brand_id,
+                    brand_name: mat.brand_name
                 }));
 
             onSelectionChange({

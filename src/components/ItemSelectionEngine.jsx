@@ -204,24 +204,58 @@ export default function ItemSelectionEngine({
     loadBrands();
   }, []);
 
+  // Auto-populate brand when material is selected
+  useEffect(() => {
+    if (selectedMaterials.length > 0) {
+      // Get unique brands from selected materials
+      const uniqueBrands = [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))];
+      
+      if (uniqueBrands.length === 1) {
+        // If all materials have the same brand, auto-populate it
+        updateLowDraft("brand", uniqueBrands[0]);
+      } else if (uniqueBrands.length > 1) {
+        // If materials have different brands, clear the selection to let user choose
+        updateLowDraft("brand", "");
+      } else {
+        // If no materials have brands, clear the selection
+        updateLowDraft("brand", "");
+      }
+    }
+  }, [selectedMaterials]);
+
   const addLowItem = () => {
     if (selectedMaterials.length === 0) {
       alert("Select Material");
       return;
     }
 
-    const newItems = selectedMaterials.map(mat => ({
-      ...draftLowItem,
-      quantity: draftLowItem.quantity || 1,
-      unit_price: draftLowItem.unit_price || 0,
-      rate: draftLowItem.rate || 0,
-      gst_percent: lowSideGstEnabled ? (draftLowItem.gst_percent || 18) : 0,
-      mathadi_charges: draftLowItem.mathadi_charges || 0,
-      unit: mat.unit || draftLowItem.unit,
-      item: mat.id,
-      item_code: mat.material_name || mat.item_code,
-      brand: draftLowItem.brand  // Include brand
-    }));
+    const newItems = selectedMaterials.map(mat => {
+      // Determine which brand to use
+      let brandToUse = mat.brand_id; // Use material's brand by default
+      let brandNameToUse = mat.brand_name;
+      
+      // If material has no brand, or user manually selected a different brand, use the selected one
+      if (!mat.brand_id || draftLowItem.brand) {
+        brandToUse = draftLowItem.brand;
+        // Find brand name from brands array
+        const selectedBrand = brands.find(b => b.id == draftLowItem.brand);
+        brandNameToUse = selectedBrand?.name || "";
+      }
+
+      return {
+        ...draftLowItem,
+        quantity: draftLowItem.quantity || 1,
+        unit_price: draftLowItem.unit_price || 0,
+        rate: draftLowItem.rate || 0,
+        gst_percent: lowSideGstEnabled ? (draftLowItem.gst_percent || 18) : 0,
+        mathadi_charges: draftLowItem.mathadi_charges || 0,
+        unit: mat.unit || draftLowItem.unit,
+        item: mat.id,
+        item_code: mat.material_name || mat.item_code,
+        brand: brandToUse,
+        brand_name: brandNameToUse
+      };
+    });
 
     setLowItems(prev => [...prev, ...newItems]);
 
@@ -629,13 +663,45 @@ export default function ItemSelectionEngine({
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={draftLowItem.brand}
               onChange={e => updateLowDraft("brand", e.target.value)}
+              disabled={selectedMaterials.length > 0 && 
+                       [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
+              title={
+                selectedMaterials.length > 0 && 
+                [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1 
+                  ? "Brand auto-populated from item" 
+                  : selectedMaterials.length > 0 && 
+                    [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length > 1
+                    ? "Multiple brands detected - please select one"
+                    : ""
+              }
             >
               <option value="">Select Brand</option>
-              {brands.map(brand => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
+              {(() => {
+                // If materials are selected, only show brands from those materials
+                if (selectedMaterials.length > 0) {
+                  const materialBrands = selectedMaterials
+                    .filter(mat => mat.brand_id && mat.brand_name)
+                    .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
+                  
+                  // Remove duplicates based on brand_id
+                  const uniqueBrands = materialBrands.filter((brand, index, self) => 
+                    index === self.findIndex(b => b.id === brand.id)
+                  );
+                  
+                  return uniqueBrands.map(brand => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ));
+                } else {
+                  // If no materials selected, show all brands
+                  return brands.map(brand => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ));
+                }
+              })()}
             </select>
 
             {/* ✅ GST */}
