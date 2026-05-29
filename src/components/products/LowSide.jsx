@@ -3,6 +3,8 @@ import AddItem from "./AddItem";
 import axios from "axios";
 import Pagination from "../Pagination";
 import AcMaterials from "./AcMaterials";
+import AddServiceModal from "./AddServiceModal";
+import ServiceSelectionEngine from "./ServiceSelectionEngine";
 
 
 // Filter configuration for Low Side (using dropdowns)
@@ -45,6 +47,11 @@ const LowSide = ({ base_api, filters }) => {
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showAcMaterialModal, setShowAcMaterialModal] = useState(false);
+
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [showSetServicesModal, setShowSetServicesModal] = useState(false);
+  const [selectedServices, setSelectedServices] = useState([]);
+
   // ← ADD THESE PAGINATION STATES
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -78,7 +85,7 @@ const LowSide = ({ base_api, filters }) => {
 
       setTotalCount(count);
       setTotalPages(calculatedPages);
-      
+
       // Ensure current page doesn't exceed total pages
       if (page > calculatedPages && calculatedPages > 0) {
         setCurrentPage(calculatedPages);
@@ -92,6 +99,17 @@ const LowSide = ({ base_api, filters }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Add these handlers
+  const handleServiceAdd = (services) => {
+    // Handle the added services
+    console.log("Added services:", services);
+    // You can add them to your quotation data here
+  };
+
+  const handleServiceSelection = (data) => {
+    setSelectedServices(data.services || []);
   };
 
   // Filter items with pagination
@@ -123,7 +141,7 @@ const LowSide = ({ base_api, filters }) => {
 
       setTotalCount(count);
       setTotalPages(calculatedPages);
-      
+
       // Ensure current page doesn't exceed total pages
       if (page > calculatedPages && calculatedPages > 0) {
         setCurrentPage(calculatedPages);
@@ -201,7 +219,6 @@ const LowSide = ({ base_api, filters }) => {
         </div>
 
         <div className="flex gap-3">
-          {/* Add Item Button */}
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -308,7 +325,7 @@ const LowSide = ({ base_api, filters }) => {
               console.warn(`Invalid page ${newPage}. Total pages: ${totalPages}`);
               return;
             }
-            
+
             // Check if filters are active
             const hasAnyFilter = filters && Object.values(filters).some(
               v => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)
