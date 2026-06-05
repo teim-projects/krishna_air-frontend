@@ -21,9 +21,15 @@ export default function ItemSelectionEngine({
   const [highSideGstEnabled, setHighSideGstEnabled] = useState(true);
   const [lowSideGstEnabled, setLowSideGstEnabled] = useState(true);
 
+  // Add tab state for low side
+  const [lowSideActiveTab, setLowSideActiveTab] = useState("materials");
+
+  // Add service items state
+  const [serviceItems, setServiceItems] = useState([]);
+
   // Update existing high side items when GST toggle changes
   useEffect(() => {
-    setItems(prevItems => 
+    setItems(prevItems =>
       prevItems.map(item => ({
         ...item,
         gst_percent: highSideGstEnabled ? (item.gst_percent || 18) : 0
@@ -33,7 +39,7 @@ export default function ItemSelectionEngine({
 
   // Update existing low side items when GST toggle changes
   useEffect(() => {
-    setLowItems(prevItems => 
+    setLowItems(prevItems =>
       prevItems.map(item => ({
         ...item,
         gst_percent: lowSideGstEnabled ? (item.gst_percent || 18) : 0
@@ -56,7 +62,6 @@ export default function ItemSelectionEngine({
   /* ================= DRAFT STATES ================= */
 
   const [draftHighItem, setDraftHighItem] = useState({
-    // Removed old dropdown fields - now using SmartProductSelect
     product_variant: "",
     ac_type_name: "",
     ac_sub_type_name: "",
@@ -80,7 +85,7 @@ export default function ItemSelectionEngine({
     feature_type_id: "",
     item_class_id: "",
     item: "",
-    brand: "",  // Add brand field
+    brand: "",
     description: "",
     hsn_sac: "",
     unit: "Nos",
@@ -91,38 +96,58 @@ export default function ItemSelectionEngine({
     mathadi_charges: ""
   });
 
-  /* ================= MASTERS ================= */
-  // Removed old dropdown states - now using SmartProductSelect
-  // const [acTypes, setAcTypes] = useState([]);
-  // const [subTypes, setSubTypes] = useState([]);
-  // const [brands, setBrands] = useState([]);
-  // const [models, setModels] = useState([]);
-  // const [variants, setVariants] = useState([]);
+  // Add service draft state
+  const [draftServiceItem, setDraftServiceItem] = useState({
+    category: "",
+    subcategory: "",
+    material: "",
+    quantity: "",
+    unit: "NOS",
+    price: "",
+    gst_percent: "",
+    mathadi_charges: ""
+  });
 
+  /* ================= MASTERS ================= */
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [resetMaterials, setResetMaterials] = useState(0);
   const [lowItemsMaster, setLowItemsMaster] = useState([]);
-  const [brands, setBrands] = useState([]);  // Add brands state for low side
+  const [brands, setBrands] = useState([]);
 
+  // Service masters
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [materials, setMaterials] = useState([]);
 
   /* ================= LOADERS ================= */
-  // Removed old dropdown loaders - now using SmartProductSelect
-  // const loadAcTypes = async () => { ... };
-  // const loadSubTypes = async (id) => { ... };
-  
+
   // Load brands for low side items
   const loadBrands = async () => {
     try {
-      const res = await api.get("product/brand/");
-      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-      setBrands(data);
+      // Get brands from items endpoint instead
+      const res = await api.get("product/item/");
+      const items = Array.isArray(res.data) ? res.data : (res.data.results || []);
+
+      // Extract unique brands from items
+      const uniqueBrands = [];
+      const seenBrands = new Set();
+
+      items.forEach(item => {
+        if (item.brand_id && item.brand_name && !seenBrands.has(item.brand_id)) {
+          uniqueBrands.push({
+            id: item.brand_id,
+            name: item.brand_name
+          });
+          seenBrands.add(item.brand_id);
+        }
+      });
+
+      setBrands(uniqueBrands);
     } catch (err) {
       console.error("Error loading brands:", err);
+      setBrands([]);
     }
   };
-  // const loadBrands = async (id) => { ... };
-  // const loadModels = async (subType, brand) => { ... };
-  // const loadVariants = async (id) => { ... };
 
   const loadLowSideItems = async (data) => {
     const params = {};
@@ -137,25 +162,89 @@ export default function ItemSelectionEngine({
     setLowItemsMaster(normalize(r.data));
   };
 
-  /* ================= UPDATE DRAFT HIGH ================= */
-  const updateHighDraft = (field, value) => {
-    const copy = { ...draftHighItem, [field]: value };
-    // Removed cascading dropdown logic - now handled by SmartProductSelect
-    setDraftHighItem(copy);
+  // Service loaders
+  const loadCategories = async () => {
+    try {
+      const response = await api.get("quotation/service-categories/");
+      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+      setCategories(data);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+    }
   };
 
-  /* ================= UPDATE LOW DRAFT ================= */
+  const loadSubcategories = async (categoryId) => {
+    try {
+      const response = await api.get(`quotation/service-subcategories/?category=${categoryId}`);
+      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+      setSubcategories(data);
+    } catch (err) {
+      console.error("Error loading subcategories:", err);
+      setSubcategories([]);
+    }
+  };
+
+  const loadServiceMaterials = async (subcategoryId) => {
+    try {
+      const response = await api.get(`quotation/service-masters/?subcategory=${subcategoryId}`);
+      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
+      setMaterials(data);
+    } catch (err) {
+      console.error("Error loading materials:", err);
+      setMaterials([]);
+    }
+  };
+
+  /* ================= UPDATE DRAFT FUNCTIONS ================= */
+  const updateHighDraft = (field, value) => {
+    const copy = { ...draftHighItem, [field]: value };
+    setDraftHighItem(copy);
+  };
 
   const updateLowDraft = (field, value) => {
     const copy = { ...draftLowItem, [field]: value };
 
-    // Only material + item type are required
     if (copy.material_type_id && copy.item_type_id) {
       loadLowSideItems(copy);
     }
 
     setDraftLowItem(copy);
   };
+
+  const updateServiceDraft = (field, value) => {
+    setDraftServiceItem(prev => ({ ...prev, [field]: value }));
+  };
+
+  /* ================= SERVICE HANDLERS ================= */
+  const handleCategoryChange = (categoryId) => {
+    updateServiceDraft("category", categoryId);
+    updateServiceDraft("subcategory", "");
+    updateServiceDraft("material", "");
+    setSubcategories([]);
+    setMaterials([]);
+    if (categoryId) {
+      loadSubcategories(categoryId);
+    }
+  };
+
+  const handleSubcategoryChange = (subcategoryId) => {
+    updateServiceDraft("subcategory", subcategoryId);
+    updateServiceDraft("material", "");
+    setMaterials([]);
+    if (subcategoryId) {
+      loadServiceMaterials(subcategoryId);
+    }
+  };
+
+  const handleMaterialChange = (materialId) => {
+    const selectedMaterial = materials.find(m => m.id === parseInt(materialId));
+    if (selectedMaterial) {
+      updateServiceDraft("material", materialId);
+      updateServiceDraft("unit", selectedMaterial.unit || "NOS");
+      updateServiceDraft("price", selectedMaterial.total_rate || 0);
+    }
+  };
+
   /* ================= ADD ROWS ================= */
 
   const addHighItem = () => {
@@ -172,12 +261,10 @@ export default function ItemSelectionEngine({
       gst_percent: highSideGstEnabled ? (draftHighItem.gst_percent || 18) : 0,
       mathadi_charges: draftHighItem.mathadi_charges || 0,
       transportation_charges: draftHighItem.transportation_charges || 0,
-      // Product details are already set by SmartProductSelect
     };
 
     setItems(prev => [...prev, newRow]);
 
-    // Reset form but keep unit
     setDraftHighItem({
       product_variant: "",
       ac_type_name: "",
@@ -197,32 +284,6 @@ export default function ItemSelectionEngine({
     });
   };
 
-  // Removed old useEffect for variants - now longer needed with SmartProductSelect
-  
-  // Load brands on component mount
-  useEffect(() => {
-    loadBrands();
-  }, []);
-
-  // Auto-populate brand when material is selected
-  useEffect(() => {
-    if (selectedMaterials.length > 0) {
-      // Get unique brands from selected materials
-      const uniqueBrands = [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))];
-      
-      if (uniqueBrands.length === 1) {
-        // If all materials have the same brand, auto-populate it
-        updateLowDraft("brand", uniqueBrands[0]);
-      } else if (uniqueBrands.length > 1) {
-        // If materials have different brands, clear the selection to let user choose
-        updateLowDraft("brand", "");
-      } else {
-        // If no materials have brands, clear the selection
-        updateLowDraft("brand", "");
-      }
-    }
-  }, [selectedMaterials]);
-
   const addLowItem = () => {
     if (selectedMaterials.length === 0) {
       alert("Select Material");
@@ -230,14 +291,11 @@ export default function ItemSelectionEngine({
     }
 
     const newItems = selectedMaterials.map(mat => {
-      // Determine which brand to use
-      let brandToUse = mat.brand_id; // Use material's brand by default
+      let brandToUse = mat.brand_id;
       let brandNameToUse = mat.brand_name;
-      
-      // If material has no brand, or user manually selected a different brand, use the selected one
+
       if (!mat.brand_id || draftLowItem.brand) {
         brandToUse = draftLowItem.brand;
-        // Find brand name from brands array
         const selectedBrand = brands.find(b => b.id == draftLowItem.brand);
         brandNameToUse = selectedBrand?.name || "";
       }
@@ -259,7 +317,6 @@ export default function ItemSelectionEngine({
 
     setLowItems(prev => [...prev, ...newItems]);
 
-    // ✅ RESET
     setSelectedMaterials([]);
     setResetMaterials(prev => prev + 1);
 
@@ -269,7 +326,7 @@ export default function ItemSelectionEngine({
       feature_type_id: "",
       item_class_id: "",
       item: "",
-      brand: "",  // Reset brand
+      brand: "",
       description: "",
       hsn_sac: "",
       unit: "Nos",
@@ -281,10 +338,93 @@ export default function ItemSelectionEngine({
     });
   };
 
+  const addServiceItem = () => {
+    if (!draftServiceItem.category || !draftServiceItem.subcategory || !draftServiceItem.material) {
+      alert("Please select category, subcategory, and material");
+      return;
+    }
+
+    if (!draftServiceItem.quantity || !draftServiceItem.price) {
+      alert("Please enter quantity and price");
+      return;
+    }
+
+    const selectedCategory = categories.find(c => c.id === parseInt(draftServiceItem.category));
+    const selectedSubcategory = subcategories.find(s => s.id === parseInt(draftServiceItem.subcategory));
+    const selectedMaterial = materials.find(m => m.id === parseInt(draftServiceItem.material));
+
+    const quantity = parseFloat(draftServiceItem.quantity) || 0;
+    const price = parseFloat(draftServiceItem.price) || 0;
+    const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
+    const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
+
+    const baseAmount = quantity * price;
+    const gstAmount = (baseAmount * gstPercent) / 100;
+    const totalAmount = baseAmount + gstAmount + mathadiCharges;
+
+    const newServiceItem = {
+      id: Date.now(),
+      category_id: draftServiceItem.category,
+      category_name: selectedCategory?.name || "",
+      subcategory_id: draftServiceItem.subcategory,
+      subcategory_name: selectedSubcategory?.name || "",
+      material_id: draftServiceItem.material,
+      material_name: selectedMaterial?.name || "",
+      quantity: quantity,
+      unit: draftServiceItem.unit,
+      price: price,
+      gst_percent: gstPercent,
+      mathadi_charges: mathadiCharges,
+      base_amount: baseAmount,
+      gst_amount: gstAmount,
+      total_amount: totalAmount
+    };
+
+    setServiceItems(prev => [...prev, newServiceItem]);
+
+    // Reset form
+    setDraftServiceItem({
+      category: "",
+      subcategory: "",
+      material: "",
+      quantity: "",
+      unit: "NOS",
+      price: "",
+      gst_percent: "",
+      mathadi_charges: ""
+    });
+    setSubcategories([]);
+    setMaterials([]);
+  };
+
+  const removeServiceItem = (serviceId) => {
+    setServiceItems(prev => prev.filter(item => item.id !== serviceId));
+  };
+
+  /* ================= EFFECTS ================= */
+
+  useEffect(() => {
+    loadBrands();
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (selectedMaterials.length > 0) {
+      const uniqueBrands = [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))];
+
+      if (uniqueBrands.length === 1) {
+        updateLowDraft("brand", uniqueBrands[0]);
+      } else if (uniqueBrands.length > 1) {
+        updateLowDraft("brand", "");
+      } else {
+        updateLowDraft("brand", "");
+      }
+    }
+  }, [selectedMaterials]);
+
   useEffect(() => {
     if (selectedMaterials.length === 1) {
       const mat = selectedMaterials[0];
-
       setDraftLowItem(prev => ({
         ...prev,
         unit: mat.unit || prev.unit
@@ -292,15 +432,301 @@ export default function ItemSelectionEngine({
     }
   }, [selectedMaterials]);
 
+  // Group services by category for display
+  const groupedServices = serviceItems.reduce((acc, service) => {
+    const categoryName = service.category_name;
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(service);
+    return acc;
+  }, {});
+  /* ================= RENDER FUNCTIONS ================= */
 
+  const renderMaterialsTab = () => (
+    <div className="space-y-4">
+      <div className="gap-3">
+        <AcMaterialList
+          base_api={baseApi}
+          resetTrigger={resetMaterials}
+          onSelectionChange={(data) => {
+            setSelectedMaterials(data.materials || []);
+          }}
+          showValidation={false}
+        />
+      </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <input
+          type="number"
+          placeholder="Qty"
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={draftLowItem.quantity}
+          onChange={e => updateLowDraft("quantity", e.target.value)}
+        />
+
+        <input
+          type="number"
+          placeholder={isInvoice ? "Rate" : "Price"}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
+          onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
+        />
+
+        <select
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={draftLowItem.brand}
+          onChange={e => updateLowDraft("brand", e.target.value)}
+          disabled={selectedMaterials.length > 0 &&
+            [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
+        >
+          <option value="">Select Brand</option>
+          {(() => {
+            if (selectedMaterials.length > 0) {
+              const materialBrands = selectedMaterials
+                .filter(mat => mat.brand_id && mat.brand_name)
+                .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
+
+              const uniqueBrands = materialBrands.filter((brand, index, self) =>
+                index === self.findIndex(b => b.id === brand.id)
+              );
+
+              return uniqueBrands.map(brand => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ));
+            } else {
+              return brands.map(brand => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ));
+            }
+          })()}
+        </select>
+
+        {lowSideGstEnabled && (
+          <input
+            type="number"
+            placeholder="GST%"
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            value={draftLowItem.gst_percent}
+            onChange={e => updateLowDraft("gst_percent", e.target.value)}
+          />
+        )}
+
+        {!isInvoice && (
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              type="number"
+              placeholder="Mathadi Charges"
+              value={draftLowItem.mathadi_charges}
+              onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="HSN"
+          value={draftLowItem.hsn_sac}
+          onChange={e => updateLowDraft("hsn_sac", e.target.value)}
+        />
+
+        <select
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={draftLowItem.unit}
+          onChange={e => updateLowDraft("unit", e.target.value)}
+        >
+          {unitOptions.map(unit => (
+            <option key={unit} value={unit}>{unit}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex gap-3 items-start">
+        <textarea
+          className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter item description..."
+          value={draftLowItem.description}
+          onChange={e => updateLowDraft("description", e.target.value)}
+          rows={2}
+        />
+      </div>
+    </div>
+  );
+
+  const renderServicesTab = () => (
+    <div className="space-y-6">
+      {/* Service Selection Form */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {/* Service Category */}
+          <select
+            value={draftServiceItem.category}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Category</option>
+            {categories.map(category => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Service Subcategory */}
+          <select
+            value={draftServiceItem.subcategory}
+            onChange={(e) => handleSubcategoryChange(e.target.value)}
+            disabled={!draftServiceItem.category}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          >
+            <option value="">Select Subcategory</option>
+            {subcategories.map(subcategory => (
+              <option key={subcategory.id} value={subcategory.id}>
+                {subcategory.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Material Items */}
+          <select
+            value={draftServiceItem.material}
+            onChange={(e) => handleMaterialChange(e.target.value)}
+            disabled={!draftServiceItem.subcategory}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          >
+            <option value="">Select Material</option>
+            {materials.map(material => (
+              <option key={material.id} value={material.id}>
+                {material.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Quantity */}
+          <input
+            type="number"
+            placeholder="Quantity"
+            value={draftServiceItem.quantity}
+            onChange={(e) => updateServiceDraft("quantity", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {/* Price */}
+          <input
+            type="number"
+            placeholder="Price per unit"
+            value={draftServiceItem.price}
+            onChange={(e) => updateServiceDraft("price", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {/* Unit */}
+          <select
+            value={draftServiceItem.unit}
+            onChange={(e) => updateServiceDraft("unit", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {unitOptions.map(unit => (
+              <option key={unit} value={unit}>{unit}</option>
+            ))}
+          </select>
+
+          {/* GST */}
+          <input
+            type="number"
+            placeholder="GST Percentage"
+            value={draftServiceItem.gst_percent}
+            onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {/* Mathadi Charges */}
+          <input
+            type="number"
+            placeholder="Mathadi Charges"
+            value={draftServiceItem.mathadi_charges}
+            onChange={(e) => updateServiceDraft("mathadi_charges", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Add Service Button */}
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={addServiceItem}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            + Add Service
+          </button>
+        </div>
+      </div>
+
+      {/* Services Display */}
+      {Object.keys(groupedServices).length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h4 className="text-md font-medium">Installation Work Services</h4>
+          </div>
+
+          <div className="divide-y divide-gray-200">
+            {Object.entries(groupedServices).map(([categoryName, services]) => (
+              <div key={categoryName} className="p-4">
+                <h5 className="font-semibold text-gray-900 mb-3">{categoryName}</h5>
+                <div className="space-y-2">
+                  {services.map((service, index) => (
+                    <div key={service.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">
+                          {index + 1}. {service.material_name}
+                        </span>
+                        <div className="text-xs text-gray-600 mt-1">
+                          Qty: {service.quantity} {service.unit} | Price: ₹{service.price} |
+                          GST: {service.gst_percent}% | Mathadi: ₹{service.mathadi_charges}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-green-600">
+                          ₹{service.total_amount.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeServiceItem(service.id)}
+                          className="text-red-600 hover:text-red-800 p-1"
+                          title="Remove Service"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
   /* ================= UI ================= */
 
   return (
     <div className="space-y-6">
       <style>
         {`
-          /* Hide number input spinners */
           input[type="number"]::-webkit-outer-spin-button,
           input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -312,6 +738,7 @@ export default function ItemSelectionEngine({
           }
         `}
       </style>
+
       {/* ================= HIGH SIDE ================= */}
       <div className="bg-white border border-gray-200 rounded-lg">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
@@ -321,8 +748,8 @@ export default function ItemSelectionEngine({
               type="button"
               onClick={() => setHighSideGstEnabled(!highSideGstEnabled)}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${highSideGstEnabled
-                  ? 'bg-green-100 text-green-700 border border-green-300'
-                  : 'bg-red-100 text-red-700 border border-red-300'
+                ? 'bg-green-100 text-green-700 border border-green-300'
+                : 'bg-red-100 text-red-700 border border-red-300'
                 }`}
             >
               GST {highSideGstEnabled ? 'Enabled' : 'Disabled'}
@@ -337,7 +764,6 @@ export default function ItemSelectionEngine({
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Smart Product Selection - Replaces 5 dropdowns */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Select Product *
@@ -347,7 +773,6 @@ export default function ItemSelectionEngine({
               authToken={authToken}
               placeholder="Search: LG 1.5 ton split, Daikin inverter, Blue Star window..."
               onSelect={(product) => {
-                // Update all fields at once to avoid state race conditions
                 setDraftHighItem(prev => ({
                   ...prev,
                   product_variant: product.id,
@@ -361,7 +786,6 @@ export default function ItemSelectionEngine({
             />
           </div>
 
-          {/* Row 1 - Quantity, Price, GST */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               type="number"
@@ -392,7 +816,6 @@ export default function ItemSelectionEngine({
             </select>
           </div>
 
-          {/* Row 3 - Additional fields for non-invoice mode */}
           {!isInvoice && (
             <div className="grid grid-cols-5 gap-3">
               <input
@@ -411,15 +834,15 @@ export default function ItemSelectionEngine({
                 onChange={e => updateHighDraft("transportation_charges", e.target.value)}
               />
 
-              <input 
+              <input
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 col-span-3"
                 placeholder="HSN"
                 value={draftHighItem.hsn_sac}
-                onChange={e => updateHighDraft("hsn_sac", e.target.value)} 
+                onChange={e => updateHighDraft("hsn_sac", e.target.value)}
               />
             </div>
           )}
-          {/* Row 4 - Invoice specific fields */}
+
           {isInvoice && (
             <div className="grid grid-cols-2 gap-3">
               <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -429,8 +852,6 @@ export default function ItemSelectionEngine({
             </div>
           )}
 
-
-          {/* Row 5 - Description full width */}
           <div className="flex gap-3 items-start">
             <textarea
               className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -441,6 +862,7 @@ export default function ItemSelectionEngine({
             />
           </div>
         </div>
+
         {items.length > 0 && (
           <div className="p-4">
             <div className="overflow-x-auto">
@@ -456,32 +878,23 @@ export default function ItemSelectionEngine({
                     {highSideGstEnabled && (
                       <th className="w-20 px-2 py-2 border-r">GST%</th>
                     )}
-
                     {!isInvoice && (
                       <>
                         <th className="w-28 px-2 py-2 border-r">Mathadi</th>
                         <th className="w-28 px-2 py-2 border-r">Transport</th>
                       </>
                     )}
-
                     <th className="px-2 py-2 border-r">Description</th>
                     <th className="w-16 px-2 py-2">Action</th>
                   </tr>
                 </thead>
-
-                {/* ✅ REQUIRED */}
                 <tbody>
                   {items.map((row, i) => {
                     const variantName = row.variant_sku || row.product_variant;
-
                     return (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-
-                        <td className="w-40 px-2 py-2 border-r truncate">
-                          {variantName}
-                        </td>
-
+                        <td className="w-40 px-2 py-2 border-r truncate">{variantName}</td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input className="w-full border rounded px-1 py-1"
                             value={row.hsn_sac || ""}
@@ -492,7 +905,6 @@ export default function ItemSelectionEngine({
                             }}
                           />
                         </td>
-
                         <td className="w-20 px-2 py-2 border-r">
                           <select className="w-full border rounded px-1 py-1"
                             value={row.unit || "Nos"}
@@ -506,7 +918,6 @@ export default function ItemSelectionEngine({
                             ))}
                           </select>
                         </td>
-
                         <td className="w-20 px-2 py-2 border-r">
                           <input type="number"
                             className="w-full border rounded px-1 py-1"
@@ -518,7 +929,6 @@ export default function ItemSelectionEngine({
                             }}
                           />
                         </td>
-
                         <td className="w-28 px-2 py-2 border-r">
                           <input type="number"
                             className="w-full border rounded px-1 py-1"
@@ -530,7 +940,6 @@ export default function ItemSelectionEngine({
                             }}
                           />
                         </td>
-
                         {highSideGstEnabled && (
                           <td className="w-20 px-2 py-2 border-r">
                             <input type="number"
@@ -544,7 +953,6 @@ export default function ItemSelectionEngine({
                             />
                           </td>
                         )}
-
                         {!isInvoice && (
                           <>
                             <td className="w-28 px-2 py-2 border-r">
@@ -558,7 +966,6 @@ export default function ItemSelectionEngine({
                                 }}
                               />
                             </td>
-
                             <td className="w-28 px-2 py-2 border-r">
                               <input type="number"
                                 className="w-full border rounded px-1 py-1"
@@ -572,7 +979,6 @@ export default function ItemSelectionEngine({
                             </td>
                           </>
                         )}
-
                         <td className="px-2 py-2 border-r">
                           <textarea
                             className="w-full border rounded px-1 py-1 text-xs"
@@ -584,7 +990,6 @@ export default function ItemSelectionEngine({
                             }}
                           />
                         </td>
-
                         <td className="w-16 px-2 py-2 text-center">
                           <button onClick={() =>
                             setItems(prev => prev.filter((_, idx) => idx !== i))
@@ -601,7 +1006,7 @@ export default function ItemSelectionEngine({
           </div>
         )}
       </div>
-      {/* ================= LOW SIDE ================= */}
+      {/* ================= LOW SIDE WITH TABS ================= */}
       <div className="bg-white border border-gray-200 rounded-lg">
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-4">
@@ -610,8 +1015,8 @@ export default function ItemSelectionEngine({
               type="button"
               onClick={() => setLowSideGstEnabled(!lowSideGstEnabled)}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${lowSideGstEnabled
-                  ? 'bg-green-100 text-green-700 border border-green-300'
-                  : 'bg-red-100 text-red-700 border border-red-300'
+                ? 'bg-green-100 text-green-700 border border-green-300'
+                : 'bg-red-100 text-red-700 border border-red-300'
                 }`}
             >
               GST {lowSideGstEnabled ? 'Enabled' : 'Disabled'}
@@ -619,332 +1024,354 @@ export default function ItemSelectionEngine({
           </div>
           <button
             type="button"
-            onClick={addLowItem}
+            onClick={lowSideActiveTab === "materials" ? addLowItem : addServiceItem}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-            + Add Product
+            + Add {lowSideActiveTab === "materials" ? "Product" : "Service"}
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          {/* Row 1 - 4 dropdowns */}
-          <div className="gap-3">
-
-            <AcMaterialList
-              base_api={baseApi}
-              resetTrigger={resetMaterials}
-              onSelectionChange={(data) => {
-                setSelectedMaterials(data.materials);
-              }}
-            />
+        {/* Tabs */}
+        <div className="px-4 pt-3">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                type="button"
+                onClick={() => setLowSideActiveTab("materials")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${lowSideActiveTab === "materials"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Materials
+              </button>
+              <button
+                type="button"
+                onClick={() => setLowSideActiveTab("services")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${lowSideActiveTab === "services"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+              >
+                Services
+              </button>
+            </nav>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Tab Content */}
+        <div className="p-4">
+          {lowSideActiveTab === "materials" ? renderMaterialsTab() : renderServicesTab()}
+        </div>
 
-            {/* ✅ QTY FIELD */}
-            <input
-              type="number"
-              placeholder="Qty"
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={draftLowItem.quantity}
-              onChange={e => updateLowDraft("quantity", e.target.value)}
-            />
+        {/* Services Table */}
+        {lowSideActiveTab === "services" && serviceItems.length > 0 && (
+          <div className="p-4">
+            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
+              <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
+                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="w-12 px-2 py-2 border-r">#</th>
+                    <th className="w-32 px-2 py-2 border-r">Category</th>
+                    <th className="w-32 px-2 py-2 border-r">Subcategory</th>
+                    <th className="w-40 px-2 py-2 border-r">Material</th>
+                    <th className="w-20 px-2 py-2 border-r">Unit</th>
+                    <th className="w-20 px-2 py-2 border-r">Qty</th>
+                    <th className="w-28 px-2 py-2 border-r">Price</th>
+                    <th className="w-20 px-2 py-2 border-r">GST%</th>
+                    <th className="w-28 px-2 py-2 border-r">Mathadi</th>
+                    <th className="w-28 px-2 py-2 border-r">Total</th>
+                    <th className="w-16 px-2 py-2">Action</th>
+                  </tr>
+                </thead>
 
-            {/* ✅ PRICE FIELD (IMPORTANT) */}
-            <input
-              type="number"
-              placeholder={isInvoice ? "Rate" : "Price"}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
-              onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
-            />
+                <tbody className="bg-white">
+                  {serviceItems.map((service, i) => (
+                    <tr key={service.id} className="border-b hover:bg-gray-50">
+                      <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
+                      <td className="w-32 px-2 py-2 border-r truncate">{service.category_name}</td>
+                      <td className="w-32 px-2 py-2 border-r truncate">{service.subcategory_name}</td>
+                      <td className="w-40 px-2 py-2 border-r truncate">{service.material_name}</td>
+                      
+                      <td className="w-20 px-2 py-2 border-r">
+                        <select
+                          className="w-full border rounded px-1 py-1"
+                          value={service.unit || "NOS"}
+                          onChange={e => {
+                            const copy = [...serviceItems];
+                            copy[i].unit = e.target.value;
+                            setServiceItems(copy);
+                          }}>
+                          {unitOptions.map(unit => (
+                            <option key={unit} value={unit}>{unit}</option>
+                          ))}
+                        </select>
+                      </td>
 
-            {/* ✅ BRAND DROPDOWN */}
-            <select
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={draftLowItem.brand}
-              onChange={e => updateLowDraft("brand", e.target.value)}
-              disabled={selectedMaterials.length > 0 && 
-                       [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
-              title={
-                selectedMaterials.length > 0 && 
-                [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1 
-                  ? "Brand auto-populated from item" 
-                  : selectedMaterials.length > 0 && 
-                    [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length > 1
-                    ? "Multiple brands detected - please select one"
-                    : ""
-              }
-            >
-              <option value="">Select Brand</option>
-              {(() => {
-                // If materials are selected, only show brands from those materials
-                if (selectedMaterials.length > 0) {
-                  const materialBrands = selectedMaterials
-                    .filter(mat => mat.brand_id && mat.brand_name)
-                    .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
-                  
-                  // Remove duplicates based on brand_id
-                  const uniqueBrands = materialBrands.filter((brand, index, self) => 
-                    index === self.findIndex(b => b.id === brand.id)
-                  );
-                  
-                  return uniqueBrands.map(brand => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ));
-                } else {
-                  // If no materials selected, show all brands
-                  return brands.map(brand => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ));
-                }
-              })()}
-            </select>
+                      <td className="w-20 px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          className="w-full border rounded px-1 py-1"
+                          value={service.quantity}
+                          onChange={e => {
+                            const copy = [...serviceItems];
+                            copy[i].quantity = e.target.value;
+                            // Recalculate amounts
+                            const baseAmount = copy[i].quantity * copy[i].price;
+                            copy[i].base_amount = baseAmount;
+                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
+                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
+                            setServiceItems(copy);
+                          }}
+                        />
+                      </td>
 
-            {/* ✅ GST */}
-            {lowSideGstEnabled && (
-              <input
-                type="number"
-                placeholder="GST%"
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-                value={draftLowItem.gst_percent}
-                onChange={e => updateLowDraft("gst_percent", e.target.value)}
-              />
-            )}
+                      <td className="w-28 px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          className="w-full border rounded px-1 py-1"
+                          value={service.price}
+                          onChange={e => {
+                            const copy = [...serviceItems];
+                            copy[i].price = e.target.value;
+                            // Recalculate amounts
+                            const baseAmount = copy[i].quantity * copy[i].price;
+                            copy[i].base_amount = baseAmount;
+                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
+                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
+                            setServiceItems(copy);
+                          }}
+                        />
+                      </td>
 
+                      <td className="w-20 px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          className="w-full border rounded px-1 py-1"
+                          value={service.gst_percent || ""}
+                          onChange={e => {
+                            const copy = [...serviceItems];
+                            copy[i].gst_percent = e.target.value;
+                            // Recalculate amounts
+                            const baseAmount = copy[i].quantity * copy[i].price;
+                            copy[i].base_amount = baseAmount;
+                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
+                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
+                            setServiceItems(copy);
+                          }}
+                        />
+                      </td>
 
-            {/* Row 3 - Additional fields for non-invoice mode */}
-            {!isInvoice && (
-              <div className="grid grid-cols-1 gap-3">
-                <input
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  type="number"
-                  placeholder="Mathadi Charges"
-                  value={draftLowItem.mathadi_charges}
-                  onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-          {/* {gstType !== "NO_GST" && (
-            <input className="border rounded-lg px-3 py-2"
-              type="number"
-              placeholder="GST%"
-              value={draftLowItem.gst_percent}
-              onChange={e => updateLowDraft("gst_percent", e.target.value)} />
-          )} */}
-          {/* Row 4 - Invoice specific fields */}
+                      <td className="w-28 px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          className="w-full border rounded px-1 py-1"
+                          value={service.mathadi_charges || 0}
+                          onChange={e => {
+                            const copy = [...serviceItems];
+                            copy[i].mathadi_charges = e.target.value;
+                            // Recalculate amounts
+                            const baseAmount = copy[i].quantity * copy[i].price;
+                            copy[i].base_amount = baseAmount;
+                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
+                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
+                            setServiceItems(copy);
+                          }}
+                        />
+                      </td>
 
-          <div className="grid grid-cols-2 gap-3">
-            <input className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="HSN"
-              value={draftLowItem.hsn_sac}
-              onChange={e => updateLowDraft("hsn_sac", e.target.value)} />
+                      <td className="w-28 px-2 py-2 border-r font-semibold text-green-600">
+                        ₹{service.total_amount?.toFixed(2) || '0.00'}
+                      </td>
 
-            <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={draftLowItem.unit}
-              onChange={e => updateLowDraft("unit", e.target.value)}>
-              {unitOptions.map(unit => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </div >
-
-          {/* Row 5 - Description full width */}
-          <div className="flex gap-3 items-start">
-            <textarea
-              className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter item description..."
-              value={draftLowItem.description}
-              onChange={e => updateLowDraft("description", e.target.value)}
-              rows={2}
-            />
-          </div>
-        </div >
-        {
-          lowItems.length > 0 && (
-            <div className="p-4">
-              <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
-
-                <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
-
-                  <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="w-12 px-2 py-2 border-r">#</th>
-                      <th className="w-40 px-2 py-2 border-r">Item</th>
-                      <th className="w-32 px-2 py-2 border-r">Brand</th>
-
-                      <th className="w-24 px-2 py-2 border-r">HSN</th>
-                      <th className="w-20 px-2 py-2 border-r">Unit</th>
-
-                      <th className="w-20 px-2 py-2 border-r">Qty</th>
-                      <th className="w-28 px-2 py-2 border-r">
-                        {isInvoice ? "Rate" : "Price"}
-                      </th>
-                      {lowSideGstEnabled && (
-                        <th className="w-20 px-2 py-2 border-r">GST%</th>
-                      )}
-
-                      {!isInvoice && (
-                        <th className="w-28 px-2 py-2 border-r">Mathadi</th>
-                      )}
-
-                      <th className="px-2 py-2 border-r">Description</th>
-                      <th className="w-16 px-2 py-2">Action</th>
+                      <td className="w-16 px-2 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeServiceItem(service.id)}
+                        >
+                          <MdDelete />
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-                  <tbody className="bg-white">
-                    {lowItems.map((row, i) => {
-                      const itemName = row.item_code || row.item;
-                      const brandName = brands.find(b => b.id == row.brand)?.name || "";
+        {/* Materials Table */}
+        {lowSideActiveTab === "materials" && lowItems.length > 0 && (
+          <div className="p-4">
+            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
+              <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
+                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="w-12 px-2 py-2 border-r">#</th>
+                    <th className="w-40 px-2 py-2 border-r">Item</th>
+                    <th className="w-32 px-2 py-2 border-r">Brand</th>
+                    <th className="w-24 px-2 py-2 border-r">HSN</th>
+                    <th className="w-20 px-2 py-2 border-r">Unit</th>
+                    <th className="w-20 px-2 py-2 border-r">Qty</th>
+                    <th className="w-28 px-2 py-2 border-r">
+                      {isInvoice ? "Rate" : "Price"}
+                    </th>
+                    {lowSideGstEnabled && (
+                      <th className="w-20 px-2 py-2 border-r">GST%</th>
+                    )}
+                    {!isInvoice && (
+                      <th className="w-28 px-2 py-2 border-r">Mathadi</th>
+                    )}
+                    <th className="px-2 py-2 border-r">Description</th>
+                    <th className="w-16 px-2 py-2">Action</th>
+                  </tr>
+                </thead>
 
-                      return (
-                        <tr key={i} className="border-b hover:bg-gray-50">
-                          <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
+                <tbody className="bg-white">
+                  {lowItems.map((row, i) => {
+                    const itemName = row.item_code || row.item;
+                    const brandName = brands.find(b => b.id == row.brand)?.name || "";
 
-                          <td className="w-40 px-2 py-2 border-r truncate">
-                            {itemName}
-                          </td>
+                    return (
+                      <tr key={i} className="border-b hover:bg-gray-50">
+                        <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
 
-                          <td className="w-32 px-2 py-2 border-r">
-                            <select
-                              className="w-full border rounded px-1 py-1"
-                              value={row.brand || ""}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].brand = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            >
-                              <option value="">Select Brand</option>
-                              {brands.map(brand => (
-                                <option key={brand.id} value={brand.id}>
-                                  {brand.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
+                        <td className="w-40 px-2 py-2 border-r truncate">
+                          {itemName}
+                        </td>
 
-                          <td className="w-24 px-2 py-2 border-r">
-                            <input
-                              className="w-full border rounded px-1 py-1"
-                              value={row.hsn_sac || ""}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].hsn_sac = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
+                        <td className="w-32 px-2 py-2 border-r">
+                          <select
+                            className="w-full border rounded px-1 py-1"
+                            value={row.brand || ""}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].brand = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          >
+                            <option value="">Select Brand</option>
+                            {brands.map(brand => (
+                              <option key={brand.id} value={brand.id}>
+                                {brand.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
 
-                          <td className="w-20 px-2 py-2 border-r">
-                            <select
-                              className="w-full border rounded px-1 py-1"
-                              value={row.unit || "Nos"}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].unit = e.target.value;
-                                setLowItems(copy);
-                              }}>
-                              {unitOptions.map(unit => (
-                                <option key={unit} value={unit}>{unit}</option>
-                              ))}
-                            </select>
-                          </td>
+                        <td className="w-24 px-2 py-2 border-r">
+                          <input
+                            className="w-full border rounded px-1 py-1"
+                            value={row.hsn_sac || ""}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].hsn_sac = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          />
+                        </td>
 
+                        <td className="w-20 px-2 py-2 border-r">
+                          <select
+                            className="w-full border rounded px-1 py-1"
+                            value={row.unit || "Nos"}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].unit = e.target.value;
+                              setLowItems(copy);
+                            }}>
+                            {unitOptions.map(unit => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
+                        </td>
+
+                        <td className="w-20 px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            className="w-full border rounded px-1 py-1"
+                            value={row.quantity}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].quantity = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          />
+                        </td>
+
+                        <td className="w-28 px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            className="w-full border rounded px-1 py-1"
+                            value={isInvoice ? row.rate : row.unit_price}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          />
+                        </td>
+
+                        {lowSideGstEnabled && (
                           <td className="w-20 px-2 py-2 border-r">
                             <input
                               type="number"
                               className="w-full border rounded px-1 py-1"
-                              value={row.quantity}
+                              placeholder="GST%"
+                              value={row.gst_percent || ""}
                               onChange={e => {
                                 const copy = [...lowItems];
-                                copy[i].quantity = e.target.value;
+                                copy[i].gst_percent = e.target.value;
                                 setLowItems(copy);
                               }}
                             />
                           </td>
+                        )}
 
+                        {!isInvoice && (
                           <td className="w-28 px-2 py-2 border-r">
                             <input
                               type="number"
                               className="w-full border rounded px-1 py-1"
-                              value={isInvoice ? row.rate : row.unit_price}
+                              value={row.mathadi_charges || 0}
                               onChange={e => {
                                 const copy = [...lowItems];
-                                copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
+                                copy[i].mathadi_charges = e.target.value;
                                 setLowItems(copy);
                               }}
                             />
                           </td>
+                        )}
 
-                          {lowSideGstEnabled && (
-                            <td className="w-20 px-2 py-2 border-r">
-                              <input
-                                type="number"
-                                className="w-full border rounded px-1 py-1"
-                                placeholder="GST%"
-                                value={row.gst_percent || ""}
-                                onChange={e => {
-                                  const copy = [...lowItems];
-                                  copy[i].gst_percent = e.target.value;
-                                  setLowItems(copy);
-                                }}
-                              />
-                            </td>
-                          )}
+                        <td className="px-2 py-2 border-r">
+                          <textarea
+                            className="w-full border rounded px-1 py-1 text-xs"
+                            value={row.description || ""}
+                            onChange={e => {
+                              const copy = [...lowItems];
+                              copy[i].description = e.target.value;
+                              setLowItems(copy);
+                            }}
+                          />
+                        </td>
 
-                          {!isInvoice && (
-                            <td className="w-28 px-2 py-2 border-r">
-                              <input
-                                type="number"
-                                className="w-full border rounded px-1 py-1"
-                                value={row.mathadi_charges || 0}
-                                onChange={e => {
-                                  const copy = [...lowItems];
-                                  copy[i].mathadi_charges = e.target.value;
-                                  setLowItems(copy);
-                                }}
-                              />
-                            </td>
-                          )}
-
-                          <td className="px-2 py-2 border-r">
-                            <textarea
-                              className="w-full border rounded px-1 py-1 text-xs"
-                              value={row.description || ""}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].description = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
-
-                          <td className="w-16 px-2 py-2 text-center">
-                            <button
-                              onClick={() =>
-                                setLowItems(prev => prev.filter((_, idx) => idx !== i))
-                              }
-                            >
-                              <MdDelete />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-
-                </table>
-              </div>
+                        <td className="w-16 px-2 py-2 text-center">
+                          <button
+                            onClick={() =>
+                              setLowItems(prev => prev.filter((_, idx) => idx !== i))
+                            }
+                          >
+                            <MdDelete />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-      </div >
-
-    </div >
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

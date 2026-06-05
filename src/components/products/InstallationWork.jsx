@@ -26,33 +26,40 @@ const InstallationWork = ({ base_api, filters }) => {
   const fetchServices = async (page = 1) => {
     setLoading(true);
     try {
+      console.log("Fetching services from:", `${base_api}/quotation/service-masters/`);
+
       const response = await axios.get(
-        `${base_api}/quotation/service-masters/?page=${page}`,
+        `${base_api}/quotation/service-masters/`,  // Remove ?page=${page}
         authHeaders()
       );
 
-      // Handle paginated response
-      const data = response.data;
-      const rows = data?.results ?? [];
+      console.log("Services API response:", response.data);
 
+      // Handle non-paginated response (since pagination_class = None in backend)
+      const data = response.data;
+      const rows = Array.isArray(data) ? data : (data?.results ?? []);
+
+      console.log("Services rows:", rows);
       setServices(rows);
 
-      // Calculate pagination
-      const count = data?.count ?? rows.length;
+      // Calculate pagination for frontend display
+      const count = rows.length;
       const calculatedPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
       setTotalCount(count);
       setTotalPages(calculatedPages);
 
-      // Ensure current page doesn't exceed total pages
-      if (page > calculatedPages && calculatedPages > 0) {
-        setCurrentPage(calculatedPages);
-      } else {
-        setCurrentPage(page);
-      }
+      // Get items for current page
+      const startIndex = (page - 1) * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const paginatedRows = rows.slice(startIndex, endIndex);
+
+      setServices(paginatedRows);
+      setCurrentPage(page);
 
     } catch (err) {
       console.error("Error fetching services:", err);
+      console.error("Error details:", err.response?.data);
       alert("Failed to fetch services");
     } finally {
       setLoading(false);
@@ -64,9 +71,8 @@ const InstallationWork = ({ base_api, filters }) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("page", page);
 
-      // Add filter parameters
+      // Add filter parameters (no page parameter since backend doesn't use pagination)
       if (filters.category) params.set("category", filters.category);
       if (filters.subcategory) params.set("subcategory", filters.subcategory);
       if (filters.service_type) params.set("service_type", filters.service_type);
@@ -77,23 +83,24 @@ const InstallationWork = ({ base_api, filters }) => {
 
       const response = await axios.get(url, authHeaders());
 
+      // Handle non-paginated response
       const data = response.data;
-      const rows = data?.results ?? [];
+      const rows = Array.isArray(data) ? data : (data?.results ?? []);
 
-      setServices(rows);
-
-      const count = data?.count ?? rows.length;
+      // Calculate pagination for frontend display
+      const count = rows.length;
       const calculatedPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
       setTotalCount(count);
       setTotalPages(calculatedPages);
 
-      // Ensure current page doesn't exceed total pages
-      if (page > calculatedPages && calculatedPages > 0) {
-        setCurrentPage(calculatedPages);
-      } else {
-        setCurrentPage(page);
-      }
+      // Get items for current page
+      const startIndex = (page - 1) * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const paginatedRows = rows.slice(startIndex, endIndex);
+
+      setServices(paginatedRows);
+      setCurrentPage(page);
 
     } catch (err) {
       console.error("Error filtering services:", err);
@@ -172,30 +179,30 @@ const InstallationWork = ({ base_api, filters }) => {
       </div>
 
       {/* Table */}
+      {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full text-md text-left">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-sm">SR.NO</th>
+              <th className="px-6 py-3 text-sm">SERVICE TYPE</th>
               <th className="px-6 py-3 text-sm">SERVICE NAME</th>
               <th className="px-6 py-3 text-sm">CATEGORY</th>
-              <th className="px-6 py-3 text-sm">SUBCATEGORY</th>
-              <th className="px-6 py-3 text-sm">TYPE</th>
               <th className="px-6 py-3 text-sm">UNIT</th>
               <th className="px-6 py-3 text-sm">RATE</th>
-              <th className="px-6 py-3 text-sm">ACTIONS</th>
+              <th className="px-6 py-3 text-sm text-center">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="text-center py-8 text-gray-500">
+                <td colSpan="7" className="text-center py-8 text-gray-500">
                   Loading services...
                 </td>
               </tr>
             ) : services.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-8 text-gray-500">
+                <td colSpan="7" className="text-center py-8 text-gray-500">
                   No services found. Click "+ Add Service" to create one.
                 </td>
               </tr>
@@ -203,32 +210,29 @@ const InstallationWork = ({ base_api, filters }) => {
               services.map((service, index) => (
                 <tr key={service.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
-                  <td className="px-4 py-3 text-sm">{service.name || "—"}</td>
-                  <td className="px-4 py-3 text-sm">{service.category_name || "—"}</td>
-                  <td className="px-4 py-3 text-sm">{service.subcategory_name || "—"}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      service.service_type === 'MATERIAL' 
-                        ? 'bg-blue-100 text-blue-800' 
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${service.service_type === 'MATERIAL'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
-                    }`}>
-                      {service.service_type}
+                      }`}>
+                      {service.service_type === 'MATERIAL' ? 'Material' : 'Labor'}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-sm font-medium">{service.name || "—"}</td>
+                  <td className="px-4 py-3 text-sm">{service.category_name || "—"}</td>
                   <td className="px-4 py-3 text-sm">{service.unit || "—"}</td>
-                  <td className="px-4 py-3 text-sm">₹{service.total_rate || "0"}</td>
+                  <td className="px-4 py-3 text-sm font-semibold">₹{service.total_rate || "0"}</td>
                   <td className="px-4 py-3 text-sm">
-                    <div className="flex gap-2 justify-center">
+                    <div className="flex gap-2 justify-center items-center">
                       {/* Edit Icon */}
                       <button
                         onClick={() => {
-                          // Handle edit - you can implement this later
                           console.log("Edit service:", service.id);
                         }}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
                         title="Edit Service"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
@@ -236,10 +240,10 @@ const InstallationWork = ({ base_api, filters }) => {
                       {/* Delete Icon */}
                       <button
                         onClick={() => handleDelete(service.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
                         title="Delete Service"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
@@ -280,7 +284,9 @@ const InstallationWork = ({ base_api, filters }) => {
         onClose={() => setShowAddServiceModal(false)}
         baseApi={base_api}
         onServiceAdd={() => {
-          fetchServices(); // Refresh list after adding
+          console.log("Service added - refreshing list...");
+          fetchServices(1); // Refresh from page 1
+          setCurrentPage(1); // Reset to first page
         }}
       />
 
