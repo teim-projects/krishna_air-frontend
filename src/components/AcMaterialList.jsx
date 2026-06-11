@@ -190,11 +190,18 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                         className="border rounded-md px-3 py-2 w-full"
                     >
                         <option value="">Select Material</option>
-                        {mappedMaterials.map((mat) => (
-                            <option key={mat.id} value={mat.material_id}>
-                                {mat.material_name}
-                            </option>
-                        ))}
+                        {mappedMaterials.map((mat) => {
+                            let displayText = mat.material_name || '';
+                            //if (mat.item_type_name) displayText += ` (${mat.item_type_name})`;
+                            if (mat.size) displayText += ` - ${mat.size}${mat.size_unit || ''}`;
+                            if (mat.thickness) displayText += ` x ${mat.thickness}${mat.thickness_unit || ''}`;
+
+                            return (
+                                <option key={mat.id} value={mat.material_id}>
+                                    {displayText}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
             </div>
@@ -204,12 +211,18 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                 {selectedItems.map((id) => {
                     const mat = mappedMaterials.find(m => m.material_id === id);
 
+                    if (!mat) return null;
+
+                    let chipText = mat.material_name || '';
+                    if (mat.size) chipText += ` ${mat.size}${mat.size_unit || ''}`;
+                    if (mat.thickness) chipText += `x${mat.thickness}${mat.thickness_unit || ''}`;
+
                     return (
                         <div
                             key={id}
                             className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
                         >
-                            {mat?.material_name}
+                            {chipText}
 
                             <button
                                 onClick={() =>

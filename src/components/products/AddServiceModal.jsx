@@ -1,17 +1,17 @@
-// AddServiceModal.jsx - Replace the entire content
 import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
 import axios from "axios";
+import Select from "react-select";
 
-const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
+const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd }) => {
   const [items, setItems] = useState([]);
 
   const [formData, setFormData] = useState({
     service_name: "",
-    service_subcategory: "",
+    service_category: "",
     description: "",
     service_type: "",
-    item: "",
+    items: [],
     unit: "Nos",
     labor_rate: 0,
     sequence: 0
@@ -44,8 +44,25 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
   useEffect(() => {
     if (isOpen) {
       fetchItems();
+
+      if (serviceToEdit) {
+        console.log("Editing service:", serviceToEdit);
+        setFormData({
+          service_name: serviceToEdit.name || "",
+          service_category: serviceToEdit.category || serviceToEdit.service_category || "",  // ✅ Check both names
+          description: serviceToEdit.description || "",
+          service_type: serviceToEdit.service_type || "",
+          items: serviceToEdit.items || [],
+          unit: serviceToEdit.unit || "",
+          labor_rate: serviceToEdit.labor_rate || 0,
+          sequence: serviceToEdit.sequence || 0
+        });
+        console.log("Form populated with:", serviceToEdit);  // ✅ Debug log
+      } else {
+        handleReset();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, serviceToEdit]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -53,110 +70,73 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Reset form
   const handleReset = () => {
     setFormData({
       service_name: "",
-      service_subcategory: "",
+      service_category: "",
       description: "",
       service_type: "",
-      item: "",
-      unit: "Nos",
+      items: [],
+      unit: "",
       labor_rate: 0,
       sequence: 0
     });
   };
 
-  // Save service
   const handleSave = async () => {
     try {
-      if (!formData.service_name.trim() || !formData.service_type) {
+      if (!formData.service_name || !formData.service_name.trim() || !formData.service_type) {
         alert("Service Name and Service Type are required");
         return;
       }
 
       setLoading(true);
 
-      // First create category if it doesn't exist
-      let categoryId = null;
-      try {
-        const categoryPayload = {
-          name: formData.service_name.trim(),
-          description: formData.description.trim(),
-          sequence: parseInt(formData.sequence) || 0,
-          is_active: true
-        };
-
-        const categoryResponse = await axios.post(
-          `${baseApi}/quotation/service-categories-create/`,
-          categoryPayload,
-          authHeaders()
-        );
-        categoryId = categoryResponse.data.id;
-      } catch (err) {
-        console.error("Error creating category:", err);
-      }
-
-      // Create subcategory if provided
-      let subcategoryId = null;
-      if (formData.service_subcategory.trim() && categoryId) {
-        try {
-          const subcategoryPayload = {
-            category: categoryId,
-            name: formData.service_subcategory.trim(),
-            description: formData.description.trim(),
-            sequence: parseInt(formData.sequence) || 0,
-            is_active: true
-          };
-
-          const subcategoryResponse = await axios.post(
-            `${baseApi}/quotation/service-subcategories/`,
-            subcategoryPayload,
-            authHeaders()
-          );
-          subcategoryId = subcategoryResponse.data.id;
-        } catch (err) {
-          console.error("Error creating subcategory:", err);
-        }
-      }
-
-      // Create service master
       const servicePayload = {
-        category: categoryId,
-        subcategory: subcategoryId,
-        name: formData.service_subcategory.trim() || formData.service_name.trim(),
-        description: formData.description.trim(),
-        service_type: formData.service_type,
-        item: formData.service_type === 'MATERIAL' && formData.item ? parseInt(formData.item) : null,
-        unit: formData.unit,
+        category: (formData.service_category || "").trim(),  // ✅ FIXED: was service_name
+        subcategory: "",  // Optional, can be added later if needed
+        name: (formData.service_name || "").trim(),
+        description: (formData.description || "").trim(),
+        service_type: formData.service_type || "",
+        items: formData.service_type === 'MATERIAL' ? (formData.items || []) : [],
+        unit: formData.unit || "",
         labor_rate: parseFloat(formData.labor_rate) || 0,
-        sequence: parseInt(formData.sequence) || 0,
+        sequence: 0,
         is_active: true
       };
 
-      const response = await axios.post(
-        `${baseApi}/quotation/service-masters-create/`,
-        servicePayload,
-        authHeaders()
-      );
+      console.log("Sending payload:", servicePayload);
 
-      console.log("Service created successfully:", response.data);
-      console.log("Calling onServiceAdd callback...");
-      alert("Service created successfully!");
+      let response;
+      if (serviceToEdit) {
+        response = await axios.put(
+          `${baseApi}/quotation/service-masters-create/${serviceToEdit.id}/`,
+          servicePayload,
+          authHeaders()
+        );
+        console.log("Service updated successfully:", response.data);
+        alert("Service updated successfully!");
+      } else {
+        response = await axios.post(
+          `${baseApi}/quotation/service-masters-create/`,
+          servicePayload,
+          authHeaders()
+        );
+        console.log("Service created successfully:", response.data);
+        alert("Service created successfully!");
+      }
+
       handleReset();
       onClose();
-
-      // Notify parent component to refresh the list
+      3
       if (onServiceAdd) {
-        console.log("Executing onServiceAdd callback");
         onServiceAdd();
-      } else {
-        console.log("WARNING: onServiceAdd callback not provided");
       }
 
     } catch (err) {
       console.error("Error saving service:", err);
-      alert(`Error: ${err.response?.data?.detail || err.message}`);
+      console.error("Error response:", err.response?.data);
+      alert(`Error: ${err.response?.data?.detail || err.response?.data || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -180,7 +160,7 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
           <RxCross2 />
         </button>
 
-        <h1 className="text-2xl font-bold mb-1">Add Service</h1>
+        <h1 className="text-2xl font-bold mb-1">{serviceToEdit ? "Edit Service" : "Add Service"}</h1>
         <p className="text-sm text-gray-500 mb-6">Service Management System</p>
 
         <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
@@ -202,11 +182,11 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
               </div>
 
               <div>
-                <label className="text-sm font-normal text-gray-600">Service Subcategory</label>
+                <label className="text-sm font-normal text-gray-600">Service Category</label>
                 <input
                   type="text"
-                  name="service_subcategory"
-                  value={formData.service_subcategory}
+                  name="service_category"
+                  value={formData.service_category}
                   onChange={handleChange}
                   placeholder="e.g., between IDU to ODU"
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
@@ -232,20 +212,28 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
             {/* Item Selection (only for MATERIAL type) */}
             {formData.service_type === 'MATERIAL' && (
               <div>
-                <label className="text-sm font-normal text-gray-600">Linked Item</label>
-                <select
-                  name="item"
-                  value={formData.item}
-                  onChange={handleChange}
-                  className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Select Item</option>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.item_code} - {item.material_type_name}
-                    </option>
-                  ))}
-                </select>
+                <label className="text-sm font-normal text-gray-600 mb-1 block">Linked Items</label>
+                <Select
+                  isMulti
+                  options={items.map((item) => ({
+                    value: item.id,
+                    label: `${item.item_code} - ${item.material_type_name || ""}`,
+                  }))}
+                  value={items
+                    .map((item) => ({
+                      value: item.id,
+                      label: `${item.item_code} - ${item.material_type_name || ""}`,
+                    }))
+                    .filter((opt) => formData.items.includes(opt.value))}
+                  onChange={(selected) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      items: selected ? selected.map((s) => s.value) : [],
+                    }))
+                  }
+                  placeholder="Search and select items..."
+                  className="mt-1"
+                />
               </div>
             )}
 
@@ -259,6 +247,7 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
                   onChange={handleChange}
                   className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-blue-500"
                 >
+                  <option value="">Select Unit</option>
                   {UNIT_OPTIONS.map((unit) => (
                     <option key={unit} value={unit}>{unit}</option>
                   ))}
@@ -318,7 +307,7 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, onServiceAdd }) => {
               className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               disabled={loading}
             >
-              {loading ? "Saving..." : "Save Service"}
+              {loading ? "Saving..." : (serviceToEdit ? "Update Service" : "Save Service")}
             </button>
           </div>
         </form>

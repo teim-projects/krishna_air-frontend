@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import AddServiceModal from "./AddServiceModal";
-import ServiceSelectionEngine from "./ServiceSelectionEngine";
 import axios from "axios";
 import Pagination from "../Pagination";
 
 const InstallationWork = ({ base_api, filters }) => {
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
-  const [showSetServiceModal, setShowSetServiceModal] = useState(false);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedServices, setSelectedServices] = useState([]);
+  const [serviceToEdit, setServiceToEdit] = useState(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -120,21 +118,17 @@ const InstallationWork = ({ base_api, filters }) => {
 
     try {
       await axios.delete(
-        `${base_api}/quotation/service-masters/${serviceId}/`,
+        `${base_api}/quotation/service-masters-create/${serviceId}/`,
         authHeaders()
       );
       alert("Service deleted successfully!");
-      fetchServices(); // Refresh the list
+      fetchServices(currentPage); // Refresh current page
     } catch (err) {
       console.error("Error deleting service:", err);
       alert(`Failed to delete service: ${err.response?.data?.detail || err.message}`);
     }
   };
 
-  // Handle service selection
-  const handleServiceSelection = (data) => {
-    setSelectedServices(data.services || []);
-  };
 
   // Fetch services on mount and when filters change
   useEffect(() => {
@@ -166,14 +160,6 @@ const InstallationWork = ({ base_api, filters }) => {
           >
             <span className="text-xl">+</span>
             Add Service
-          </button>
-
-          {/* Set Service Materials Button */}
-          <button
-            onClick={() => setShowSetServiceModal(true)}
-            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center gap-2"
-          >
-            🔧 Set Service Materials
           </button>
         </div>
       </div>
@@ -219,7 +205,7 @@ const InstallationWork = ({ base_api, filters }) => {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm font-medium">{service.name || "—"}</td>
-                  <td className="px-4 py-3 text-sm">{service.category_name || "—"}</td>
+                  <td className="px-4 py-3 text-sm">{service.category || "—"}</td>
                   <td className="px-4 py-3 text-sm">{service.unit || "—"}</td>
                   <td className="px-4 py-3 text-sm font-semibold">₹{service.total_rate || "0"}</td>
                   <td className="px-4 py-3 text-sm">
@@ -227,7 +213,8 @@ const InstallationWork = ({ base_api, filters }) => {
                       {/* Edit Icon */}
                       <button
                         onClick={() => {
-                          console.log("Edit service:", service.id);
+                          setServiceToEdit(service);
+                          setShowAddServiceModal(true);
                         }}
                         className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
                         title="Edit Service"
@@ -281,56 +268,22 @@ const InstallationWork = ({ base_api, filters }) => {
       {/* Add Service Modal */}
       <AddServiceModal
         isOpen={showAddServiceModal}
-        onClose={() => setShowAddServiceModal(false)}
+        onClose={() => {
+          setShowAddServiceModal(false);
+          setServiceToEdit(null);
+        }}
         baseApi={base_api}
+        serviceToEdit={serviceToEdit}
         onServiceAdd={() => {
-          console.log("Service added - refreshing list...");
-          fetchServices(1); // Refresh from page 1
-          setCurrentPage(1); // Reset to first page
+          console.log("Service saved - refreshing list...");
+          if (serviceToEdit) {
+            fetchServices(currentPage);
+          } else {
+            fetchServices(1);
+            setCurrentPage(1);
+          }
         }}
       />
-
-      {/* Set Service Materials Modal */}
-      {showSetServiceModal && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-start sm:items-center p-6 z-50 mt-15">
-          <div className="relative w-full max-w-4xl p-6 bg-white rounded-md shadow-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Set Service Materials</h2>
-              <button
-                onClick={() => setShowSetServiceModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-
-            <ServiceSelectionEngine
-              base_api={base_api}
-              onSelectionChange={handleServiceSelection}
-              resetTrigger={false}
-            />
-
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowSetServiceModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  // Handle selected services
-                  console.log("Selected services:", selectedServices);
-                  setShowSetServiceModal(false);
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Apply Services
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

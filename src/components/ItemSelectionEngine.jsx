@@ -604,11 +604,28 @@ export default function ItemSelectionEngine({
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
           >
             <option value="">Select Material</option>
-            {materials.map(material => (
-              <option key={material.id} value={material.id}>
-                {material.name}
-              </option>
-            ))}
+            {materials.map(material => {
+              // Build full description for material
+              const itemCode = material.item_code || '';
+              const materialType = material.item?.material_type_name || '';
+              const itemType = material.item?.item_type_name || '';
+              const size = material.item?.size ? `${material.item.size}${material.item.size_unit || ''}` : '';
+              const thickness = material.item?.thickness ? `${material.item.thickness}${material.item.thickness_unit || ''}` : '';
+              const brand = material.item?.brand_name || '';
+
+              let fullLabel = itemCode || material.name;
+              if (materialType) fullLabel += ` - ${materialType}`;
+              if (itemType) fullLabel += ` (${itemType})`;
+              if (size) fullLabel += ` - ${size}`;
+              if (thickness) fullLabel += ` - ${thickness}`;
+              if (brand) fullLabel += ` - ${brand}`;
+
+              return (
+                <option key={material.id} value={material.id}>
+                  {fullLabel}
+                </option>
+              );
+            })}
           </select>
 
           {/* Quantity */}
@@ -1071,8 +1088,8 @@ export default function ItemSelectionEngine({
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     <th className="w-12 px-2 py-2 border-r">#</th>
-                    <th className="w-32 px-2 py-2 border-r">Category</th>
-                    <th className="w-32 px-2 py-2 border-r">Subcategory</th>
+                    <th className="w-32 px-2 py-2 border-r">Service Name</th>
+                    <th className="w-32 px-2 py-2 border-r">Service Category</th>
                     <th className="w-40 px-2 py-2 border-r">Material</th>
                     <th className="w-20 px-2 py-2 border-r">Unit</th>
                     <th className="w-20 px-2 py-2 border-r">Qty</th>
@@ -1088,10 +1105,10 @@ export default function ItemSelectionEngine({
                   {serviceItems.map((service, i) => (
                     <tr key={service.id} className="border-b hover:bg-gray-50">
                       <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                      <td className="w-32 px-2 py-2 border-r truncate">{service.category_name}</td>
-                      <td className="w-32 px-2 py-2 border-r truncate">{service.subcategory_name}</td>
+                      <td className="w-32 px-2 py-2 border-r truncate">{service.name}</td>
+                      <td className="w-32 px-2 py-2 border-r truncate">{service.category}</td>
                       <td className="w-40 px-2 py-2 border-r truncate">{service.material_name}</td>
-                      
+
                       <td className="w-20 px-2 py-2 border-r">
                         <select
                           className="w-full border rounded px-1 py-1"
