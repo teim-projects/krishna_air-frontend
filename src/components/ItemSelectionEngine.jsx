@@ -98,8 +98,9 @@ export default function ItemSelectionEngine({
 
   // Add service draft state
   const [draftServiceItem, setDraftServiceItem] = useState({
+    service: "",
+    service_type: "",
     category: "",
-    subcategory: "",
     material: "",
     quantity: "",
     unit: "NOS",
@@ -163,34 +164,13 @@ export default function ItemSelectionEngine({
   };
 
   // Service loaders
-  const loadCategories = async () => {
+  const loadServiceMaterials = async () => {
     try {
-      const response = await api.get("quotation/service-categories/");
-      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
-      setCategories(data);
-    } catch (err) {
-      console.error("Error loading categories:", err);
-    }
-  };
-
-  const loadSubcategories = async (categoryId) => {
-    try {
-      const response = await api.get(`quotation/service-subcategories/?category=${categoryId}`);
-      const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
-      setSubcategories(data);
-    } catch (err) {
-      console.error("Error loading subcategories:", err);
-      setSubcategories([]);
-    }
-  };
-
-  const loadServiceMaterials = async (subcategoryId) => {
-    try {
-      const response = await api.get(`quotation/service-masters/?subcategory=${subcategoryId}`);
+      const response = await api.get(`quotation/service-masters/`);
       const data = Array.isArray(response.data) ? response.data : response.data?.results || [];
       setMaterials(data);
     } catch (err) {
-      console.error("Error loading materials:", err);
+      console.error("Error loading services:", err);
       setMaterials([]);
     }
   };
@@ -216,34 +196,24 @@ export default function ItemSelectionEngine({
   };
 
   /* ================= SERVICE HANDLERS ================= */
-  const handleCategoryChange = (categoryId) => {
-    updateServiceDraft("category", categoryId);
-    updateServiceDraft("subcategory", "");
-    updateServiceDraft("material", "");
-    setSubcategories([]);
-    setMaterials([]);
-    if (categoryId) {
-      loadSubcategories(categoryId);
+  const handleMaterialChange = (serviceId) => {
+    const selectedService = materials.find(s => s.id === parseInt(serviceId));
+    if (selectedService) {
+      updateServiceDraft("service", serviceId);
+      updateServiceDraft("service_type", selectedService.service_type);
+      updateServiceDraft("category", selectedService.category);
+      updateServiceDraft("unit", selectedService.unit || "NOS");
+      updateServiceDraft("price", selectedService.labor_rate || 0);
+      updateServiceDraft("material", "");  // Reset material selection
+
+      // If material-based, fetch linked items
+      if (selectedService.service_type === 'MATERIAL' && selectedService.items?.length > 0) {
+        // Items are already in selectedService.items
+      }
     }
   };
 
-  const handleSubcategoryChange = (subcategoryId) => {
-    updateServiceDraft("subcategory", subcategoryId);
-    updateServiceDraft("material", "");
-    setMaterials([]);
-    if (subcategoryId) {
-      loadServiceMaterials(subcategoryId);
-    }
-  };
 
-  const handleMaterialChange = (materialId) => {
-    const selectedMaterial = materials.find(m => m.id === parseInt(materialId));
-    if (selectedMaterial) {
-      updateServiceDraft("material", materialId);
-      updateServiceDraft("unit", selectedMaterial.unit || "NOS");
-      updateServiceDraft("price", selectedMaterial.total_rate || 0);
-    }
-  };
 
   /* ================= ADD ROWS ================= */
 
@@ -338,64 +308,106 @@ export default function ItemSelectionEngine({
     });
   };
 
-  const addServiceItem = () => {
-    if (!draftServiceItem.category || !draftServiceItem.subcategory || !draftServiceItem.material) {
-      alert("Please select category, subcategory, and material");
-      return;
+const addServiceItem = () => {
+    if (!draftServiceItem.service) {
+        alert("Please select a service");
+        return;
+    }
+    
+    if (draftServiceItem.service_type === 'MATERIAL' && !draftServiceItem.material) {
+        alert("Please select at least one material");
+        return;
     }
 
-    if (!draftServiceItem.quantity || !draftServiceItem.price) {
-      alert("Please enter quantity and price");
-      return;
+    const selectedService = materials.find(s => s.id === parseInt(draftServiceItem.service));
+    const selectedMaterialIds = draftServiceItem.material 
+        ? draftServiceItem.material.split(',').map(Number) 
+        : [];
+
+    // If Labor type and no materials selected, create one entry for the service itself
+    if (draftServiceItem.service_type === 'LABOR' || selectedMaterialIds.length === 0) {
+        const quantity = parseFloat(draftServiceItem.quantity) || 0;
+        const price = parseFloat(draftServiceItem.price) || 0;
+        const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
+        const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
+
+        const baseAmount = quantity * price;
+        const gstAmount = (baseAmount * gstPercent) / 100;
+        const totalAmount = baseAmount + gstAmount + mathadiCharges;
+
+        const newServiceItem = {
+            id: Date.now() + Math.random(),
+            service_id: draftServiceItem.service,
+            service_name: selectedService?.name || "",
+            category: draftServiceItem.category,
+            material_id: null,
+            material_name: "(Labor Only)",
+            quantity: quantity,
+            unit: draftServiceItem.unit,
+            price: price,
+            gst_percent: gstPercent,
+            mathadi_charges: mathadiCharges,
+            base_amount: baseAmount,
+            gst_amount: gstAmount,
+            total_amount: totalAmount
+        };
+
+        setServiceItems(prev => [...prev, newServiceItem]);
+    } else {
+        // Create an entry for each selected material
+        const newServiceItems = selectedMaterialIds.map(materialId => {
+            const selectedMaterial = selectedService?.items?.find(item => item.id === materialId);
+            
+            const quantity = parseFloat(draftServiceItem.quantity) || 0;
+            const price = parseFloat(draftServiceItem.price) || 0;
+            const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
+            const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
+
+            const baseAmount = quantity * price;
+            const gstAmount = (baseAmount * gstPercent) / 100;
+            const totalAmount = baseAmount + gstAmount + mathadiCharges;
+
+            return {
+                id: Date.now() + Math.random(),
+                service_id: draftServiceItem.service,
+                service_name: selectedService?.name || "",
+                category: draftServiceItem.category,
+                material_id: materialId,
+                material_name: selectedMaterial?.item_code || "",
+                quantity: quantity,
+                unit: draftServiceItem.unit,
+                price: price,
+                gst_percent: gstPercent,
+                mathadi_charges: mathadiCharges,
+                base_amount: baseAmount,
+                gst_amount: gstAmount,
+                total_amount: totalAmount
+            };
+        });
+
+        setServiceItems(prev => [...prev, ...newServiceItems]);
     }
 
-    const selectedCategory = categories.find(c => c.id === parseInt(draftServiceItem.category));
-    const selectedSubcategory = subcategories.find(s => s.id === parseInt(draftServiceItem.subcategory));
-    const selectedMaterial = materials.find(m => m.id === parseInt(draftServiceItem.material));
-
-    const quantity = parseFloat(draftServiceItem.quantity) || 0;
-    const price = parseFloat(draftServiceItem.price) || 0;
-    const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
-    const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
-
-    const baseAmount = quantity * price;
-    const gstAmount = (baseAmount * gstPercent) / 100;
-    const totalAmount = baseAmount + gstAmount + mathadiCharges;
-
-    const newServiceItem = {
-      id: Date.now(),
-      category_id: draftServiceItem.category,
-      category_name: selectedCategory?.name || "",
-      subcategory_id: draftServiceItem.subcategory,
-      subcategory_name: selectedSubcategory?.name || "",
-      material_id: draftServiceItem.material,
-      material_name: selectedMaterial?.name || "",
-      quantity: quantity,
-      unit: draftServiceItem.unit,
-      price: price,
-      gst_percent: gstPercent,
-      mathadi_charges: mathadiCharges,
-      base_amount: baseAmount,
-      gst_amount: gstAmount,
-      total_amount: totalAmount
-    };
-
-    setServiceItems(prev => [...prev, newServiceItem]);
+    // ✅ IMPORTANT: Update parent component's serviceItems prop if it exists
+    // This ensures the data flows back to parent component
+    if (mode === "quotation" && onServiceItemsChange) {
+        const updatedItems = [...serviceItems];
+        onServiceItemsChange(updatedItems);
+    }
 
     // Reset form
     setDraftServiceItem({
-      category: "",
-      subcategory: "",
-      material: "",
-      quantity: "",
-      unit: "NOS",
-      price: "",
-      gst_percent: "",
-      mathadi_charges: ""
+        service: "",
+        service_type: "",
+        category: "",
+        material: "",
+        quantity: "",
+        unit: "NOS",
+        price: "",
+        gst_percent: "",
+        mathadi_charges: ""
     });
-    setSubcategories([]);
-    setMaterials([]);
-  };
+};
 
   const removeServiceItem = (serviceId) => {
     setServiceItems(prev => prev.filter(item => item.id !== serviceId));
@@ -405,7 +417,7 @@ export default function ItemSelectionEngine({
 
   useEffect(() => {
     loadBrands();
-    loadCategories();
+    loadServiceMaterials();
   }, []);
 
   useEffect(() => {
@@ -563,72 +575,90 @@ export default function ItemSelectionEngine({
   const renderServicesTab = () => (
     <div className="space-y-6">
       {/* Service Selection Form */}
-      <div className="bg-gray-50 p-4 rounded-lg">
+      {/* Service Selection Form */}
+      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
         <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {/* Service Category */}
+        {/* ROW 1: Service Name & Materials */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Service Name Dropdown */}
           <select
-            value={draftServiceItem.category}
-            onChange={(e) => handleCategoryChange(e.target.value)}
+            value={draftServiceItem.service}
+            onChange={(e) => handleMaterialChange(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select Category</option>
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>
-                {category.name}
+            <option value="">Select Service</option>
+            {materials.map(service => (
+              <option key={service.id} value={service.id}>
+                {service.name}
               </option>
             ))}
           </select>
 
-          {/* Service Subcategory */}
-          <select
-            value={draftServiceItem.subcategory}
-            onChange={(e) => handleSubcategoryChange(e.target.value)}
-            disabled={!draftServiceItem.category}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-          >
-            <option value="">Select Subcategory</option>
-            {subcategories.map(subcategory => (
-              <option key={subcategory.id} value={subcategory.id}>
-                {subcategory.name}
-              </option>
-            ))}
-          </select>
+          {/* Material Dropdown - ONLY if Material-Based */}
+          {draftServiceItem.service_type === 'MATERIAL' && (
+            <select
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                const currentMaterials = draftServiceItem.material
+                  ? draftServiceItem.material.split(',').map(Number)
+                  : [];
+                if (val && !currentMaterials.includes(val)) {
+                  updateServiceDraft("material", [...currentMaterials, val].join(','));
+                }
+                e.target.value = "";
+              }}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Material</option>
+              {materials
+                .find(s => s.id === parseInt(draftServiceItem.service))
+                ?.items?.map(item => (
+                  <option key={item.id} value={item.id}>
+                    {item.item_code}
+                  </option>
+                )) || []}
+            </select>
+          )}
+        </div>
 
-          {/* Material Items */}
-          <select
-            value={draftServiceItem.material}
-            onChange={(e) => handleMaterialChange(e.target.value)}
-            disabled={!draftServiceItem.subcategory}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-          >
-            <option value="">Select Material</option>
-            {materials.map(material => {
-              // Build full description for material
-              const itemCode = material.item_code || '';
-              const materialType = material.item?.material_type_name || '';
-              const itemType = material.item?.item_type_name || '';
-              const size = material.item?.size ? `${material.item.size}${material.item.size_unit || ''}` : '';
-              const thickness = material.item?.thickness ? `${material.item.thickness}${material.item.thickness_unit || ''}` : '';
-              const brand = material.item?.brand_name || '';
+        {/* Selected Materials Chips */}
+        {draftServiceItem.service_type === 'MATERIAL' && (
+          <div className="flex flex-wrap gap-2">
+            {(draftServiceItem.material
+              ? draftServiceItem.material.split(',').map(Number)
+              : [])
+              .map((materialId) => {
+                const mat = materials
+                  .find(s => s.id === parseInt(draftServiceItem.service))
+                  ?.items?.find(item => item.id === materialId);
 
-              let fullLabel = itemCode || material.name;
-              if (materialType) fullLabel += ` - ${materialType}`;
-              if (itemType) fullLabel += ` (${itemType})`;
-              if (size) fullLabel += ` - ${size}`;
-              if (thickness) fullLabel += ` - ${thickness}`;
-              if (brand) fullLabel += ` - ${brand}`;
+                return mat ? (
+                  <div
+                    key={materialId}
+                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
+                  >
+                    {mat.item_code}
+                    <button
+                      onClick={() => {
+                        const currentMaterials = draftServiceItem.material
+                          .split(',')
+                          .map(Number)
+                          .filter(id => id !== materialId);
+                        updateServiceDraft("material", currentMaterials.join(','));
+                      }}
+                      className="text-red-500 font-bold hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : null;
+              })}
+          </div>
+        )}
 
-              return (
-                <option key={material.id} value={material.id}>
-                  {fullLabel}
-                </option>
-              );
-            })}
-          </select>
-
-          {/* Quantity */}
+        {/* ROW 2: Quantity, Unit, GST%, Mathadi */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <input
             type="number"
             placeholder="Quantity"
@@ -636,19 +666,7 @@ export default function ItemSelectionEngine({
             onChange={(e) => updateServiceDraft("quantity", e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {/* Price */}
-          <input
-            type="number"
-            placeholder="Price per unit"
-            value={draftServiceItem.price}
-            onChange={(e) => updateServiceDraft("price", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          {/* Unit */}
           <select
             value={draftServiceItem.unit}
             onChange={(e) => updateServiceDraft("unit", e.target.value)}
@@ -659,7 +677,6 @@ export default function ItemSelectionEngine({
             ))}
           </select>
 
-          {/* GST */}
           <input
             type="number"
             placeholder="GST Percentage"
@@ -668,7 +685,6 @@ export default function ItemSelectionEngine({
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          {/* Mathadi Charges */}
           <input
             type="number"
             placeholder="Mathadi Charges"
@@ -678,64 +694,26 @@ export default function ItemSelectionEngine({
           />
         </div>
 
+        {/* ROW 3: Price */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input
+            type="number"
+            placeholder="Price per unit"
+            value={draftServiceItem.price}
+            onChange={(e) => updateServiceDraft("price", e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         {/* Add Service Button */}
-        <div className="flex items-end">
-          <button
-            type="button"
-            onClick={addServiceItem}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            + Add Service
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={addServiceItem}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+        >
+          + Add Service
+        </button>
       </div>
-
-      {/* Services Display */}
-      {Object.keys(groupedServices).length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <h4 className="text-md font-medium">Installation Work Services</h4>
-          </div>
-
-          <div className="divide-y divide-gray-200">
-            {Object.entries(groupedServices).map(([categoryName, services]) => (
-              <div key={categoryName} className="p-4">
-                <h5 className="font-semibold text-gray-900 mb-3">{categoryName}</h5>
-                <div className="space-y-2">
-                  {services.map((service, index) => (
-                    <div key={service.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                      <div className="flex-1">
-                        <span className="font-medium text-sm">
-                          {index + 1}. {service.material_name}
-                        </span>
-                        <div className="text-xs text-gray-600 mt-1">
-                          Qty: {service.quantity} {service.unit} | Price: ₹{service.price} |
-                          GST: {service.gst_percent}% | Mathadi: ₹{service.mathadi_charges}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-green-600">
-                          ₹{service.total_amount.toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeServiceItem(service.id)}
-                          className="text-red-600 hover:text-red-800 p-1"
-                          title="Remove Service"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
   /* ================= UI ================= */
@@ -1081,313 +1059,130 @@ export default function ItemSelectionEngine({
         </div>
 
         {/* Services Table */}
-        {lowSideActiveTab === "services" && serviceItems.length > 0 && (
-          <div className="p-4">
-            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
-              <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
-                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                  <tr>
-                    <th className="w-12 px-2 py-2 border-r">#</th>
-                    <th className="w-32 px-2 py-2 border-r">Service Name</th>
-                    <th className="w-32 px-2 py-2 border-r">Service Category</th>
-                    <th className="w-40 px-2 py-2 border-r">Material</th>
-                    <th className="w-20 px-2 py-2 border-r">Unit</th>
-                    <th className="w-20 px-2 py-2 border-r">Qty</th>
-                    <th className="w-28 px-2 py-2 border-r">Price</th>
-                    <th className="w-20 px-2 py-2 border-r">GST%</th>
-                    <th className="w-28 px-2 py-2 border-r">Mathadi</th>
-                    <th className="w-28 px-2 py-2 border-r">Total</th>
-                    <th className="w-16 px-2 py-2">Action</th>
-                  </tr>
-                </thead>
-
-                <tbody className="bg-white">
-                  {serviceItems.map((service, i) => (
-                    <tr key={service.id} className="border-b hover:bg-gray-50">
-                      <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                      <td className="w-32 px-2 py-2 border-r truncate">{service.name}</td>
-                      <td className="w-32 px-2 py-2 border-r truncate">{service.category}</td>
-                      <td className="w-40 px-2 py-2 border-r truncate">{service.material_name}</td>
-
-                      <td className="w-20 px-2 py-2 border-r">
-                        <select
-                          className="w-full border rounded px-1 py-1"
-                          value={service.unit || "NOS"}
-                          onChange={e => {
-                            const copy = [...serviceItems];
-                            copy[i].unit = e.target.value;
-                            setServiceItems(copy);
-                          }}>
-                          {unitOptions.map(unit => (
-                            <option key={unit} value={unit}>{unit}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="w-20 px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          className="w-full border rounded px-1 py-1"
-                          value={service.quantity}
-                          onChange={e => {
-                            const copy = [...serviceItems];
-                            copy[i].quantity = e.target.value;
-                            // Recalculate amounts
-                            const baseAmount = copy[i].quantity * copy[i].price;
-                            copy[i].base_amount = baseAmount;
-                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
-                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
-                            setServiceItems(copy);
-                          }}
-                        />
-                      </td>
-
-                      <td className="w-28 px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          className="w-full border rounded px-1 py-1"
-                          value={service.price}
-                          onChange={e => {
-                            const copy = [...serviceItems];
-                            copy[i].price = e.target.value;
-                            // Recalculate amounts
-                            const baseAmount = copy[i].quantity * copy[i].price;
-                            copy[i].base_amount = baseAmount;
-                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
-                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
-                            setServiceItems(copy);
-                          }}
-                        />
-                      </td>
-
-                      <td className="w-20 px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          className="w-full border rounded px-1 py-1"
-                          value={service.gst_percent || ""}
-                          onChange={e => {
-                            const copy = [...serviceItems];
-                            copy[i].gst_percent = e.target.value;
-                            // Recalculate amounts
-                            const baseAmount = copy[i].quantity * copy[i].price;
-                            copy[i].base_amount = baseAmount;
-                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
-                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
-                            setServiceItems(copy);
-                          }}
-                        />
-                      </td>
-
-                      <td className="w-28 px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          className="w-full border rounded px-1 py-1"
-                          value={service.mathadi_charges || 0}
-                          onChange={e => {
-                            const copy = [...serviceItems];
-                            copy[i].mathadi_charges = e.target.value;
-                            // Recalculate amounts
-                            const baseAmount = copy[i].quantity * copy[i].price;
-                            copy[i].base_amount = baseAmount;
-                            copy[i].gst_amount = (baseAmount * copy[i].gst_percent) / 100;
-                            copy[i].total_amount = baseAmount + copy[i].gst_amount + (copy[i].mathadi_charges || 0);
-                            setServiceItems(copy);
-                          }}
-                        />
-                      </td>
-
-                      <td className="w-28 px-2 py-2 border-r font-semibold text-green-600">
-                        ₹{service.total_amount?.toFixed(2) || '0.00'}
-                      </td>
-
-                      <td className="w-16 px-2 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeServiceItem(service.id)}
-                        >
-                          <MdDelete />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Materials Table */}
-        {lowSideActiveTab === "materials" && lowItems.length > 0 && (
-          <div className="p-4">
-            <div className="border border-gray-200 rounded-lg overflow-auto max-h-[400px]">
-              <table className="min-w-[1000px] w-full text-sm border-collapse table-fixed">
-                <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-                  <tr>
-                    <th className="w-12 px-2 py-2 border-r">#</th>
-                    <th className="w-40 px-2 py-2 border-r">Item</th>
-                    <th className="w-32 px-2 py-2 border-r">Brand</th>
-                    <th className="w-24 px-2 py-2 border-r">HSN</th>
-                    <th className="w-20 px-2 py-2 border-r">Unit</th>
-                    <th className="w-20 px-2 py-2 border-r">Qty</th>
-                    <th className="w-28 px-2 py-2 border-r">
-                      {isInvoice ? "Rate" : "Price"}
-                    </th>
-                    {lowSideGstEnabled && (
-                      <th className="w-20 px-2 py-2 border-r">GST%</th>
-                    )}
-                    {!isInvoice && (
-                      <th className="w-28 px-2 py-2 border-r">Mathadi</th>
-                    )}
-                    <th className="px-2 py-2 border-r">Description</th>
-                    <th className="w-16 px-2 py-2">Action</th>
-                  </tr>
-                </thead>
-
-                <tbody className="bg-white">
-                  {lowItems.map((row, i) => {
-                    const itemName = row.item_code || row.item;
-                    const brandName = brands.find(b => b.id == row.brand)?.name || "";
-
-                    return (
-                      <tr key={i} className="border-b hover:bg-gray-50">
-                        <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-
-                        <td className="w-40 px-2 py-2 border-r truncate">
-                          {itemName}
-                        </td>
-
-                        <td className="w-32 px-2 py-2 border-r">
-                          <select
-                            className="w-full border rounded px-1 py-1"
-                            value={row.brand || ""}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].brand = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          >
-                            <option value="">Select Brand</option>
-                            {brands.map(brand => (
-                              <option key={brand.id} value={brand.id}>
-                                {brand.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        <td className="w-24 px-2 py-2 border-r">
-                          <input
-                            className="w-full border rounded px-1 py-1"
-                            value={row.hsn_sac || ""}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].hsn_sac = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
-
-                        <td className="w-20 px-2 py-2 border-r">
-                          <select
-                            className="w-full border rounded px-1 py-1"
-                            value={row.unit || "Nos"}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].unit = e.target.value;
-                              setLowItems(copy);
-                            }}>
-                            {unitOptions.map(unit => (
-                              <option key={unit} value={unit}>{unit}</option>
-                            ))}
-                          </select>
-                        </td>
-
-                        <td className="w-20 px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            className="w-full border rounded px-1 py-1"
-                            value={row.quantity}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].quantity = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
-
-                        <td className="w-28 px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            className="w-full border rounded px-1 py-1"
-                            value={isInvoice ? row.rate : row.unit_price}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i][isInvoice ? "rate" : "unit_price"] = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
-
-                        {lowSideGstEnabled && (
-                          <td className="w-20 px-2 py-2 border-r">
-                            <input
-                              type="number"
-                              className="w-full border rounded px-1 py-1"
-                              placeholder="GST%"
-                              value={row.gst_percent || ""}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].gst_percent = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
-                        )}
-
-                        {!isInvoice && (
-                          <td className="w-28 px-2 py-2 border-r">
-                            <input
-                              type="number"
-                              className="w-full border rounded px-1 py-1"
-                              value={row.mathadi_charges || 0}
-                              onChange={e => {
-                                const copy = [...lowItems];
-                                copy[i].mathadi_charges = e.target.value;
-                                setLowItems(copy);
-                              }}
-                            />
-                          </td>
-                        )}
-
-                        <td className="px-2 py-2 border-r">
-                          <textarea
-                            className="w-full border rounded px-1 py-1 text-xs"
-                            value={row.description || ""}
-                            onChange={e => {
-                              const copy = [...lowItems];
-                              copy[i].description = e.target.value;
-                              setLowItems(copy);
-                            }}
-                          />
-                        </td>
-
-                        <td className="w-16 px-2 py-2 text-center">
-                          <button
-                            onClick={() =>
-                              setLowItems(prev => prev.filter((_, idx) => idx !== i))
-                            }
-                          >
-                            <MdDelete />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+{serviceItems.length > 0 && (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th className="px-4 py-3 text-left font-medium">#</th>
+                    <th className="px-4 py-3 text-left font-medium">Service / Material</th>
+                    <th className="px-4 py-3 text-left font-medium">Unit</th>
+                    <th className="px-4 py-3 text-left font-medium">Qty</th>
+                    <th className="px-4 py-3 text-left font-medium">Price</th>
+                    <th className="px-4 py-3 text-left font-medium">GST%</th>
+                    <th className="px-4 py-3 text-center font-medium">Total</th>
+                    <th className="px-4 py-3 text-center font-medium">Action</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+                {(() => {
+                    let serviceIndex = 1;
+                    const serviceGroups = {};
+                    
+                    // Group items by service
+                    serviceItems.forEach(item => {
+                        if (!serviceGroups[item.service_id]) {
+                            serviceGroups[item.service_id] = [];
+                        }
+                        serviceGroups[item.service_id].push(item);
+                    });
+                    
+                    return Object.entries(serviceGroups).map(([serviceId, items], groupIdx) => {
+                        const rows = [];
+                        
+                        // Add service header row
+                        rows.push(
+                            <tr key={`service-${serviceId}`} className="bg-gray-50 hover:bg-gray-100">
+                                <td className="px-4 py-3 font-bold text-lg">{serviceIndex}</td>
+                                <td className="px-4 py-3 font-semibold">
+                                    {items[0].service_name} <span className="text-gray-600 text-sm"> {items[0].category}</span>
+                                </td>
+                                <td colSpan="6"></td>
+                            </tr>
+                        );
+                        
+                        // Add material rows
+                        items.forEach((item, materialIndex) => {
+                            rows.push(
+                                <tr key={item.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-semibold">{serviceIndex}.{materialIndex + 1}</td>
+                                    <td className="px-4 py-3">{item.material_name}</td>
+                                    <td className="px-4 py-3">{item.unit}</td>
+                                    
+                                    <td className="px-4 py-3">
+                                        <input
+                                            type="number"
+                                            value={item.quantity}
+                                            onChange={(e) => {
+                                                const updated = [...serviceItems];
+                                                const idx = serviceItems.findIndex(i => i.id === item.id);
+                                                updated[idx].quantity = parseFloat(e.target.value) || 0;
+                                                updated[idx].base_amount = updated[idx].quantity * updated[idx].price;
+                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                setServiceItems(updated);
+                                            }}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1"
+                                        />
+                                    </td>
+                                    
+                                    <td className="px-4 py-3">
+                                        <input
+                                            type="number"
+                                            value={item.price}
+                                            onChange={(e) => {
+                                                const updated = [...serviceItems];
+                                                const idx = serviceItems.findIndex(i => i.id === item.id);
+                                                updated[idx].price = parseFloat(e.target.value) || 0;
+                                                updated[idx].base_amount = updated[idx].quantity * updated[idx].price;
+                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                setServiceItems(updated);
+                                            }}
+                                            className="w-20 border border-gray-300 rounded px-2 py-1"
+                                        />
+                                    </td>
+                                    
+                                    <td className="px-4 py-3">
+                                        <input
+                                            type="number"
+                                            value={item.gst_percent}
+                                            onChange={(e) => {
+                                                const updated = [...serviceItems];
+                                                const idx = serviceItems.findIndex(i => i.id === item.id);
+                                                updated[idx].gst_percent = parseFloat(e.target.value) || 0;
+                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                setServiceItems(updated);
+                                            }}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1"
+                                        />
+                                    </td>
+                                    
+                                    <td className="px-4 py-3 text-right font-semibold">₹{item.total_amount.toFixed(2)}</td>
+                                    
+                                    <td className="px-4 py-3 text-center">
+                                        <button
+                                            onClick={() => removeServiceItem(item.id)}
+                                            className="text-red-600 hover:text-red-800 p-1"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        });
+                        
+                        serviceIndex++;
+                        return rows;
+                    }).flat();
+                })()}
+            </tbody>
+        </table>
+    </div>
+)}
       </div>
     </div>
   );
