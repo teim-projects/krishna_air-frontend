@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
 import { FiMail } from "react-icons/fi";
@@ -18,21 +18,53 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
+/**
+ * InvoiceList
+ * Props:
+ *   onAdd    – called when user clicks "+ Create Invoice"
+ *   onEdit   – called with invoice id when user clicks Edit
+ *   filters  – applied filter object from FiltersPanel (passed by Invoice.jsx)
+ *
+ * Exposed ref methods:
+ *   refreshList() – force re-fetch (called from parent after add/edit)
+ */
+const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchInvoices();
+  // ─── Build query string from filters ───────────────────────────────────────
+  const buildParams = useCallback((f = {}) => {
+    const params = new URLSearchParams();
+
+    // Full-text search → DRF SearchFilter uses ?search=
+    if (f.search) params.set("search", f.search);
+
+    // Date range → InvoiceFilter date_from / date_to
+    if (f.date?.from) params.set("date_from", f.date.from);
+    if (f.date?.to)   params.set("date_to",   f.date.to);
+
+    // GST type → InvoiceFilter exact match
+    if (f.gst_type) params.set("gst_type", f.gst_type);
+
+    return params.toString();
   }, []);
 
-  const fetchInvoices = () => {
+  // ─── Fetch invoices whenever filters change ─────────────────────────────────
+  const fetchInvoices = useCallback(() => {
+    setLoading(true);
+    const qs = buildParams(filters);
     api
-      .get("invoice/invoice/")
+      .get(`invoice/invoice/${qs ? `?${qs}` : ""}`)
       .then((res) => {
         setData(res.data.results || res.data);
       })
-      .catch((err) => console.error(err));
-  };
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [filters, buildParams]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
 
   // Expose refresh method to parent component
   useImperativeHandle(ref, () => ({
@@ -111,6 +143,8 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
       alert("Delete failed");
     }
   };
+
+  if (loading) return <div style={loadingWrap}>Loading...</div>;
 
   return (
     <div style={pageWrap}>
@@ -207,7 +241,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
               </tr>
             ))}
 
-            {data.length === 0 && (
+            {data.length === 0 && !loading && (
               <tr>
                 <td colSpan="5" style={emptyRow}>
                   No invoices found. Create your first invoice!
@@ -293,4 +327,13 @@ const iconBtn = {
   border: "none",
   cursor: "pointer",
   padding: "4px",
+};
+
+const loadingWrap = {
+  padding: "25px",
+  background: "#f6f7fb",
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 };

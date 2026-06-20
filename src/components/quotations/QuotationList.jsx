@@ -1,6 +1,6 @@
 // quotation/QuotationList.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import axios from "axios";
 
@@ -30,7 +30,14 @@ api.interceptors.request.use((config) => {
 
 const normalize = (d) => (Array.isArray(d) ? d : d?.results || []);
 
-export default function QuotationList({ onAdd, onEdit }) {
+/**
+ * QuotationList
+ * Props:
+ *   onAdd    – called when user clicks "+ Add Quotation"
+ *   onEdit   – called with quotation id when user clicks Edit
+ *   filters  – applied filter object from FiltersPanel (parent passes via Quotation.jsx)
+ */
+export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const [list, setList] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
@@ -43,14 +50,26 @@ export default function QuotationList({ onAdd, onEdit }) {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  useEffect(() => {
-    fetchQuotations();
+  // ─── Build query string from filters ───────────────────────────────────────
+  const buildParams = useCallback((f = {}) => {
+    const params = new URLSearchParams();
+
+    // Full-text search → DRF SearchFilter uses ?search=
+    if (f.search) params.set("search", f.search);
+
+    // Date range → custom InvoiceFilter date_from / date_to
+    if (f.date?.from) params.set("date_from", f.date.from);
+    if (f.date?.to)   params.set("date_to",   f.date.to);
+
+    return params.toString();
   }, []);
 
-  const fetchQuotations = () => {
+  // ─── Fetch quotations whenever filters change ───────────────────────────────
+  const fetchQuotations = useCallback(() => {
     setLoading(true);
+    const qs = buildParams(filters);
     api
-      .get("quotation/quotation/")
+      .get(`quotation/quotation/${qs ? `?${qs}` : ""}`)
       .then((res) => {
         const data = normalize(res.data);
         const initialVersion = {};
@@ -63,7 +82,11 @@ export default function QuotationList({ onAdd, onEdit }) {
       })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
-  };
+  }, [filters, buildParams]);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, [fetchQuotations]);
 
   const getActiveVersion = (q) =>
     q.versions?.find((v) => v.id === selectedVersion[q.id]);
@@ -316,6 +339,14 @@ export default function QuotationList({ onAdd, onEdit }) {
                 </React.Fragment>
               );
             })}
+
+            {list.length === 0 && !loading && (
+              <tr>
+                <td colSpan="7" style={emptyRow}>
+                  No quotations found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -374,6 +405,12 @@ const td = {
 
 const row = {
   borderBottom: "1px solid #eee",
+};
+
+const emptyRow = {
+  textAlign: "center",
+  padding: "40px",
+  color: "#777",
 };
 
 const subText = {
