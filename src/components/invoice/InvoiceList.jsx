@@ -1,9 +1,7 @@
 import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
-import { FiMail } from "react-icons/fi";
-
-import { FiEye, FiDownload, FiTrash2, FiEdit } from "react-icons/fi";
+import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory } from "react-icons/md";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -193,50 +191,38 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                   )}
                 </td>
 
-                {/* ACTIONS ICON UI */}
+                {/* ACTIONS */}
                 <td style={td}>
                   <div style={actionWrap}>
-  <button
-    onClick={() => handleViewPDF(inv.id)}
-    style={iconBtn}
-    title="View PDF"
-  >
-    <FiEye size={16} />
-  </button>
+                    {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
+                    <button style={btnPurple} title="Invoice History">
+                      <MdHistory />
+                    </button>
 
-  <button
-    onClick={() => handleDownloadPDF(inv.id)}
-    style={iconBtn}
-    title="Download PDF"
-  >
-    <FiDownload size={16} />
-  </button>
+                    <button onClick={() => handleViewPDF(inv.id)} style={btnBlue} title="View">
+                      <MdRemoveRedEye />
+                    </button>
 
-  {/* UI ONLY ICONS */}
-  <button style={iconBtn} title="WhatsApp">
-    <FaWhatsapp size={16} color="#25D366" />
-  </button>
+                    <button onClick={() => onEdit(inv.id)} style={btnYellow} title="Edit">
+                      <MdEdit />
+                    </button>
 
-  <button style={iconBtn} title="Mail">
-    <FiMail size={16} />
-  </button>
+                    <button onClick={() => handleDownloadPDF(inv.id)} style={btnGreen} title="Download">
+                      <MdDownload />
+                    </button>
 
-  <button
-    onClick={() => onEdit(inv.id)}
-    style={iconBtn}
-    title="Edit"
-  >
-    <FiEdit size={16} />
-  </button>
+                    <button style={btnGreen} title="WhatsApp">
+                      <FaWhatsapp />
+                    </button>
 
-  <button
-    onClick={() => handleDeleteInvoice(inv.id)}
-    style={iconBtn}
-    title="Delete"
-  >
-    <FiTrash2 size={16} color="#e74c3c" />
-  </button>
-</div>
+                    <button style={btnSky} title="Email">
+                      <MdEmail />
+                    </button>
+
+                    <button onClick={() => handleDeleteInvoice(inv.id)} style={btnRed} title="Delete">
+                      <MdDelete />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -319,15 +305,18 @@ const emptyRow = {
 const actionWrap = {
   display: "flex",
   alignItems: "center",
-  gap: "10px",
+  gap: "6px",
 };
 
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "4px",
-};
+// Action button styles — match PurchaseOrder.jsx exactly
+// PO ref: className="px-2 py-1 bg-{color}-200 text-{color}-800 rounded text-sm"
+const _btn = { padding: "4px 8px", borderRadius: "4px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", fontSize: "14px" };
+const btnBlue   = { ..._btn, background: "#bfdbfe", color: "#1e40af" }; // bg-blue-200   text-blue-800
+const btnGreen  = { ..._btn, background: "#bbf7d0", color: "#166534" }; // bg-green-200  text-green-800
+const btnYellow = { ..._btn, background: "#fef08a", color: "#854d0e" }; // bg-yellow-200 text-yellow-800
+const btnSky    = { ..._btn, background: "#bae6fd", color: "#075985" }; // bg-sky-200    text-sky-800
+const btnRed    = { ..._btn, background: "#fecaca", color: "#991b1b" }; // bg-red-200    text-red-800
+const btnPurple = { ..._btn, background: "#e9d5ff", color: "#6b21a8" }; // bg-purple-200 text-purple-800
 
 const loadingWrap = {
   padding: "25px",
