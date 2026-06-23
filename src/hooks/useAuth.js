@@ -3,6 +3,17 @@ import { useState, useEffect } from 'react';
 export function useUserRole(baseApi) {
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [trigger, setTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setTrigger(prev => prev + 1);
+    };
+    window.addEventListener("authChange", handleAuthChange);
+    return () => {
+      window.removeEventListener("authChange", handleAuthChange);
+    };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("access");
@@ -16,7 +27,10 @@ export function useUserRole(baseApi) {
     fetch(`${baseApi}/auth/me/`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Unauthorized");
+        return res.json();
+      })
       .then(data => {
         setUserRole(data.role);
       })
@@ -27,7 +41,7 @@ export function useUserRole(baseApi) {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [baseApi]); // Re-run if baseApi changes
+  }, [baseApi, trigger]); // Re-run if baseApi or trigger changes
 
   return { userRole, isLoading };
 }

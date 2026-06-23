@@ -1,4 +1,92 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+
+/**
+ * SearchableSelect - A dropdown with text search/filtering
+ * Renders a text input that filters options as you type.
+ */
+function SearchableSelect({ name, label, required, placeholder, options = [], value, onChange, disabled, gridCols, inputClass }) {
+  const [search, setSearch] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef(null);
+
+  // Find the label for the currently selected value
+  const selectedOption = options.find(o => String(o.value) === String(value));
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter options based on search text
+  const filtered = search.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  const handleSelect = (opt) => {
+    onChange(opt.value);
+    setSearch("");
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    onChange("");
+    setSearch("");
+  };
+
+  return (
+    <div ref={wrapperRef} className={`relative ${gridCols === 2 ? "col-span-2" : ""}`}>
+      <label className="text-sm text-slate-700 mb-1 block">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          className={inputClass}
+          placeholder={selectedOption ? selectedOption.label : (placeholder || "Type to search...")}
+          value={isOpen ? search : (selectedOption ? selectedOption.label : "")}
+          onChange={(e) => { setSearch(e.target.value); setIsOpen(true); }}
+          onFocus={() => setIsOpen(true)}
+          disabled={disabled}
+          autoComplete="off"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 text-sm"
+            title="Clear"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-slate-400">No results found</div>
+          ) : (
+            filtered.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelect(opt)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 ${String(opt.value) === String(value) ? "bg-indigo-50 font-medium text-indigo-700" : "text-slate-700"}`}
+              >
+                {opt.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Enhanced ReusableForm Component
@@ -207,6 +295,23 @@ export default function ReusableForm({
               ))}
             </select>
           </div>
+        );
+
+      case "searchable_select":
+        return (
+          <SearchableSelect
+            key={name}
+            name={name}
+            label={label}
+            required={required}
+            placeholder={placeholder}
+            options={options}
+            value={value}
+            onChange={(val) => handleFieldChange(name, val)}
+            disabled={disabled}
+            gridCols={gridCols}
+            inputClass={inputClass}
+          />
         );
 
       case "checkbox":

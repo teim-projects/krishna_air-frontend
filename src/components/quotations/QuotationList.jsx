@@ -154,29 +154,37 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     return isNaN(num) ? "0.00" : num.toFixed(2);
   };
 
-  if (loading) return <div style={loadingWrap}>Loading...</div>;
-
   return (
-    <div style={pageWrap}>
-      {/* ADD BUTTON */}
-      <div style={headerWrap}>
-        <button onClick={onAdd} style={addBtn}>
-          + Add Quotation
-        </button>
+    <div className="space-y-6">
+      {/* Header Section — matches PurchaseOrder.jsx */}
+      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Quotation Management</h2>
+          <div className="text-sm text-slate-600">
+            {loading ? "Loading..." : `${list.length} quotation(s) found`}
+          </div>
+        </div>
+        <div>
+          <button
+            onClick={onAdd}
+            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+          >
+            + Add Quotation
+          </button>
+        </div>
       </div>
 
-      <div style={cardWrap}>
-        <h3 style={cardTitle}>Quotations</h3>
-
-        <table width="100%" style={{ borderCollapse: "collapse" }}>
-          <thead style={thead}>
+      {/* Table — matches PurchaseOrder.jsx */}
+      <div className="bg-white rounded-md shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b">
             <tr>
-              <th style={th}>Sr.No</th>
-              <th style={th}>Customer Name</th>
-              <th style={th}>Site Name</th>
-              <th style={th}>Products</th>
-              <th style={th}>Total Amount</th>
-              <th style={th}>Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Customer Name</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Site Name</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Products</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Total Amount</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
 
@@ -187,33 +195,33 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
               return (
                 <React.Fragment key={q.id}>
                   {/* MAIN ROW */}
-                  <tr style={row}>
-                    <td style={td}>{i + 1}</td>
+                  <tr className="border-b hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm">{i + 1}</td>
 
-                    <td style={td}>
-                      <div style={{ fontWeight: 600 }}>
-                        {q.customer_name}
-                      </div>
-                      <div style={subText}>{q.customer_contact}</div>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="font-medium">{q.customer_name}</div>
+                      <div className="text-xs text-slate-500">{q.customer_contact}</div>
                     </td>
 
-                    <td style={td}>{q.site_name_detail || q.site_name || "-"}</td>
+                    <td className="px-4 py-3 text-sm">{q.site_name_detail || q.site_name || "-"}</td>
 
-                    <td style={td}>
+                    <td className="px-4 py-3 text-sm">
                       {activeVersion?.product_count || "1 item(s)"}
                     </td>
 
-                    <td style={td}>
+                    <td className="px-4 py-3 text-sm">
                       ₹{formatAmount(activeVersion?.total_amount)}
                     </td>
 
-
                     {/* ACTIONS */}
-                    <td style={td}>
-                      <div style={actionWrap}>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
                         {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
                         <button
-                          style={openRow === q.id ? btnPurpleActive : btnPurple}
+                          className={`px-2 py-1 rounded hover:bg-purple-300 ${openRow === q.id
+                            ? "bg-purple-400 text-purple-900"
+                            : "bg-purple-200 text-purple-800"
+                            }`}
                           title="Version History"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -223,27 +231,27 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdHistory />
                         </button>
 
-                        <button onClick={() => handleViewPDF(q.id)} style={btnBlue} title="View">
+                        <button onClick={() => handleViewPDF(q.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View">
                           <MdRemoveRedEye />
                         </button>
 
-                        <button onClick={() => onEdit(q.id)} style={btnYellow} title="Edit">
+                        <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
                           <MdEdit />
                         </button>
 
-                        <button onClick={() => handleDownloadPDF(q.id)} style={btnGreen} title="Download">
+                        <button onClick={() => handleDownloadPDF(q.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                           <MdDownload />
                         </button>
 
-                        <button style={btnGreen} title="WhatsApp">
+                        <button className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="WhatsApp">
                           <FaWhatsapp />
                         </button>
 
-                        <button style={btnSky} title="Email">
+                        <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                           <MdEmail />
                         </button>
 
-                        <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} style={btnRed} title="Delete">
+                        <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
                           <MdDelete />
                         </button>
                       </div>
@@ -253,17 +261,17 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                   {/* FULL VERSION HISTORY TABLE */}
                   {openRow === q.id && (
                     <tr>
-                      <td colSpan="6" style={versionTableWrap}>
-                        <div style={versionTitle}>Version History</div>
+                      <td colSpan="6" className="bg-slate-50 px-8 py-4">
+                        <div className="font-semibold text-sm mb-2">Version History</div>
 
-                        <table width="100%" style={versionTable}>
-                          <thead style={thead}>
+                        <table className="w-full bg-white rounded-md overflow-hidden">
+                          <thead className="bg-slate-50 border-b">
                             <tr>
-                              <th style={thSmall}>Version</th>
-                              <th style={thSmall}>Date</th>
-                              <th style={thSmall}>Products</th>
-                              <th style={thSmall}>Total</th>
-                              <th style={thSmall}>Actions</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Version</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Date</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Products</th>
+                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Total</th>
+                              <th className="px-3 py-2 text-center text-xs font-semibold text-slate-700">Actions</th>
                             </tr>
                           </thead>
 
@@ -271,35 +279,35 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                             {q.versions
                               ?.filter((v) => !v.is_active)
                               .map((v) => (
-                                <tr key={v.id} style={row}>
-                                  <td style={tdSmall}>{v.version_no}</td>
-                                  <td style={tdSmall}>
+                                <tr key={v.id} className="border-b hover:bg-slate-50">
+                                  <td className="px-3 py-2 text-xs">{v.version_no}</td>
+                                  <td className="px-3 py-2 text-xs">
                                     {v.created_at?.split("T")[0]}
                                   </td>
-                                  <td style={tdSmall}>1 item(s)</td>
-                                  <td style={tdSmall}>
+                                  <td className="px-3 py-2 text-xs">1 item(s)</td>
+                                  <td className="px-3 py-2 text-xs">
                                     ₹{formatAmount(v.total_amount)}
                                   </td>
 
-                                  <td style={tdSmall}>
-                                    <div style={actionWrapSmall}>
-                                      <button onClick={() => handleViewPDF(q.id, v.id)} style={btnBlue} title="View">
+                                  <td className="px-3 py-2 text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                      <button onClick={() => handleViewPDF(q.id, v.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View">
                                         <MdRemoveRedEye />
                                       </button>
 
-                                      <button onClick={() => handleDownloadPDF(q.id, v.id)} style={btnGreen} title="Download">
+                                      <button onClick={() => handleDownloadPDF(q.id, v.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                                         <MdDownload />
                                       </button>
 
-                                      <button style={btnGreen} title="WhatsApp">
+                                      <button className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="WhatsApp">
                                         <FaWhatsapp />
                                       </button>
 
-                                      <button style={btnSky} title="Email">
+                                      <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                                         <MdEmail />
                                       </button>
 
-                                      <button onClick={() => handleDeleteVersion(q.id, v.id)} style={btnRed} title="Delete">
+                                      <button onClick={() => handleDeleteVersion(q.id, v.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
                                         <MdDelete />
                                       </button>
                                     </div>
@@ -317,7 +325,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
 
             {list.length === 0 && !loading && (
               <tr>
-                <td colSpan="7" style={emptyRow}>
+                <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
                   No quotations found.
                 </td>
               </tr>
@@ -328,129 +336,3 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     </div>
   );
 }
-
-/* ================= UI STYLES ================= */
-
-const pageWrap = {
-  padding: "30px",
-  background: "#f6f7fb",
-  minHeight: "100vh",
-  width: "100%",
-};
-
-const headerWrap = {
-  marginBottom: "20px",
-};
-
-const addBtn = {
-  background: "#2d6cdf",
-  color: "#fff",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const cardWrap = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "22px",
-  width: "100%",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-};
-
-const cardTitle = {
-  marginBottom: "12px",
-  fontWeight: 600,
-};
-
-const thead = { background: "#f3f4f8" };
-
-const th = {
-  textAlign: "left",
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const td = {
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const row = {
-  borderBottom: "1px solid #eee",
-};
-
-const emptyRow = {
-  textAlign: "center",
-  padding: "40px",
-  color: "#777",
-};
-
-const subText = {
-  fontSize: "12px",
-  color: "#777",
-};
-
-const actionWrap = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-};
-
-// Action button styles — match PurchaseOrder.jsx exactly
-// PO ref: className="px-2 py-1 bg-{color}-200 text-{color}-800 rounded text-sm"
-const _btn = { padding: "4px 8px", borderRadius: "4px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", fontSize: "14px" };
-const btnBlue        = { ..._btn, background: "#bfdbfe", color: "#1e40af" }; // bg-blue-200   text-blue-800
-const btnGreen       = { ..._btn, background: "#bbf7d0", color: "#166534" }; // bg-green-200  text-green-800
-const btnYellow      = { ..._btn, background: "#fef08a", color: "#854d0e" }; // bg-yellow-200 text-yellow-800
-const btnSky         = { ..._btn, background: "#bae6fd", color: "#075985" }; // bg-sky-200    text-sky-800
-const btnRed         = { ..._btn, background: "#fecaca", color: "#991b1b" }; // bg-red-200    text-red-800
-const btnPurple      = { ..._btn, background: "#e9d5ff", color: "#6b21a8" }; // bg-purple-200 text-purple-800
-const btnPurpleActive= { ..._btn, background: "#c084fc", color: "#581c87" }; // bg-purple-400 text-purple-900 (active)
-
-const versionTableWrap = {
-  background: "#fafafa",
-  padding: "18px 18px 18px 60px", // 👈 pushes table inside
-};
-
-
-const thSmall = {
-  textAlign: "left",
-  padding: "10px",
-  fontSize: "12px",
-};
-
-const tdSmall = {
-  padding: "10px",
-  fontSize: "12px",
-};
-
-const actionWrapSmall = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-};
-
-
-
-const versionTitle = {
-  fontWeight: 600,
-  marginBottom: "8px",
-};
-
-const versionTable = {
-  borderCollapse: "collapse",
-  background: "#fff",
-  borderRadius: "8px",
-};
-
-const loadingWrap = {
-  padding: "25px",
-  background: "#f6f7fb",
-  minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-};

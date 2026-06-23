@@ -95,37 +95,37 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   /* ================= PDF DOWNLOAD ================= */
 
   const handleDownloadPDF = async (invoiceId) => {
-  try {
-    const response = await api.get(
-      `/invoice/${invoiceId}/pdf/`,
-      {
-        responseType: "blob",
-      }
-    );
+    try {
+      const response = await api.get(
+        `/invoice/${invoiceId}/pdf/`,
+        {
+          responseType: "blob",
+        }
+      );
 
-    const blob = new Blob([response.data], {
-      type: "application/pdf",
-    });
+      const blob = new Blob([response.data], {
+        type: "application/pdf",
+      });
 
-    const fileURL = window.URL.createObjectURL(blob);
+      const fileURL = window.URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = fileURL;
+      const link = document.createElement("a");
+      link.href = fileURL;
 
-    // ✅ IMPORTANT
-    link.setAttribute("download", `invoice_${invoiceId}.pdf`);
+      // ✅ IMPORTANT
+      link.setAttribute("download", `invoice_${invoiceId}.pdf`);
 
-    document.body.appendChild(link);
-    link.click();
+      document.body.appendChild(link);
+      link.click();
 
-    // remove silently
-    link.remove();
-    window.URL.revokeObjectURL(fileURL);
-  } catch (err) {
-    console.error(err);
-    alert("Download failed");
-  }
-};
+      // remove silently
+      link.remove();
+      window.URL.revokeObjectURL(fileURL);
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
+  };
 
   /* ================= DELETE ================= */
 
@@ -142,48 +142,57 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
     }
   };
 
-  if (loading) return <div style={loadingWrap}>Loading...</div>;
-
   return (
-    <div style={pageWrap}>
-      {/* HEADER */}
-      <div style={headerWrap}>
-        <button onClick={onAdd} style={addBtn}>
-          + Create Invoice
-        </button>
+    <div className="space-y-6">
+      {/* Header Section — matches PurchaseOrder.jsx */}
+      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Invoice Management</h2>
+          <div className="text-sm text-slate-600">
+            {loading ? "Loading..." : `${data.length} invoice(s) found`}
+          </div>
+        </div>
+        <div>
+          <button
+            onClick={onAdd}
+            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+          >
+            + Create Invoice
+          </button>
+        </div>
       </div>
 
-      {/* CARD */}
-      <div style={cardWrap}>
-        <h3 style={cardTitle}>Invoices</h3>
-
-        <table width="100%" style={{ borderCollapse: "collapse" }}>
-          <thead style={thead}>
+      {/* Table — matches PurchaseOrder.jsx */}
+      <div className="bg-white rounded-md shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b">
             <tr>
-              <th style={th}>Invoice No</th>
-              <th style={th}>Date</th>
-              <th style={th}>Buyer</th>
-              <th style={th}>Total Amount</th>
-              <th style={th}>Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Invoice No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Buyer</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Total Amount</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {data.map((inv) => (
-              <tr key={inv.id} style={row}>
-                <td style={{ ...td, fontWeight: 600 }}>
+            {data.map((inv, index) => (
+              <tr key={inv.id} className="border-b hover:bg-slate-50">
+                <td className="px-4 py-3 text-sm">{index + 1}</td>
+                <td className="px-4 py-3 text-sm font-medium">
                   {inv.invoice_no}
                 </td>
 
-                <td style={td}>
+                <td className="px-4 py-3 text-sm">
                   {inv.invoice_date
                     ? new Date(inv.invoice_date).toLocaleDateString()
                     : "N/A"}
                 </td>
 
-                <td style={td}>{inv.buyer_name}</td>
+                <td className="px-4 py-3 text-sm">{inv.buyer_name}</td>
 
-                <td style={{ ...td, fontWeight: 600 }}>
+                <td className="px-4 py-3 text-sm font-medium">
                   ₹
                   {Number(inv.grand_total || 0).toLocaleString(
                     "en-IN",
@@ -192,34 +201,34 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                 </td>
 
                 {/* ACTIONS */}
-                <td style={td}>
-                  <div style={actionWrap}>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
                     {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
-                    <button style={btnPurple} title="Invoice History">
+                    <button className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300" title="Invoice History">
                       <MdHistory />
                     </button>
 
-                    <button onClick={() => handleViewPDF(inv.id)} style={btnBlue} title="View">
+                    <button onClick={() => handleViewPDF(inv.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View">
                       <MdRemoveRedEye />
                     </button>
 
-                    <button onClick={() => onEdit(inv.id)} style={btnYellow} title="Edit">
+                    <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
                       <MdEdit />
                     </button>
 
-                    <button onClick={() => handleDownloadPDF(inv.id)} style={btnGreen} title="Download">
+                    <button onClick={() => handleDownloadPDF(inv.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                       <MdDownload />
                     </button>
 
-                    <button style={btnGreen} title="WhatsApp">
+                    <button className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="WhatsApp">
                       <FaWhatsapp />
                     </button>
 
-                    <button style={btnSky} title="Email">
+                    <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                       <MdEmail />
                     </button>
 
-                    <button onClick={() => handleDeleteInvoice(inv.id)} style={btnRed} title="Delete">
+                    <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
                       <MdDelete />
                     </button>
                   </div>
@@ -229,7 +238,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
 
             {data.length === 0 && !loading && (
               <tr>
-                <td colSpan="5" style={emptyRow}>
+                <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
                   No invoices found. Create your first invoice!
                 </td>
               </tr>
@@ -242,87 +251,3 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
 });
 
 export default InvoiceList;
-
-/* ================= UI STYLES (MATCH QUOTATION PAGE) ================= */
-
-const pageWrap = {
-  padding: "30px",
-  background: "#f6f7fb",
-  minHeight: "100vh",
-};
-
-const headerWrap = {
-  marginBottom: "20px",
-};
-
-const addBtn = {
-  background: "#2d6cdf",
-  color: "#fff",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const cardWrap = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "22px",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-};
-
-const cardTitle = {
-  marginBottom: "12px",
-  fontWeight: 600,
-};
-
-const thead = {
-  background: "#f3f4f8",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const td = {
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const row = {
-  borderBottom: "1px solid #eee",
-};
-
-const emptyRow = {
-  textAlign: "center",
-  padding: "40px",
-  color: "#777",
-};
-
-const actionWrap = {
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-};
-
-// Action button styles — match PurchaseOrder.jsx exactly
-// PO ref: className="px-2 py-1 bg-{color}-200 text-{color}-800 rounded text-sm"
-const _btn = { padding: "4px 8px", borderRadius: "4px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", fontSize: "14px" };
-const btnBlue   = { ..._btn, background: "#bfdbfe", color: "#1e40af" }; // bg-blue-200   text-blue-800
-const btnGreen  = { ..._btn, background: "#bbf7d0", color: "#166534" }; // bg-green-200  text-green-800
-const btnYellow = { ..._btn, background: "#fef08a", color: "#854d0e" }; // bg-yellow-200 text-yellow-800
-const btnSky    = { ..._btn, background: "#bae6fd", color: "#075985" }; // bg-sky-200    text-sky-800
-const btnRed    = { ..._btn, background: "#fecaca", color: "#991b1b" }; // bg-red-200    text-red-800
-const btnPurple = { ..._btn, background: "#e9d5ff", color: "#6b21a8" }; // bg-purple-200 text-purple-800
-
-const loadingWrap = {
-  padding: "25px",
-  background: "#f6f7fb",
-  minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-};

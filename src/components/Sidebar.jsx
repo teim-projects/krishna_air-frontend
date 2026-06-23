@@ -16,8 +16,7 @@ const allItems = [
   { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice" },
   { key: "item_master", label: "Item Master", icon: BoxIcon, path: "/item_master" },
   { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory"},
-  
-  
+  { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc" },
 ];
 
 export default function Sidebar() {
@@ -167,6 +166,14 @@ function InventoryIcon(props) {
     <svg {...props} viewBox="0 0 24 24" fill="none">
       <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M9 22V12h6v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function AmcIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
