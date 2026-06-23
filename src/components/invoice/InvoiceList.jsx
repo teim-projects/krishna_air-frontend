@@ -1,9 +1,7 @@
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
-import { FiMail } from "react-icons/fi";
-
-import { FiEye, FiDownload, FiTrash2, FiEdit } from "react-icons/fi";
+import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory } from "react-icons/md";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -18,21 +16,53 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
+/**
+ * InvoiceList
+ * Props:
+ *   onAdd    – called when user clicks "+ Create Invoice"
+ *   onEdit   – called with invoice id when user clicks Edit
+ *   filters  – applied filter object from FiltersPanel (passed by Invoice.jsx)
+ *
+ * Exposed ref methods:
+ *   refreshList() – force re-fetch (called from parent after add/edit)
+ */
+const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchInvoices();
+  // ─── Build query string from filters ───────────────────────────────────────
+  const buildParams = useCallback((f = {}) => {
+    const params = new URLSearchParams();
+
+    // Full-text search → DRF SearchFilter uses ?search=
+    if (f.search) params.set("search", f.search);
+
+    // Date range → InvoiceFilter date_from / date_to
+    if (f.date?.from) params.set("date_from", f.date.from);
+    if (f.date?.to)   params.set("date_to",   f.date.to);
+
+    // GST type → InvoiceFilter exact match
+    if (f.gst_type) params.set("gst_type", f.gst_type);
+
+    return params.toString();
   }, []);
 
-  const fetchInvoices = () => {
+  // ─── Fetch invoices whenever filters change ─────────────────────────────────
+  const fetchInvoices = useCallback(() => {
+    setLoading(true);
+    const qs = buildParams(filters);
     api
-      .get("invoice/invoice/")
+      .get(`invoice/invoice/${qs ? `?${qs}` : ""}`)
       .then((res) => {
         setData(res.data.results || res.data);
       })
-      .catch((err) => console.error(err));
-  };
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [filters, buildParams]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
 
   // Expose refresh method to parent component
   useImperativeHandle(ref, () => ({
@@ -112,6 +142,8 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
     }
   };
 
+  if (loading) return <div style={loadingWrap}>Loading...</div>;
+
   return (
     <div style={pageWrap}>
       {/* HEADER */}
@@ -159,55 +191,43 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
                   )}
                 </td>
 
-                {/* ACTIONS ICON UI */}
+                {/* ACTIONS */}
                 <td style={td}>
                   <div style={actionWrap}>
-  <button
-    onClick={() => handleViewPDF(inv.id)}
-    style={iconBtn}
-    title="View PDF"
-  >
-    <FiEye size={16} />
-  </button>
+                    {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
+                    <button style={btnPurple} title="Invoice History">
+                      <MdHistory />
+                    </button>
 
-  <button
-    onClick={() => handleDownloadPDF(inv.id)}
-    style={iconBtn}
-    title="Download PDF"
-  >
-    <FiDownload size={16} />
-  </button>
+                    <button onClick={() => handleViewPDF(inv.id)} style={btnBlue} title="View">
+                      <MdRemoveRedEye />
+                    </button>
 
-  {/* UI ONLY ICONS */}
-  <button style={iconBtn} title="WhatsApp">
-    <FaWhatsapp size={16} color="#25D366" />
-  </button>
+                    <button onClick={() => onEdit(inv.id)} style={btnYellow} title="Edit">
+                      <MdEdit />
+                    </button>
 
-  <button style={iconBtn} title="Mail">
-    <FiMail size={16} />
-  </button>
+                    <button onClick={() => handleDownloadPDF(inv.id)} style={btnGreen} title="Download">
+                      <MdDownload />
+                    </button>
 
-  <button
-    onClick={() => onEdit(inv.id)}
-    style={iconBtn}
-    title="Edit"
-  >
-    <FiEdit size={16} />
-  </button>
+                    <button style={btnGreen} title="WhatsApp">
+                      <FaWhatsapp />
+                    </button>
 
-  <button
-    onClick={() => handleDeleteInvoice(inv.id)}
-    style={iconBtn}
-    title="Delete"
-  >
-    <FiTrash2 size={16} color="#e74c3c" />
-  </button>
-</div>
+                    <button style={btnSky} title="Email">
+                      <MdEmail />
+                    </button>
+
+                    <button onClick={() => handleDeleteInvoice(inv.id)} style={btnRed} title="Delete">
+                      <MdDelete />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
 
-            {data.length === 0 && (
+            {data.length === 0 && !loading && (
               <tr>
                 <td colSpan="5" style={emptyRow}>
                   No invoices found. Create your first invoice!
@@ -285,12 +305,24 @@ const emptyRow = {
 const actionWrap = {
   display: "flex",
   alignItems: "center",
-  gap: "10px",
+  gap: "6px",
 };
 
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "4px",
+// Action button styles — match PurchaseOrder.jsx exactly
+// PO ref: className="px-2 py-1 bg-{color}-200 text-{color}-800 rounded text-sm"
+const _btn = { padding: "4px 8px", borderRadius: "4px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", fontSize: "14px" };
+const btnBlue   = { ..._btn, background: "#bfdbfe", color: "#1e40af" }; // bg-blue-200   text-blue-800
+const btnGreen  = { ..._btn, background: "#bbf7d0", color: "#166534" }; // bg-green-200  text-green-800
+const btnYellow = { ..._btn, background: "#fef08a", color: "#854d0e" }; // bg-yellow-200 text-yellow-800
+const btnSky    = { ..._btn, background: "#bae6fd", color: "#075985" }; // bg-sky-200    text-sky-800
+const btnRed    = { ..._btn, background: "#fecaca", color: "#991b1b" }; // bg-red-200    text-red-800
+const btnPurple = { ..._btn, background: "#e9d5ff", color: "#6b21a8" }; // bg-purple-200 text-purple-800
+
+const loadingWrap = {
+  padding: "25px",
+  background: "#f6f7fb",
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 };

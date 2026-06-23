@@ -1,17 +1,17 @@
 // quotation/QuotationList.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import React from "react";
 import axios from "axios";
 
 import {
-  FiEye,
-  FiDownload,
-  FiEdit,
-  FiTrash2,
-  FiChevronDown,
-  FiMail,
-} from "react-icons/fi";
+  MdRemoveRedEye,
+  MdDownload,
+  MdEdit,
+  MdDelete,
+  MdEmail,
+  MdHistory,
+} from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
 
 const BASE_API =
@@ -30,7 +30,14 @@ api.interceptors.request.use((config) => {
 
 const normalize = (d) => (Array.isArray(d) ? d : d?.results || []);
 
-export default function QuotationList({ onAdd, onEdit }) {
+/**
+ * QuotationList
+ * Props:
+ *   onAdd    – called when user clicks "+ Add Quotation"
+ *   onEdit   – called with quotation id when user clicks Edit
+ *   filters  – applied filter object from FiltersPanel (parent passes via Quotation.jsx)
+ */
+export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const [list, setList] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
@@ -43,14 +50,26 @@ export default function QuotationList({ onAdd, onEdit }) {
     return () => window.removeEventListener("click", close);
   }, []);
 
-  useEffect(() => {
-    fetchQuotations();
+  // ─── Build query string from filters ───────────────────────────────────────
+  const buildParams = useCallback((f = {}) => {
+    const params = new URLSearchParams();
+
+    // Full-text search → DRF SearchFilter uses ?search=
+    if (f.search) params.set("search", f.search);
+
+    // Date range → custom InvoiceFilter date_from / date_to
+    if (f.date?.from) params.set("date_from", f.date.from);
+    if (f.date?.to)   params.set("date_to",   f.date.to);
+
+    return params.toString();
   }, []);
 
-  const fetchQuotations = () => {
+  // ─── Fetch quotations whenever filters change ───────────────────────────────
+  const fetchQuotations = useCallback(() => {
     setLoading(true);
+    const qs = buildParams(filters);
     api
-      .get("quotation/quotation/")
+      .get(`quotation/quotation/${qs ? `?${qs}` : ""}`)
       .then((res) => {
         const data = normalize(res.data);
         const initialVersion = {};
@@ -63,7 +82,11 @@ export default function QuotationList({ onAdd, onEdit }) {
       })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
-  };
+  }, [filters, buildParams]);
+
+  useEffect(() => {
+    fetchQuotations();
+  }, [fetchQuotations]);
 
   const getActiveVersion = (q) =>
     q.versions?.find((v) => v.id === selectedVersion[q.id]);
@@ -153,7 +176,6 @@ export default function QuotationList({ onAdd, onEdit }) {
               <th style={th}>Site Name</th>
               <th style={th}>Products</th>
               <th style={th}>Total Amount</th>
-              <th style={th}>Version</th>
               <th style={th}>Actions</th>
             </tr>
           </thead>
@@ -185,58 +207,44 @@ export default function QuotationList({ onAdd, onEdit }) {
                       ₹{formatAmount(activeVersion?.total_amount)}
                     </td>
 
-                    <td style={td}>
-                      <span style={versionBadge}>
-                        {activeVersion?.version_no}
-                      </span>
-                    </td>
 
                     {/* ACTIONS */}
                     <td style={td}>
                       <div style={actionWrap}>
+                        {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
                         <button
-                          onClick={() => handleViewPDF(q.id)}
-                          style={iconBtn}
-                        >
-                          <FiEye size={16} />
-                        </button>
-
-                        <button
-                          onClick={() => handleDownloadPDF(q.id)}
-                          style={iconBtn}
-                        >
-                          <FiDownload size={16} />
-                        </button>
-
-                        <button style={iconBtn}>
-                          <FaWhatsapp size={16} color="#25D366" />
-                        </button>
-
-                        <button style={iconBtn}>
-                          <FiMail size={16} />
-                        </button>
-
-                        <button
+                          style={openRow === q.id ? btnPurpleActive : btnPurple}
+                          title="Version History"
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenRow(openRow === q.id ? null : q.id);
                           }}
-                          style={iconBtn}
                         >
-                          <FiChevronDown size={16} />
+                          <MdHistory />
                         </button>
 
-                        <button onClick={() => onEdit(q.id)} style={iconBtn}>
-                          <FiEdit size={16} />
+                        <button onClick={() => handleViewPDF(q.id)} style={btnBlue} title="View">
+                          <MdRemoveRedEye />
                         </button>
 
-                        <button
-                          onClick={() =>
-                            handleDeleteVersion(q.id, activeVersion.id)
-                          }
-                          style={iconBtn}
-                        >
-                          <FiTrash2 size={16} color="#e74c3c" />
+                        <button onClick={() => onEdit(q.id)} style={btnYellow} title="Edit">
+                          <MdEdit />
+                        </button>
+
+                        <button onClick={() => handleDownloadPDF(q.id)} style={btnGreen} title="Download">
+                          <MdDownload />
+                        </button>
+
+                        <button style={btnGreen} title="WhatsApp">
+                          <FaWhatsapp />
+                        </button>
+
+                        <button style={btnSky} title="Email">
+                          <MdEmail />
+                        </button>
+
+                        <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} style={btnRed} title="Delete">
+                          <MdDelete />
                         </button>
                       </div>
                     </td>
@@ -245,7 +253,7 @@ export default function QuotationList({ onAdd, onEdit }) {
                   {/* FULL VERSION HISTORY TABLE */}
                   {openRow === q.id && (
                     <tr>
-                      <td colSpan="7" style={versionTableWrap}>
+                      <td colSpan="6" style={versionTableWrap}>
                         <div style={versionTitle}>Version History</div>
 
                         <table width="100%" style={versionTable}>
@@ -275,34 +283,24 @@ export default function QuotationList({ onAdd, onEdit }) {
 
                                   <td style={tdSmall}>
                                     <div style={actionWrapSmall}>
-                                      <button
-                                        onClick={() => handleViewPDF(q.id, v.id)}
-                                        style={iconBtnSmall}
-                                      >
-                                        <FiEye size={14} />
+                                      <button onClick={() => handleViewPDF(q.id, v.id)} style={btnBlue} title="View">
+                                        <MdRemoveRedEye />
                                       </button>
 
-                                      <button
-                                        onClick={() => handleDownloadPDF(q.id, v.id)}
-                                        style={iconBtnSmall}
-                                      >
-                                        <FiDownload size={14} />
+                                      <button onClick={() => handleDownloadPDF(q.id, v.id)} style={btnGreen} title="Download">
+                                        <MdDownload />
                                       </button>
 
-                                      <button style={iconBtnSmall}>
-                                        <FaWhatsapp size={14} color="#25D366" />
+                                      <button style={btnGreen} title="WhatsApp">
+                                        <FaWhatsapp />
                                       </button>
 
-                                      <button style={iconBtnSmall}>
-                                        <FiMail size={14} />
+                                      <button style={btnSky} title="Email">
+                                        <MdEmail />
                                       </button>
 
-                                      {/* ✅ DELETE BACK AGAIN */}
-                                      <button
-                                        onClick={() => handleDeleteVersion(q.id, v.id)}
-                                        style={iconBtnSmall}
-                                      >
-                                        <FiTrash2 size={14} color="#e74c3c" />
+                                      <button onClick={() => handleDeleteVersion(q.id, v.id)} style={btnRed} title="Delete">
+                                        <MdDelete />
                                       </button>
                                     </div>
                                   </td>
@@ -316,6 +314,14 @@ export default function QuotationList({ onAdd, onEdit }) {
                 </React.Fragment>
               );
             })}
+
+            {list.length === 0 && !loading && (
+              <tr>
+                <td colSpan="7" style={emptyRow}>
+                  No quotations found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -376,6 +382,12 @@ const row = {
   borderBottom: "1px solid #eee",
 };
 
+const emptyRow = {
+  textAlign: "center",
+  padding: "40px",
+  color: "#777",
+};
+
 const subText = {
   fontSize: "12px",
   color: "#777",
@@ -384,24 +396,19 @@ const subText = {
 const actionWrap = {
   display: "flex",
   alignItems: "center",
-  gap: "10px",
+  gap: "6px",
 };
 
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "4px",
-};
-
-const versionBadge = {
-  background: "#e8f7ee",
-  color: "#27ae60",
-  padding: "4px 10px",
-  borderRadius: "20px",
-  fontSize: "12px",
-  fontWeight: 600,
-};
+// Action button styles — match PurchaseOrder.jsx exactly
+// PO ref: className="px-2 py-1 bg-{color}-200 text-{color}-800 rounded text-sm"
+const _btn = { padding: "4px 8px", borderRadius: "4px", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", fontSize: "14px" };
+const btnBlue        = { ..._btn, background: "#bfdbfe", color: "#1e40af" }; // bg-blue-200   text-blue-800
+const btnGreen       = { ..._btn, background: "#bbf7d0", color: "#166534" }; // bg-green-200  text-green-800
+const btnYellow      = { ..._btn, background: "#fef08a", color: "#854d0e" }; // bg-yellow-200 text-yellow-800
+const btnSky         = { ..._btn, background: "#bae6fd", color: "#075985" }; // bg-sky-200    text-sky-800
+const btnRed         = { ..._btn, background: "#fecaca", color: "#991b1b" }; // bg-red-200    text-red-800
+const btnPurple      = { ..._btn, background: "#e9d5ff", color: "#6b21a8" }; // bg-purple-200 text-purple-800
+const btnPurpleActive= { ..._btn, background: "#c084fc", color: "#581c87" }; // bg-purple-400 text-purple-900 (active)
 
 const versionTableWrap = {
   background: "#fafafa",
@@ -426,12 +433,6 @@ const actionWrapSmall = {
   gap: "8px",
 };
 
-const iconBtnSmall = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "3px",
-};
 
 
 const versionTitle = {
