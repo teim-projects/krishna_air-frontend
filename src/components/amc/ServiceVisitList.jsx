@@ -3,7 +3,7 @@ import { MdEdit, MdDelete, MdBuild } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddServiceVisitForm from "./AddServiceVisitForm";
 
-export default function ServiceVisitList({ baseApi, token }) {
+export default function ServiceVisitList({ baseApi, token, filters = {} }) {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -24,7 +24,11 @@ export default function ServiceVisitList({ baseApi, token }) {
   const fetchVisits = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseApi}/amc/services/`, {
+      let url = `${baseApi}/amc/services/`;
+      if (filters?.search) {
+        url += `?search=${encodeURIComponent(filters.search)}`;
+      }
+      const res = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -46,7 +50,8 @@ export default function ServiceVisitList({ baseApi, token }) {
 
   const fetchInventory = async () => {
     try {
-      const res = await fetch(`${baseApi}/inventory/inventory/`, {
+      // Use /low_side/ endpoint to get ONLY low-side materials (no ACs) for spare parts dropdown
+      const res = await fetch(`${baseApi}/inventory/inventory/low_side/`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -54,7 +59,8 @@ export default function ServiceVisitList({ baseApi, token }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setInventoryItems(data.results || data);
+        // /all/ returns a flat array (no pagination wrapper)
+        setInventoryItems(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Error fetching inventory:", err);
@@ -64,7 +70,7 @@ export default function ServiceVisitList({ baseApi, token }) {
   useEffect(() => {
     fetchVisits();
     fetchInventory();
-  }, [baseApi, token]);
+  }, [baseApi, token, filters]);
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -183,6 +189,7 @@ export default function ServiceVisitList({ baseApi, token }) {
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">AMC Contract</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">AC Variant</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Visit Date</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Service Type</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Engineer</th>
@@ -194,13 +201,13 @@ export default function ServiceVisitList({ baseApi, token }) {
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan="8" className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan="9" className="px-4 py-8 text-center text-sm text-slate-500">
                   Loading service visits...
                 </td>
               </tr>
             ) : visits.length === 0 ? (
               <tr>
-                <td colSpan="8" className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan="9" className="px-4 py-8 text-center text-sm text-slate-500">
                   No service visits found. Click "+ Schedule Visit" to create one.
                 </td>
               </tr>
@@ -208,7 +215,17 @@ export default function ServiceVisitList({ baseApi, token }) {
               visits.map((item, index) => (
                 <tr key={item.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-600">{item.amc_contract_number || `Contract ID: ${item.amc_contract}`}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="font-semibold text-blue-600">
+                      {item.amc_contract_number || `Contract ID: ${item.amc_contract}`}
+                    </div>
+                    {item.customer_name && (
+                      <div className="text-xs text-slate-500 mt-0.5">{item.customer_name}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-600 font-medium">
+                    {item.covered_product || "N/A"}
+                  </td>
                   <td className="px-4 py-3 text-sm">{item.visit_date}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.service_type === "SCHEDULED"
@@ -276,7 +293,7 @@ export default function ServiceVisitList({ baseApi, token }) {
                     {row}
                     {expandedVisits[item.id] && (
                       <tr className="bg-slate-50">
-                        <td colSpan="8" className="px-8 py-3">
+                        <td colSpan="9" className="px-8 py-3">
                           <div className="border border-slate-200 rounded-md bg-white p-3 space-y-2 shadow-sm">
                             <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
                               Spare Parts & Low Side Materials Used

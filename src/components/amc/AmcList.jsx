@@ -3,7 +3,7 @@ import { MdEdit, MdDelete, MdAutorenew } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
 
-export default function AmcList({ baseApi, token }) {
+export default function AmcList({ baseApi, token, filters = {} }) {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -18,6 +18,11 @@ export default function AmcList({ baseApi, token }) {
         url = `${baseApi}/amc/contracts/expiring_soon/`;
       } else if (filterType === "active") {
         url = `${baseApi}/amc/contracts/active_contracts/`;
+      }
+      // Append search filter from FiltersPanel
+      if (filters?.search) {
+        const separator = url.includes("?") ? "&" : "?";
+        url += `${separator}search=${encodeURIComponent(filters.search)}`;
       }
 
       const res = await fetch(url, {
@@ -42,7 +47,7 @@ export default function AmcList({ baseApi, token }) {
 
   useEffect(() => {
     fetchContracts();
-  }, [filterType, baseApi, token]);
+  }, [filterType, baseApi, token, filters]);
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
