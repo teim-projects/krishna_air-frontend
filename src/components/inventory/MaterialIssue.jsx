@@ -97,19 +97,63 @@ export default function MaterialIssue({ base_api, filters }) {
   };
 
   const handleView = (materialIssue) => {
-    Swal.fire({
-      title: `Material Issue: ${materialIssue.issue_number}`,
-      html: `
-        <div class="text-left">
-          <p><strong>Issue Type:</strong> ${materialIssue.issue_type}</p>
+  console.log("=== MATERIAL ISSUE DEBUG ===");
+  console.log("Full materialIssue object:", materialIssue);
+  console.log("Items array:", materialIssue.items);
+  
+  // Build items table HTML
+  const itemsHTML = materialIssue.items && materialIssue.items.length > 0 
+    ? `
+      <table class="w-full mt-4 border-collapse text-left text-sm">
+        <thead>
+          <tr class="bg-gray-200 border">
+            <th class="px-3 py-2 border">Sr.No</th>
+            <th class="px-3 py-2 border">Item Details</th>
+            <th class="px-3 py-2 border">Quantity</th>
+            <th class="px-3 py-2 border">UOM</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${materialIssue.items.map((item, index) => {
+            // Use display_name or inventory_item_name (these exist!)
+            const itemName = item.display_name || item.inventory_item_name || 'Unknown';
+            console.log(`Item ${index} name:`, itemName);
+            return `
+              <tr class="border hover:bg-gray-50">
+                <td class="px-3 py-2 border">${index + 1}</td>
+                <td class="px-3 py-2 border font-medium">${itemName}</td>
+                <td class="px-3 py-2 border text-center font-semibold">${item.quantity || 0}</td>
+                <td class="px-3 py-2 border">${item.uom || '-'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `
+    : '<p class="text-gray-500 italic mt-2">No items issued</p>';
+
+  Swal.fire({
+    title: `Material Issue: ${materialIssue.issue_number}`,
+    html: `
+      <div class="text-left max-h-96 overflow-y-auto">
+        <div class="space-y-2 mb-4">
+          <p><strong>Issue Type:</strong> <span class="capitalize">${materialIssue.issue_type}</span></p>
           <p><strong>Issue Date:</strong> ${materialIssue.issue_date}</p>
-          <p><strong>Total Items:</strong> ${materialIssue.items?.length || 0}</p>
+          <p><strong>Branch:</strong> ${materialIssue.branch_name || '-'}</p>
+          <p><strong>Site:</strong> ${materialIssue.site_name || '-'}</p>
+          <p><strong>Technician:</strong> ${materialIssue.technician_name || '-'}</p>
         </div>
-      `,
-      icon: "info",
-      confirmButtonText: "Close",
-    });
-  };
+        <hr class="my-3">
+        <p class="font-semibold mb-2">Items Issued (${materialIssue.items?.length || 0}):</p>
+        ${itemsHTML}
+      </div>
+    `,
+    icon: "info",
+    confirmButtonText: "Close",
+    width: 750,
+  });
+};
+
 
   return (
     <div className="space-y-6">
