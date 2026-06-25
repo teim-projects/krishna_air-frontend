@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdAutorenew } from "react-icons/md";
+import { MdEdit, MdDelete, MdAutorenew, MdVisibility } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
+import ContractDetailModal from "./ContractDetailModal";
 
-export default function AmcList({ baseApi, token }) {
+export default function AmcList({ baseApi, token, filters = {} }) {
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedAmc, setSelectedAmc] = useState(null);
   const [filterType, setFilterType] = useState("all"); // all, active, expiring_soon
+  const [detailContract, setDetailContract] = useState(null); // for ContractDetailModal
 
   const fetchContracts = async () => {
     setLoading(true);
@@ -18,6 +20,11 @@ export default function AmcList({ baseApi, token }) {
         url = `${baseApi}/amc/contracts/expiring_soon/`;
       } else if (filterType === "active") {
         url = `${baseApi}/amc/contracts/active_contracts/`;
+      }
+      // Append search filter from FiltersPanel
+      if (filters?.search) {
+        const separator = url.includes("?") ? "&" : "?";
+        url += `${separator}search=${encodeURIComponent(filters.search)}`;
       }
 
       const res = await fetch(url, {
@@ -42,7 +49,7 @@ export default function AmcList({ baseApi, token }) {
 
   useEffect(() => {
     fetchContracts();
-  }, [filterType, baseApi, token]);
+  }, [filterType, baseApi, token, filters]);
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -226,6 +233,13 @@ export default function AmcList({ baseApi, token }) {
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => setDetailContract(item)}
+                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        title="View History"
+                      >
+                        <MdVisibility />
+                      </button>
+                      <button
                         onClick={() => {
                           setSelectedAmc(item);
                           setShowAddForm(true);
@@ -273,6 +287,15 @@ export default function AmcList({ baseApi, token }) {
           baseApi={baseApi}
           amc={selectedAmc}
           token={token}
+        />
+      )}
+
+      {detailContract && (
+        <ContractDetailModal
+          contract={detailContract}
+          baseApi={baseApi}
+          token={token}
+          onClose={() => setDetailContract(null)}
         />
       )}
     </div>

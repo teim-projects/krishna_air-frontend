@@ -3,7 +3,7 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddPackageForm from "./AddPackageForm";
 
-export default function PackageList({ baseApi, token }) {
+export default function PackageList({ baseApi, token, filters = {} }) {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -12,7 +12,11 @@ export default function PackageList({ baseApi, token }) {
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseApi}/amc/packages/`, {
+      let url = `${baseApi}/amc/packages/`;
+      if (filters?.search) {
+        url += `?search=${encodeURIComponent(filters.search)}`;
+      }
+      const res = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -34,7 +38,7 @@ export default function PackageList({ baseApi, token }) {
 
   useEffect(() => {
     fetchPackages();
-  }, [baseApi, token]);
+  }, [baseApi, token, filters]);
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
