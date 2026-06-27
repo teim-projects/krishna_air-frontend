@@ -9,11 +9,11 @@ import GRN from '../components/inventory/GRN';
 import MaterialIssue from '../components/inventory/MaterialIssue';
 import MaterialReturn from '../components/inventory/MaterialReturn';
 import StockDashboard from '../components/inventory/StockDashboard';
+import DeliveryChallan from '../components/inventory/DeliveryChallan';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
-  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'purchase' | 'stock' | 'GRN' | 'materialIssue' | 'materialReturn' | 'stockDashboard'
-
+  const [activeTab, setActiveTab] = useState('vendor');
   const [filters, setFilters] = useState({});
 
   // Filter configurations
@@ -49,9 +49,16 @@ const Inventory = () => {
     { key: "search", label: "Search", type: "search", placeholder: "Search by item code, SKU..." }
   ];
 
+  const deliveryChallanFiltersConfig = [
+    { key: "search", label: "Search", type: "search", placeholder: "Search by DC number, vehicle number, transporter..." },
+    { key: "status", label: "Status", type: "select", options: ["All", "draft", "confirmed", "dispatched", "delivered", "cancelled"], placeholder: "Filter by status" }
+  ];
+
   const handleFilterChange = (vals) => {
     setFilters(vals);
   };
+
+  console.log("Active Tab:", activeTab);
 
   return (
     <Base
@@ -65,7 +72,8 @@ const Inventory = () => {
                   activeTab === 'materialIssue' ? 'Material Issue Filters' :
                     activeTab === 'materialReturn' ? 'Material Return Filters' :
                       activeTab === 'stockDashboard' ? 'Stock Filters' :
-                        'Filters'
+                        activeTab === 'deliveryChallan' ? 'Delivery Challan Filters' :
+                          'Filters'
       }
       filtersConfig={
         activeTab === 'vendor' ? vendorFiltersConfig :
@@ -76,66 +84,104 @@ const Inventory = () => {
                   activeTab === 'materialIssue' ? materialIssueFiltersConfig :
                     activeTab === 'materialReturn' ? materialReturnFiltersConfig :
                       activeTab === 'stockDashboard' ? stockDashboardFiltersConfig :
-                        null
+                        activeTab === 'deliveryChallan' ? deliveryChallanFiltersConfig :
+                          null
       }
       initialFilterValues={filters}
       onFiltersChange={handleFilterChange}
     >
       <div className="p-4">
         {/* Tab Buttons */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex gap-4 mb-4 flex-wrap">
           <button
-            className={`px-4 py-2 rounded ${activeTab === 'site' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-              }`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'site' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('site')}
           >
             Site
           </button>
           <button
-            className={`px-4 py-2 rounded ${activeTab === 'branch' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-              }`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'branch' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('branch')}
           >
             Branch
           </button>
           <button
-            className={`px-4 py-2 rounded ${activeTab === 'vendor' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-              }`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'vendor' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('vendor')}
           >
             Vendor
           </button>
-
           <button
-            className={`px-4 py-2 rounded ${activeTab === 'purchase' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-              }`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'purchase' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('purchase')}
           >
             Purchase Order
           </button>
           <button 
-            className={`px-4 py-2 rounded ${activeTab === 'grn' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'grn' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('grn')}
           >
             GRN
           </button>
           <button 
-            className={`px-4 py-2 rounded ${activeTab === 'materialIssue' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'materialIssue' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('materialIssue')}
           >
             Material Issue
           </button>
           <button 
-            className={`px-4 py-2 rounded ${activeTab === 'materialReturn' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'materialReturn' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('materialReturn')}
           >
             MRN
           </button>
           <button 
-            className={`px-4 py-2 rounded ${activeTab === 'stockDashboard' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'stockDashboard' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
             onClick={() => setActiveTab('stockDashboard')}
           >
             Stock
+          </button>
+          <button 
+            className={`px-4 py-2 rounded transition-colors ${
+              activeTab === 'deliveryChallan' 
+                ? 'bg-green-600 text-white' 
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
+            }`}
+            onClick={() => setActiveTab('deliveryChallan')}
+          >
+            Delivery Challan
           </button>
         </div>
 
@@ -145,10 +191,22 @@ const Inventory = () => {
         {activeTab === 'vendor' && <Vendor base_api={BASE_API} filters={filters} />}
         {activeTab === 'purchase' && <PurchaseOrder base_api={BASE_API} filters={filters} />}
         {activeTab === 'grn' && <GRN base_api={BASE_API} filters={filters} />}
-        {activeTab === 'materialIssue' && <MaterialIssue base_api={BASE_API} filters={filters} />}
+        {activeTab === 'materialIssue' && (
+          <MaterialIssue 
+            base_api={BASE_API} 
+            filters={filters} 
+          />
+        )}
         {activeTab === 'materialReturn' && <MaterialReturn base_api={BASE_API} filters={filters} />}
         {activeTab === 'stockDashboard' && <StockDashboard base_api={BASE_API} filters={filters} />}
-
+        
+        {/* Delivery Challan Component */}
+        {activeTab === 'deliveryChallan' && (
+          <DeliveryChallan 
+            base_api={BASE_API} 
+            filters={filters} 
+          />
+        )}
       </div>
     </Base>
   );
