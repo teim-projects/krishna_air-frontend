@@ -10,6 +10,8 @@ import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
 import { State, City } from "country-state-city";
 import CreatableSelect from "react-select/creatable";
+import GooglePlacesInput from "../common/GooglePlacesInput";
+import LeadQualifyingPanel from "./LeadQualifyingPanel";
 
 
 const createEmptyProductRow = () => ({
@@ -112,6 +114,14 @@ export default function AddLeadForm({
   const [loadingLatestLead, setLoadingLatestLead] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  // Lead Qualifying Questions
+  const [isQualified, setIsQualified] = useState(false);
+  const [qualifyingAnswers, setQualifyingAnswers] = useState({});
+  // Is current user a manager/admin (can approve qualifying)?
+  const canApprove = useMemo(() => {
+    const role = userRole?.name?.toLowerCase();
+    return role === "admin" || role === "manager";
+  }, [userRole]);
 
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -342,6 +352,8 @@ export default function AddLeadForm({
       setCustomerId(lead.customer ?? null);
       setAssignId(lead.assign_to ?? null);
       setShowLeadSourceInput(!!selected?.needsInput);
+      setIsQualified(lead.is_qualified || false);
+      setQualifyingAnswers(lead.qualifying_answers || {});
     } else {
       // reset for new lead
       setFormData({
@@ -377,7 +389,8 @@ export default function AddLeadForm({
         remarks: "",
       });
       setCustomerId(null);
-
+      setIsQualified(false);
+      setQualifyingAnswers({});
     }
     setLoading(false);
     // cancel any pending lookup
@@ -873,7 +886,9 @@ export default function AddLeadForm({
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
-        products: productPayload
+        products: productPayload,
+        is_qualified: isQualified,
+        qualifying_answers: qualifyingAnswers,
       };
 
       payload.deleted_products = deletedProductIds;
@@ -1562,16 +1577,16 @@ export default function AddLeadForm({
                 <div>
                   <label className="text-sm font-normal text-gray-600">
                     Project Address
+                    <span className="ml-1 text-xs text-blue-500 font-normal">(Google Maps)</span>
                   </label>
-                  <input
+                  <GooglePlacesInput
                     name="projectAddress"
-                    placeholder="Project address"
                     value={formData.projectAddress}
-                    onChange={(e) => {
-                      clearError(e);
-                      handleChange(e);
-                    }}
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                    onChange={(address) =>
+                      setFormData((prev) => ({ ...prev, projectAddress: address }))
+                    }
+                    placeholder="Search project location on map..."
+                    className="w-full mt-1 py-2 rounded-md border border-slate-300 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
                   />
                 </div>
 
@@ -1807,6 +1822,19 @@ export default function AddLeadForm({
                   />
                 </div>
               </>
+            )}
+
+            {/* Lead Qualifying Questions — step 2 only */}
+            {step === 2 && (
+              <LeadQualifyingPanel
+                baseApi={baseApi}
+                token={authToken}
+                isQualified={isQualified}
+                answers={qualifyingAnswers}
+                onChange={setQualifyingAnswers}
+                canApprove={canApprove}
+                onToggleQualify={() => setIsQualified((v) => !v)}
+              />
             )}
 
             {/* BUTTONS */}
