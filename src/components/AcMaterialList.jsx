@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { formatMaterialLabel, materialSelectionPayload } from "../utils/materialLabel";
 
 const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
     const [acTypes, setAcTypes] = useState([]);
@@ -30,21 +31,14 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
     };
 
     useEffect(() => {
-        if (onSelectionChange) {
-            const selectedData = mappedMaterials
-                .filter(mat => selectedItems.includes(mat.material_id))
-                .map(mat => ({
-                    id: mat.material_id,
-                    material_name: mat.material_name,
-                    brand_id: mat.brand_id,
-                    brand_name: mat.brand_name
-                }));
+        if (!onSelectionChange) return;
 
-            onSelectionChange({
-                materials: selectedData
-            });
-        }
-    }, [selectedItems]);
+        const selectedData = mappedMaterials
+            .filter(mat => selectedItems.includes(mat.material_id))
+            .map(materialSelectionPayload);
+
+        onSelectionChange({ materials: selectedData });
+    }, [selectedItems, mappedMaterials]);
 
     // 🔹 Fetch Selected Materials
     const fetchSelectedMaterials = async (acTypeId) => {
@@ -190,18 +184,11 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                         className="border rounded-md px-3 py-2 w-full"
                     >
                         <option value="">Select Material</option>
-                        {mappedMaterials.map((mat) => {
-                            let displayText = mat.material_name || '';
-                            //if (mat.item_type_name) displayText += ` (${mat.item_type_name})`;
-                            if (mat.size) displayText += ` - ${mat.size}${mat.size_unit || ''}`;
-                            if (mat.thickness) displayText += ` x ${mat.thickness}${mat.thickness_unit || ''}`;
-
-                            return (
+                        {mappedMaterials.map((mat) => (
                                 <option key={mat.id} value={mat.material_id}>
-                                    {displayText}
+                                    {formatMaterialLabel(mat)}
                                 </option>
-                            );
-                        })}
+                            ))}
                     </select>
                 </div>
             </div>
@@ -213,9 +200,7 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
 
                     if (!mat) return null;
 
-                    let chipText = mat.material_name || '';
-                    if (mat.size) chipText += ` ${mat.size}${mat.size_unit || ''}`;
-                    if (mat.thickness) chipText += `x${mat.thickness}${mat.thickness_unit || ''}`;
+                    let chipText = formatMaterialLabel(mat);
 
                     return (
                         <div

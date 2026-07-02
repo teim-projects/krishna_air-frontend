@@ -3,6 +3,13 @@ import axios from "axios";
 import SmartProductSelect from "./SmartProductSelect";
 import { MdDelete } from "react-icons/md";
 import AcMaterialList from "./AcMaterialList";
+import {
+  toNum,
+  formatAmount,
+  normalizeLowSideItem,
+  normalizeHighSideItem,
+} from "../utils/numberFormat";
+import { formatMaterialLabel } from "../utils/materialLabel";
 
 export default function ItemSelectionEngine({
   baseApi,
@@ -12,7 +19,8 @@ export default function ItemSelectionEngine({
   lowItems,
   setLowItems,
   mode = "quotation",
-  gstType
+  gstType,
+  onServiceItemsChange,
 }) {
 
   const isInvoice = mode === "invoice";
@@ -191,6 +199,14 @@ export default function ItemSelectionEngine({
     setDraftLowItem(copy);
   };
 
+  const updateLowItemRow = (index, field, value) => {
+    setLowItems(prev => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
   const updateServiceDraft = (field, value) => {
     setDraftServiceItem(prev => ({ ...prev, [field]: value }));
   };
@@ -223,15 +239,10 @@ export default function ItemSelectionEngine({
       return;
     }
 
-    const newRow = {
+    const newRow = normalizeHighSideItem({
       ...draftHighItem,
-      quantity: draftHighItem.quantity || 1,
-      unit_price: draftHighItem.unit_price || 0,
-      rate: draftHighItem.rate || 0,
-      gst_percent: highSideGstEnabled ? (draftHighItem.gst_percent || 18) : 0,
-      mathadi_charges: draftHighItem.mathadi_charges || 0,
-      transportation_charges: draftHighItem.transportation_charges || 0,
-    };
+      gst_percent: highSideGstEnabled ? toNum(draftHighItem.gst_percent, 18) : 0,
+    });
 
     setItems(prev => [...prev, newRow]);
 
@@ -270,19 +281,23 @@ export default function ItemSelectionEngine({
         brandNameToUse = selectedBrand?.name || "";
       }
 
-      return {
+      const displayName = mat.material_display_name || formatMaterialLabel(mat);
+
+      return normalizeLowSideItem({
         ...draftLowItem,
-        quantity: draftLowItem.quantity || 1,
-        unit_price: draftLowItem.unit_price || 0,
-        rate: draftLowItem.rate || 0,
-        gst_percent: lowSideGstEnabled ? (draftLowItem.gst_percent || 18) : 0,
-        mathadi_charges: draftLowItem.mathadi_charges || 0,
+        gst_percent: lowSideGstEnabled ? toNum(draftLowItem.gst_percent, 18) : 0,
         unit: mat.unit || draftLowItem.unit,
         item: mat.id,
-        item_code: mat.material_name || mat.item_code,
+        item_code: displayName,
+        material_display_name: displayName,
+        material_name: mat.material_name,
+        size: mat.size,
+        size_unit: mat.size_unit,
+        thickness: mat.thickness,
+        thickness_unit: mat.thickness_unit,
         brand: brandToUse,
-        brand_name: brandNameToUse
-      };
+        brand_name: brandNameToUse,
+      });
     });
 
     setLowItems(prev => [...prev, ...newItems]);
@@ -324,78 +339,48 @@ const addServiceItem = () => {
         ? draftServiceItem.material.split(',').map(Number) 
         : [];
 
-    // If Labor type and no materials selected, create one entry for the service itself
+    const quantity = toNum(draftServiceItem.quantity);
+    const price = toNum(draftServiceItem.price);
+    const gstPercent = toNum(draftServiceItem.gst_percent);
+    const mathadiCharges = toNum(draftServiceItem.mathadi_charges);
+    const baseAmount = quantity * price;
+    const gstAmount = (baseAmount * gstPercent) / 100;
+    const totalAmount = baseAmount + gstAmount + mathadiCharges;
+
+    const buildServiceEntry = (materialId, materialName) => ({
+        id: Date.now() + Math.random(),
+        service_id: draftServiceItem.service,
+        service_name: selectedService?.name || "",
+        category: draftServiceItem.category,
+        material_id: materialId,
+        material_name: materialName,
+        quantity,
+        unit: draftServiceItem.unit,
+        price,
+        gst_percent: gstPercent,
+        mathadi_charges: mathadiCharges,
+        base_amount: baseAmount,
+        gst_amount: gstAmount,
+        total_amount: totalAmount,
+    });
+
+    let entriesToAdd = [];
+
     if (draftServiceItem.service_type === 'LABOR' || selectedMaterialIds.length === 0) {
-        const quantity = parseFloat(draftServiceItem.quantity) || 0;
-        const price = parseFloat(draftServiceItem.price) || 0;
-        const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
-        const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
-
-        const baseAmount = quantity * price;
-        const gstAmount = (baseAmount * gstPercent) / 100;
-        const totalAmount = baseAmount + gstAmount + mathadiCharges;
-
-        const newServiceItem = {
-            id: Date.now() + Math.random(),
-            service_id: draftServiceItem.service,
-            service_name: selectedService?.name || "",
-            category: draftServiceItem.category,
-            material_id: null,
-            material_name: "(Labor Only)",
-            quantity: quantity,
-            unit: draftServiceItem.unit,
-            price: price,
-            gst_percent: gstPercent,
-            mathadi_charges: mathadiCharges,
-            base_amount: baseAmount,
-            gst_amount: gstAmount,
-            total_amount: totalAmount
-        };
-
-        setServiceItems(prev => [...prev, newServiceItem]);
+        entriesToAdd = [buildServiceEntry(null, "(Labor Only)")];
     } else {
-        // Create an entry for each selected material
-        const newServiceItems = selectedMaterialIds.map(materialId => {
+        entriesToAdd = selectedMaterialIds.map(materialId => {
             const selectedMaterial = selectedService?.items?.find(item => item.id === materialId);
-            
-            const quantity = parseFloat(draftServiceItem.quantity) || 0;
-            const price = parseFloat(draftServiceItem.price) || 0;
-            const gstPercent = parseFloat(draftServiceItem.gst_percent) || 0;
-            const mathadiCharges = parseFloat(draftServiceItem.mathadi_charges) || 0;
-
-            const baseAmount = quantity * price;
-            const gstAmount = (baseAmount * gstPercent) / 100;
-            const totalAmount = baseAmount + gstAmount + mathadiCharges;
-
-            return {
-                id: Date.now() + Math.random(),
-                service_id: draftServiceItem.service,
-                service_name: selectedService?.name || "",
-                category: draftServiceItem.category,
-                material_id: materialId,
-                material_name: selectedMaterial?.item_code || "",
-                quantity: quantity,
-                unit: draftServiceItem.unit,
-                price: price,
-                gst_percent: gstPercent,
-                mathadi_charges: mathadiCharges,
-                base_amount: baseAmount,
-                gst_amount: gstAmount,
-                total_amount: totalAmount
-            };
+            return buildServiceEntry(materialId, selectedMaterial?.item_code || "");
         });
-
-        setServiceItems(prev => [...prev, ...newServiceItems]);
     }
 
-    // ✅ IMPORTANT: Update parent component's serviceItems prop if it exists
-    // This ensures the data flows back to parent component
-    if (mode === "quotation" && onServiceItemsChange) {
-        const updatedItems = [...serviceItems];
-        onServiceItemsChange(updatedItems);
-    }
+    setServiceItems(prev => {
+        const updated = [...prev, ...entriesToAdd];
+        onServiceItemsChange?.(updated);
+        return updated;
+    });
 
-    // Reset form
     setDraftServiceItem({
         service: "",
         service_type: "",
@@ -410,7 +395,11 @@ const addServiceItem = () => {
 };
 
   const removeServiceItem = (serviceId) => {
-    setServiceItems(prev => prev.filter(item => item.id !== serviceId));
+    setServiceItems(prev => {
+      const updated = prev.filter(item => item.id !== serviceId);
+      onServiceItemsChange?.(updated);
+      return updated;
+    });
   };
 
   /* ================= EFFECTS ================= */
@@ -1058,6 +1047,114 @@ const addServiceItem = () => {
           {lowSideActiveTab === "materials" ? renderMaterialsTab() : renderServicesTab()}
         </div>
 
+                {/* Low Side Items Table */}
+        {lowSideActiveTab === "materials" && lowItems.length > 0 && (
+          <div className="p-4 border-t border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-[900px] table-fixed text-sm border-collapse">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="w-12 px-2 py-2 border-r">#</th>
+                    <th className="w-48 px-2 py-2 border-r">Item</th>
+                    <th className="w-24 px-2 py-2 border-r">HSN</th>
+                    <th className="w-20 px-2 py-2 border-r">Unit</th>
+                    <th className="w-20 px-2 py-2 border-r">Qty</th>
+                    <th className="w-28 px-2 py-2 border-r">{isInvoice ? "Rate" : "Price"}</th>
+                    {lowSideGstEnabled && (
+                      <th className="w-20 px-2 py-2 border-r">GST%</th>
+                    )}
+                    {!isInvoice && (
+                      <th className="w-28 px-2 py-2 border-r">Mathadi</th>
+                    )}
+                    <th className="px-2 py-2 border-r">Description</th>
+                    <th className="w-16 px-2 py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lowItems.map((row, i) => (
+                      <tr key={i} className="border-b">
+                        <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
+                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug" title={formatMaterialLabel(row) || row.material_display_name || ""}>
+                          {formatMaterialLabel(row) || row.material_display_name || row.item_code || "Unknown"}
+                        </td>
+                        <td className="w-24 px-2 py-2 border-r">
+                          <input
+                            className="w-full border rounded px-1 py-1"
+                            value={row.hsn_sac || ""}
+                            onChange={e => updateLowItemRow(i, "hsn_sac", e.target.value)}
+                          />
+                        </td>
+                        <td className="w-20 px-2 py-2 border-r">
+                          <select
+                            className="w-full border rounded px-1 py-1"
+                            value={row.unit || "Nos"}
+                            onChange={e => updateLowItemRow(i, "unit", e.target.value)}
+                          >
+                            {unitOptions.map(unit => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="w-20 px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            className="w-full border rounded px-1 py-1"
+                            value={row.quantity ?? ""}
+                            onChange={e => updateLowItemRow(i, "quantity", e.target.value)}
+                          />
+                        </td>
+                        <td className="w-28 px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            className="w-full border rounded px-1 py-1"
+                            value={isInvoice ? (row.rate ?? "") : (row.unit_price ?? "")}
+                            onChange={e => updateLowItemRow(i, isInvoice ? "rate" : "unit_price", e.target.value)}
+                          />
+                        </td>
+                        {lowSideGstEnabled && (
+                          <td className="w-20 px-2 py-2 border-r">
+                            <input
+                              type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={row.gst_percent ?? ""}
+                              onChange={e => updateLowItemRow(i, "gst_percent", e.target.value)}
+                            />
+                          </td>
+                        )}
+                        {!isInvoice && (
+                          <td className="w-28 px-2 py-2 border-r">
+                            <input
+                              type="number"
+                              className="w-full border rounded px-1 py-1"
+                              value={row.mathadi_charges ?? ""}
+                              onChange={e => updateLowItemRow(i, "mathadi_charges", e.target.value)}
+                            />
+                          </td>
+                        )}
+                        <td className="px-2 py-2 border-r">
+                          <textarea
+                            className="w-full border rounded px-1 py-1 text-xs"
+                            value={row.description || ""}
+                            onChange={e => updateLowItemRow(i, "description", e.target.value)}
+                            rows={2}
+                          />
+                        </td>
+                        <td className="w-16 px-2 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setLowItems(prev => prev.filter((_, idx) => idx !== i))}
+                          >
+                            <MdDelete />
+                          </button>
+                        </td>
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Services Table */}
 {serviceItems.length > 0 && (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -1116,10 +1213,10 @@ const addServiceItem = () => {
                                             onChange={(e) => {
                                                 const updated = [...serviceItems];
                                                 const idx = serviceItems.findIndex(i => i.id === item.id);
-                                                updated[idx].quantity = parseFloat(e.target.value) || 0;
-                                                updated[idx].base_amount = updated[idx].quantity * updated[idx].price;
-                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
-                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                updated[idx].quantity = toNum(e.target.value);
+                                                updated[idx].base_amount = toNum(updated[idx].quantity) * toNum(updated[idx].price);
+                                                updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
                                                 setServiceItems(updated);
                                             }}
                                             className="w-16 border border-gray-300 rounded px-2 py-1"
@@ -1133,10 +1230,10 @@ const addServiceItem = () => {
                                             onChange={(e) => {
                                                 const updated = [...serviceItems];
                                                 const idx = serviceItems.findIndex(i => i.id === item.id);
-                                                updated[idx].price = parseFloat(e.target.value) || 0;
-                                                updated[idx].base_amount = updated[idx].quantity * updated[idx].price;
-                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
-                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                updated[idx].price = toNum(e.target.value);
+                                                updated[idx].base_amount = toNum(updated[idx].quantity) * toNum(updated[idx].price);
+                                                updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
                                                 setServiceItems(updated);
                                             }}
                                             className="w-20 border border-gray-300 rounded px-2 py-1"
@@ -1150,16 +1247,16 @@ const addServiceItem = () => {
                                             onChange={(e) => {
                                                 const updated = [...serviceItems];
                                                 const idx = serviceItems.findIndex(i => i.id === item.id);
-                                                updated[idx].gst_percent = parseFloat(e.target.value) || 0;
-                                                updated[idx].gst_amount = (updated[idx].base_amount * updated[idx].gst_percent) / 100;
-                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + updated[idx].mathadi_charges;
+                                                updated[idx].gst_percent = toNum(e.target.value);
+                                                updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
+                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
                                                 setServiceItems(updated);
                                             }}
                                             className="w-16 border border-gray-300 rounded px-2 py-1"
                                         />
                                     </td>
                                     
-                                    <td className="px-4 py-3 text-right font-semibold">₹{item.total_amount.toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-right font-semibold">₹{formatAmount(item.total_amount)}</td>
                                     
                                     <td className="px-4 py-3 text-center">
                                         <button

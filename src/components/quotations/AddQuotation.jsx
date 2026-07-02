@@ -5,6 +5,7 @@ import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
 import ReusableForm from "../Form";
 import Swal from "sweetalert2";
+import { normalizeLowSideItem, normalizeHighSideItem } from "../../utils/numberFormat";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -170,7 +171,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
 
         // Use the active variable we already declared above
         setItems(
-          active.high_side_items.map(i => ({
+          active.high_side_items.map(i => normalizeHighSideItem({
             product_variant: i.product_variant,
             unit: i.unit || "NOS",
             ac_type_name: i.ac_type_name,
@@ -189,7 +190,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
         );
 
         setLowItems(
-          active.low_side_items.map(l => ({
+          active.low_side_items.map(l => normalizeLowSideItem({
             item: l.item,
             item_code: l.item_code,
             unit: l.unit || "NOS",

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdAutorenew, MdVisibility } from "react-icons/md";
+import { MdEdit, MdDelete, MdAutorenew, MdVisibility, MdBuild } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
 import ContractDetailModal from "./ContractDetailModal";
+import AmcSparePartsModal from "./AmcSparePartsModal";
 
 export default function AmcList({ baseApi, token, filters = {} }) {
   const [contracts, setContracts] = useState([]);
@@ -10,7 +11,8 @@ export default function AmcList({ baseApi, token, filters = {} }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedAmc, setSelectedAmc] = useState(null);
   const [filterType, setFilterType] = useState("all"); // all, active, expiring_soon
-  const [detailContract, setDetailContract] = useState(null); // for ContractDetailModal
+  const [detailContract, setDetailContract] = useState(null);
+  const [sparePartsContract, setSparePartsContract] = useState(null);
 
   const fetchContracts = async () => {
     setLoading(true);
@@ -192,7 +194,8 @@ export default function AmcList({ baseApi, token, filters = {} }) {
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Contract No</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Customer</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Package</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">AMC Type</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Visit Freq.</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">AC Variant</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Start Date</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">End Date</th>
@@ -204,13 +207,13 @@ export default function AmcList({ baseApi, token, filters = {} }) {
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan="10" className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan="11" className="px-4 py-8 text-center text-sm text-slate-500">
                   Loading contracts...
                 </td>
               </tr>
             ) : contracts.length === 0 ? (
               <tr>
-                <td colSpan="10" className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan="11" className="px-4 py-8 text-center text-sm text-slate-500">
                   No contracts found. Click "+ Add AMC" to create one.
                 </td>
               </tr>
@@ -220,7 +223,21 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-blue-600">{item.contract_number}</td>
                   <td className="px-4 py-3 text-sm">{item.customer_name || `Customer ID: ${item.customer}`}</td>
-                  <td className="px-4 py-3 text-sm">{item.package_name || `Package ID: ${item.package}`}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {item.amc_type === "COMPREHENSIVE"
+                      ? "Comprehensive"
+                      : item.amc_type === "NON_COMPREHENSIVE"
+                        ? "Non-Comprehensive"
+                        : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {{
+                      MONTHLY: "Monthly",
+                      QUARTERLY: "Quarterly",
+                      HALF_YEARLY: "Half Yearly",
+                      YEARLY: "Yearly",
+                    }[item.visit_frequency] || "—"}
+                  </td>
                   <td className="px-4 py-3 text-sm">{item.product_name || `Variant ID: ${item.product_variant}`}</td>
                   <td className="px-4 py-3 text-sm">{item.amc_start_date}</td>
                   <td className="px-4 py-3 text-sm">{item.amc_end_date}</td>
@@ -235,10 +252,19 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                       <button
                         onClick={() => setDetailContract(item)}
                         className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                        title="View History"
+                        title="View Details"
                       >
                         <MdVisibility />
                       </button>
+                      {item.amc_type === "NON_COMPREHENSIVE" && (
+                        <button
+                          onClick={() => setSparePartsContract(item)}
+                          className="px-2 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200"
+                          title="Spare Parts & Invoice"
+                        >
+                          <MdBuild />
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setSelectedAmc(item);
@@ -293,9 +319,17 @@ export default function AmcList({ baseApi, token, filters = {} }) {
       {detailContract && (
         <ContractDetailModal
           contract={detailContract}
+          onClose={() => setDetailContract(null)}
+        />
+      )}
+
+      {sparePartsContract && (
+        <AmcSparePartsModal
+          contract={sparePartsContract}
           baseApi={baseApi}
           token={token}
-          onClose={() => setDetailContract(null)}
+          onClose={() => setSparePartsContract(null)}
+          onUpdated={fetchContracts}
         />
       )}
     </div>
