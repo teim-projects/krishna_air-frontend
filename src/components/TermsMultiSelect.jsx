@@ -106,6 +106,39 @@ const TermsMultiSelect = ({
     }
   };
 
+  // -----------------------------
+  // Delete Term
+  // -----------------------------
+  const handleDeleteTerm = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this term from the master list?")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await axios.delete(`${baseApi}/inventory/terms/${id}/`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      // Remove from local list
+      setTerms((prev) => prev.filter((t) => t.id !== id));
+
+      // Unselect if currently selected
+      if (Array.isArray(value) && value.includes(id)) {
+        onChange(value.filter((v) => v !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting term:", error);
+      alert("Error deleting term. It might be in use by other quotations.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {/* Label */}
@@ -126,7 +159,7 @@ const TermsMultiSelect = ({
             {terms.map((term, index) => {
               const isSelected = Array.isArray(value) && value.includes(term.id);
               return (
-                <div key={term.id} className="flex items-center py-2 border-b border-gray-200 last:border-b-0">
+                <div key={term.id} className="flex items-center py-2 border-b border-gray-200 last:border-b-0 group">
                   <input
                     type="checkbox"
                     id={`term-${term.id}`}
@@ -141,6 +174,21 @@ const TermsMultiSelect = ({
                   >
                     {term.terms}
                   </label>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTerm(term.id);
+                      }}
+                      className="text-red-500 opacity-50 hover:opacity-100 p-1 transition-opacity"
+                      title="Delete this term"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               );
             })}

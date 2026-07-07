@@ -57,6 +57,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
     site: "",
     gst_type: "CGST_SGST",
     thank_you_note: "",
+    declaration: "We declare that this quotation shows the actual price for the services.",
     payment_terms: [],
     validity_terms: [],
     warranty_terms: [],
@@ -166,6 +167,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
           branch: q.branch || "",
           site: q.site || "",
           thank_you_note: q.thank_you_note || "",
+          declaration: q.declaration || "We declare that this quotation shows the actual price for the services.",
           gst_type: active?.gst_type || "CGST_SGST"  // Use the active variable we already declared
         }));
 
@@ -469,7 +471,8 @@ export default function AddQuotation({ id, onBack, leadData }) {
       branch: "",
       site: "",
       gst_type: "CGST_SGST",
-      thank_you_note: ""
+      thank_you_note: "",
+      declaration: "We declare that this quotation shows the actual price for the services."
     });
 
     // Reset terms using separate state variables
@@ -537,7 +540,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
       branch: data.branch ? Number(data.branch) : null,
       site: data.site ? Number(data.site) : null,
       thank_you_note: data.thank_you_note,
-
+      declaration: data.declaration,
       // Add terms and conditions
       terms_conditions: [
         ...paymentTerms,
@@ -937,6 +940,24 @@ export default function AddQuotation({ id, onBack, leadData }) {
       ),
       gridCols: 2,
     },
+    {
+      name: "declaration",
+      label: "Custom Declaration",
+      type: "component",
+      gridCols: 2,
+      component: ({ value, onChange }) => (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-slate-700">Custom Declaration</label>
+          <textarea
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            rows={3}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Enter customize declaration message..."
+          />
+        </div>
+      )
+    }
   ];
 
   // Get current step fields

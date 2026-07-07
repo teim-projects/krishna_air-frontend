@@ -11,7 +11,6 @@ import {
   MdDelete,
   MdEmail,
   MdHistory,
-  MdPrint,
 } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -104,21 +103,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     } catch (err) {
       console.error(err);
       alert("Failed to open PDF");
-    }
-  };
-
-  const handleViewPrintPDF = async (quotationId, versionId = null) => {
-    try {
-      const url = versionId
-        ? `quotation/quotation/${quotationId}/version/${versionId}/print-pdf/`
-        : `quotation/quotation/${quotationId}/print-pdf/`;
-
-      const response = await api.get(url, { responseType: "blob" });
-      const file = new Blob([response.data], { type: "application/pdf" });
-      window.open(URL.createObjectURL(file));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to open new design PDF");
     }
   };
 
@@ -247,10 +231,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdRemoveRedEye />
                         </button>
 
-                        <button onClick={() => handleViewPrintPDF(q.id)} className="px-2 py-1 bg-indigo-200 text-indigo-800 rounded hover:bg-indigo-300" title="View PDF (New WeasyPrint Design)">
-                          <MdPrint />
-                        </button>
-
                         <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
                           <MdEdit />
                         </button>
@@ -309,10 +289,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                     <div className="flex items-center justify-center gap-2">
                                       <button onClick={() => handleViewPDF(q.id, v.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View PDF (Existing)">
                                         <MdRemoveRedEye />
-                                      </button>
-
-                                      <button onClick={() => handleViewPrintPDF(q.id, v.id)} className="px-2 py-1 bg-indigo-200 text-indigo-800 rounded hover:bg-indigo-300" title="View PDF (New WeasyPrint Design)">
-                                        <MdPrint />
                                       </button>
 
                                       <button onClick={() => handleDownloadPDF(q.id, v.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
