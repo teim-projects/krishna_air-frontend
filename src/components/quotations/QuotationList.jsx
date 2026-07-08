@@ -91,6 +91,12 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const getActiveVersion = (q) =>
     q.versions?.find((v) => v.id === selectedVersion[q.id]);
 
+  const getProductCount = (version) => {
+    if (!version) return "0 item(s)";
+    const totalQty = version.high_side_items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0;
+    return `${totalQty} item(s)`;
+  };
+
   const handleViewPDF = async (quotationId, versionId = null) => {
     try {
       const url = versionId
@@ -202,7 +208,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                     <td className="px-4 py-3 text-sm">{q.site_name_detail || q.site_name || "-"}</td>
 
                     <td className="px-4 py-3 text-sm">
-                      {activeVersion?.product_count || "1 item(s)"}
+                      {getProductCount(activeVersion)}
                     </td>
 
                     <td className="px-4 py-3 text-sm">
@@ -280,7 +286,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                   <td className="px-3 py-2 text-xs">
                                     {v.created_at?.split("T")[0]}
                                   </td>
-                                  <td className="px-3 py-2 text-xs">1 item(s)</td>
+                                  <td className="px-3 py-2 text-xs">{getProductCount(v)}</td>
                                   <td className="px-3 py-2 text-xs">
                                     ₹{formatAmount(v.total_amount)}
                                   </td>
