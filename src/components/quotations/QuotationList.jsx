@@ -11,7 +11,6 @@ import {
   MdDelete,
   MdEmail,
   MdHistory,
-  MdPrint,
 } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -92,6 +91,12 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const getActiveVersion = (q) =>
     q.versions?.find((v) => v.id === selectedVersion[q.id]);
 
+  const getProductCount = (version) => {
+    if (!version) return "0 item(s)";
+    const totalQty = version.high_side_items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0;
+    return `${totalQty} item(s)`;
+  };
+
   const handleViewPDF = async (quotationId, versionId = null) => {
     try {
       const url = versionId
@@ -104,21 +109,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     } catch (err) {
       console.error(err);
       alert("Failed to open PDF");
-    }
-  };
-
-  const handleViewPrintPDF = async (quotationId, versionId = null) => {
-    try {
-      const url = versionId
-        ? `quotation/quotation/${quotationId}/version/${versionId}/print-pdf/`
-        : `quotation/quotation/${quotationId}/print-pdf/`;
-
-      const response = await api.get(url, { responseType: "blob" });
-      const file = new Blob([response.data], { type: "application/pdf" });
-      window.open(URL.createObjectURL(file));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to open new design PDF");
     }
   };
 
@@ -218,7 +208,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                     <td className="px-4 py-3 text-sm">{q.site_name_detail || q.site_name || "-"}</td>
 
                     <td className="px-4 py-3 text-sm">
-                      {activeVersion?.product_count || "1 item(s)"}
+                      {getProductCount(activeVersion)}
                     </td>
 
                     <td className="px-4 py-3 text-sm">
@@ -245,10 +235,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
 
                         <button onClick={() => handleViewPDF(q.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View PDF (Existing)">
                           <MdRemoveRedEye />
-                        </button>
-
-                        <button onClick={() => handleViewPrintPDF(q.id)} className="px-2 py-1 bg-indigo-200 text-indigo-800 rounded hover:bg-indigo-300" title="View PDF (New WeasyPrint Design)">
-                          <MdPrint />
                         </button>
 
                         <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
@@ -300,7 +286,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                   <td className="px-3 py-2 text-xs">
                                     {v.created_at?.split("T")[0]}
                                   </td>
-                                  <td className="px-3 py-2 text-xs">1 item(s)</td>
+                                  <td className="px-3 py-2 text-xs">{getProductCount(v)}</td>
                                   <td className="px-3 py-2 text-xs">
                                     ₹{formatAmount(v.total_amount)}
                                   </td>
@@ -309,10 +295,6 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                     <div className="flex items-center justify-center gap-2">
                                       <button onClick={() => handleViewPDF(q.id, v.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View PDF (Existing)">
                                         <MdRemoveRedEye />
-                                      </button>
-
-                                      <button onClick={() => handleViewPrintPDF(q.id, v.id)} className="px-2 py-1 bg-indigo-200 text-indigo-800 rounded hover:bg-indigo-300" title="View PDF (New WeasyPrint Design)">
-                                        <MdPrint />
                                       </button>
 
                                       <button onClick={() => handleDownloadPDF(q.id, v.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">

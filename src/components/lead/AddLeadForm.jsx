@@ -45,6 +45,7 @@ export default function AddLeadForm({
   lead = null,
 }) {
   const contactRef = useRef("");
+  const projectAddressRef = useRef(null);
   const productsInitializedRef = useRef(false);
   const states = useMemo(() => State.getStatesOfCountry("IN"), []);
   const API_URL = `${baseApi.replace(/\/$/, "")}/lead/lead/`;
@@ -115,13 +116,8 @@ export default function AddLeadForm({
   const [deletedProductIds, setDeletedProductIds] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   // Lead Qualifying Questions
-  const [isQualified, setIsQualified] = useState(false);
+  const [isQualified, setIsQualified] = useState(true);
   const [qualifyingAnswers, setQualifyingAnswers] = useState({});
-  // Is current user a manager/admin (can approve qualifying)?
-  const canApprove = useMemo(() => {
-    const role = userRole?.name?.toLowerCase();
-    return role === "admin" || role === "manager";
-  }, [userRole]);
 
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -352,7 +348,7 @@ export default function AddLeadForm({
       setCustomerId(lead.customer ?? null);
       setAssignId(lead.assign_to ?? null);
       setShowLeadSourceInput(!!selected?.needsInput);
-      setIsQualified(lead.is_qualified || false);
+      setIsQualified(lead.is_qualified ?? true);
       setQualifyingAnswers(lead.qualifying_answers || {});
     } else {
       // reset for new lead
@@ -389,7 +385,7 @@ export default function AddLeadForm({
         remarks: "",
       });
       setCustomerId(null);
-      setIsQualified(false);
+      setIsQualified(true);
       setQualifyingAnswers({});
     }
     setLoading(false);
@@ -753,6 +749,30 @@ export default function AddLeadForm({
         title: "Validation",
         text: "Please select at least one service",
       });
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (!formData.leadSource) {
+      showError("leadSource", "Lead source is required");
+      return false;
+    }
+
+    if (!formData.enquiry_date) {
+      showError("enquiry_date", "Enquiry Date is required");
+      return false;
+    }
+
+    if (!formData.followupDate) {
+      showError("followupDate", "Follow-up Date is required");
+      return false;
+    }
+
+    if (userRole?.name !== "sales" && !formData.assignTo) {
+      showError("assignTo", "Assign To is required");
       return false;
     }
 
@@ -1577,9 +1597,16 @@ export default function AddLeadForm({
                 <div>
                   <label className="text-sm font-normal text-gray-600">
                     Project Address
-                    <span className="ml-1 text-xs text-blue-500 font-normal">(Google Maps)</span>
+                    <button
+                      type="button"
+                      onClick={() => projectAddressRef.current?.openMapPicker?.()}
+                      className="ml-1 text-xs font-normal text-blue-500 underline underline-offset-2 hover:text-blue-700"
+                    >
+                      (Google Maps)
+                    </button>
                   </label>
                   <GooglePlacesInput
+                    ref={projectAddressRef}
                     name="projectAddress"
                     value={formData.projectAddress}
                     onChange={(address) =>
@@ -1824,16 +1851,13 @@ export default function AddLeadForm({
               </>
             )}
 
-            {/* Lead Qualifying Questions — step 2 only */}
-            {step === 2 && (
+            {/* Lead Qualifying Questions — final step */}
+            {step === 3 && (
               <LeadQualifyingPanel
                 baseApi={baseApi}
                 token={authToken}
-                isQualified={isQualified}
                 answers={qualifyingAnswers}
                 onChange={setQualifyingAnswers}
-                canApprove={canApprove}
-                onToggleQualify={() => setIsQualified((v) => !v)}
               />
             )}
 
@@ -1841,10 +1865,10 @@ export default function AddLeadForm({
             <div className="flex justify-between mt-6">
 
               {/* BACK BUTTON */}
-              {step === 2 && (
+              {step > 1 && (
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep((prev) => prev - 1)}
                   className="px-4 py-2 border border-gray-400 rounded-md"
                 >
                   Back
@@ -1876,6 +1900,20 @@ export default function AddLeadForm({
                 )}
 
                 {step === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateStep2()) {
+                        setStep(3);
+                      }
+                    }}
+                    className="px-5 py-2 bg-blue-600 text-white rounded-md"
+                  >
+                    Next
+                  </button>
+                )}
+
+                {step === 3 && (
                   <button
                     type="submit"
                     className="px-5 py-2 bg-blue-600 text-white rounded-md"

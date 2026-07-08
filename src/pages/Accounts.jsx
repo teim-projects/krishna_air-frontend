@@ -26,6 +26,7 @@ export default function Accounts() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
 
   const token = useMemo(() => {
     return (
@@ -192,6 +193,13 @@ export default function Accounts() {
     { key: "role", label: "Role", render: r => r.role?.name ?? "" },
   ]), [currentPage]);
 
+  const displayRows = useMemo(() => {
+    if (activeTab === "technician") {
+      return rows.filter(r => r.role?.name?.toLowerCase() === "technician");
+    }
+    return rows;
+  }, [rows, activeTab]);
+
   // actions renderer (centered by TableView)
   const actionsRenderer = useCallback((row) => (
     <>
@@ -221,11 +229,55 @@ export default function Accounts() {
       onFiltersChange={handleFilterChange}
     >
       <div className="space-y-6">
+        {/* Category Selection Tabs */}
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "all"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            All Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab("technician")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "technician"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Technician List
+          </button>
+          <button
+            onClick={() => setActiveTab("low")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "low"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Work history
+          </button>
+          <button
+            onClick={() => setActiveTab("installation")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "installation"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Completed Work
+          </button>
+        </div>
+
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Staff Accounts & Roles</h2>
             <div className="text-sm text-slate-600">
-              {loading ? "Loading…" : `${totalCount} total • ${rows.length} shown`}
+              {loading ? "Loading…" : `${activeTab === "technician" ? displayRows.length : totalCount} total • ${displayRows.length} shown`}
             </div>
           </div>
 
@@ -252,11 +304,11 @@ export default function Accounts() {
         {/* Reusable TableView */}
         <TableView
           columns={columns}
-          rows={rows}
+          rows={displayRows}
           loading={loading}
           error={error}
           page={currentPage}
-          totalPages={totalPages}
+          totalPages={activeTab === "technician" ? 1 : totalPages}
           onPageChange={(p) => setCurrentPage(p)}
           pageSize={PAGE_SIZE}
           actions={actionsRenderer}
@@ -273,6 +325,8 @@ export default function Accounts() {
           </div>
         </div>
       )}
+
+
 
       <AddStaffForm
         open={showStaffForm}
