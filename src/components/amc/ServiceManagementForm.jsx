@@ -580,17 +580,31 @@ const calculateTotals = () => {
     }
   });
 
+  const applyGst = formData.apply_gst === true || formData.apply_gst === 'true';
+  const finalGst = applyGst ? totalGst : 0;
+
   return { 
     subtotal, 
-    gst: totalGst, 
-    total: subtotal + totalGst 
+    gst: finalGst, 
+    total: subtotal + finalGst 
   };
 };
 
   const totals = calculateTotals();
 
   const handleSubmit = async () => {
-    if (!validateStep3()) return;
+    if (!validateStep1()) {
+      setStep(1);
+      return;
+    }
+    if (!validateStep3()) {
+      setStep(2);
+      return;
+    }
+    if (!validateStep2()) {
+      setStep(3);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -660,22 +674,50 @@ const getMaterialName = (id) => {
         </div>
 
         {/* Step Indicators */}
-        <div className="flex bg-slate-100 px-6 pt-6">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex-1">
-              <button
-                onClick={() => {
-                  if (s === 1 || (s === 2 && validateStep1()) || (s === 3 && validateStep2())) {
-                    setStep(s);
-                  }
-                }}
-                className={`w-full pb-4 text-center font-semibold border-b-2 transition ${step === s ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent'
-                  }`}
-              >
-                Step {s}
-              </button>
+        <div className="flex items-center justify-center py-4 bg-slate-50 border-b border-slate-200 space-x-6">
+          {/* Step 1 */}
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className={`flex items-center focus:outline-none transition ${step >= 1 ? 'text-blue-600 font-semibold' : 'text-slate-400'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition font-semibold ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+              1
             </div>
-          ))}
+            <span className="ml-2 text-sm">Basic & Buyer Info</span>
+          </button>
+          
+          <div className={`w-12 h-1 transition ${step >= 2 ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
+          
+          {/* Step 2 */}
+          <button
+            type="button"
+            onClick={() => {
+              if (validateStep1()) setStep(2);
+            }}
+            className={`flex items-center focus:outline-none transition ${step >= 2 ? 'text-blue-600 font-semibold' : 'text-slate-400'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition font-semibold ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+              2
+            </div>
+            <span className="ml-2 text-sm">Items</span>
+          </button>
+          
+          <div className={`w-12 h-1 transition ${step >= 3 ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
+          
+          {/* Step 3 */}
+          <button
+            type="button"
+            onClick={() => {
+              if (validateStep1() && validateStep3()) setStep(3);
+            }}
+            className={`flex items-center focus:outline-none transition ${step >= 3 ? 'text-blue-600 font-semibold' : 'text-slate-400'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition font-semibold ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+              3
+            </div>
+            <span className="ml-2 text-sm">Additional Info & Terms</span>
+          </button>
         </div>
 
         {/* Content */}
@@ -834,8 +876,8 @@ const getMaterialName = (id) => {
             </div>
           )}
 
-          {/* STEP 2: Location Details (Auto-filled from quotation) */}
-          {step === 2 && (
+          {/* STEP 3: Location Details (Additional Info & Terms) */}
+          {step === 3 && (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
@@ -858,8 +900,8 @@ const getMaterialName = (id) => {
             </div>
           )}
 
-          {/* STEP 3: Materials (Auto-populated from quotation) */}
-          {step === 3 && (
+          {/* STEP 2: Materials (Items) */}
+          {step === 2 && (
             <div className="space-y-4">
               {selectedQuotation && (
                 <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-2 rounded-lg">
@@ -1125,7 +1167,7 @@ const getMaterialName = (id) => {
             <button
               onClick={() => {
                 if (step === 1 && validateStep1()) setStep(2);
-                if (step === 2 && validateStep2()) setStep(3);
+                if (step === 2 && validateStep3()) setStep(3);
               }}
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
             >
