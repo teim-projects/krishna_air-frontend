@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
+import { State, City } from "country-state-city";
 
 export default function AddStaffForm({
   open,
@@ -7,28 +8,44 @@ export default function AddStaffForm({
   onSuccess,
   baseApi,
   roles = [],
-  staff = null 
+  staff = null
 }) {
   const [email, setEmail] = useState(staff?.email || "");
   const [mobile, setMobile] = useState(staff?.mobile_no || "");
   const [firstName, setFirstName] = useState(staff?.first_name || "");
   const [lastName, setLastName] = useState(staff?.last_name || "");
   const [role, setRole] = useState(staff?.role?.id || "");
+  const [address, setAddress] = useState(staff?.address || "");
+  const [state, setState] = useState(staff?.state || "");
+  const [city, setCity] = useState(staff?.city || "");
+  const [pincode, setPincode] = useState(staff?.pincode || "");
+  const [dateOfJoining, setDateOfJoining] = useState(staff?.date_of_joining || "");
   const [password, setPassword] = useState("");
-  const [changePassword, setChangePassword] = useState(false); // <-- new
+  const [changePassword, setChangePassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const BASE_API = baseApi;
 
   const token = useMemo(() => localStorage.getItem("access") || "", []);
+  const states = useMemo(() => State.getStatesOfCountry("IN"), []);
+
+  const cities = useMemo(() => {
+    if (!state) return [];
+    const selectedState = states.find((item) => item.name === state);
+    return selectedState ? City.getCitiesOfState("IN", selectedState.isoCode) : [];
+  }, [state, states]);
 
   useEffect(() => {
-    // sync values when staff prop changes (edit)
     setEmail(staff?.email || "");
     setMobile(staff?.mobile_no || "");
     setFirstName(staff?.first_name || "");
     setLastName(staff?.last_name || "");
     setRole(staff?.role?.id || "");
+    setAddress(staff?.address || "");
+    setState(staff?.state || "");
+    setCity(staff?.city || "");
+    setPincode(staff?.pincode || "");
+    setDateOfJoining(staff?.date_of_joining || "");
     setPassword("");
     setChangePassword(false);
   }, [staff, open]);
@@ -52,7 +69,10 @@ export default function AddStaffForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Please select a role" });
       return false;
     }
-    // password rules: when creating OR when user opted to change password
+    if (pincode && !/^\d{6}$/.test(pincode)) {
+      Swal.fire({ icon: "error", title: "Validation", text: "Pincode must be 6 digits" });
+      return false;
+    }
     if (!staff || changePassword) {
       if (!password || password.length < 6) {
         Swal.fire({ icon: "error", title: "Validation", text: "Password must be at least 6 characters" });
@@ -75,9 +95,13 @@ export default function AddStaffForm({
       first_name: firstName,
       last_name: lastName,
       role,
+      address,
+      city,
+      state,
+      pincode,
+      date_of_joining: dateOfJoining || null,
     };
 
-    // include password when creating OR when user opted to change it
     if (!staff || changePassword) payload.password = password;
 
     const url = staff
@@ -96,7 +120,6 @@ export default function AddStaffForm({
         body: JSON.stringify(payload)
       });
 
-      // try reading json but fall back gracefully
       let data;
       try { data = await res.json(); } catch (e) { data = {}; }
 
@@ -125,8 +148,8 @@ export default function AddStaffForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-md shadow-lg w-full max-w-lg p-6 relative">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-md shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
 
         <button onClick={onClose} className="absolute right-3 top-3 text-xl" aria-label="Close">✕</button>
 
@@ -135,43 +158,138 @@ export default function AddStaffForm({
         </h2>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="text-sm text-slate-700 mb-1 block">Email</label>
-            <input className="w-full px-3 py-2 rounded-md border border-slate-200" placeholder="Email" value={email}
-              onChange={(e) => setEmail(e.target.value)} />
-          </div>
-
-          <div>
-            <label className="text-sm text-slate-700 mb-1 block">Mobile</label>
-            <input className="w-full px-3 py-2 rounded-md border border-slate-200" placeholder="Mobile" value={mobile}
-              onChange={(e) => setMobile(e.target.value)} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 1: Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-slate-700 mb-1 block">First name</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200" placeholder="First Name" value={firstName}
-                onChange={(e) => setFirstName(e.target.value)} />
+              <input
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
 
             <div>
               <label className="text-sm text-slate-700 mb-1 block">Last name</label>
-              <input className="w-full px-3 py-2 rounded-md border border-slate-200" placeholder="Last Name" value={lastName}
-                onChange={(e) => setLastName(e.target.value)} />
+              <input
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Contact */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">Email</label>
+              <input
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">Mobile</label>
+              <input
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                placeholder="Mobile"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+              />
             </div>
           </div>
 
           <div>
             <label className="text-sm text-slate-700 mb-1 block">Role</label>
-            <select className="w-full px-3 py-2 rounded-md border border-slate-200" value={role} onChange={(e) => setRole(e.target.value)}>
+            <select
+              className="w-full px-3 py-2 rounded-md border border-slate-200"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
               <option value="">Select Role</option>
               {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
 
-          {/* Password field:
-             - show when creating (!staff)
-             - when editing (staff) show "Change password" toggle to reveal input */}
+          <div>
+            <label className="text-sm text-slate-700 mb-1 block">Address</label>
+            <textarea
+              className="w-full px-3 py-2 rounded-md border border-slate-200"
+              placeholder="Address"
+              rows={2}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">State</label>
+              <select
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={state}
+                onChange={(e) => {
+                  setState(e.target.value);
+                  setCity("");
+                }}
+              >
+                <option value="">Select State</option>
+                {states.map((item) => (
+                  <option key={item.isoCode} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">City</label>
+              <select
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                disabled={!state}
+              >
+                <option value="">
+                  {!state ? "Select State First" : "Select City"}
+                </option>
+                {cities.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">Pincode</label>
+              <input
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                placeholder="Pincode"
+                maxLength={6}
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-slate-700 mb-1 block">Date of Joining</label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 rounded-md border border-slate-200"
+                value={dateOfJoining}
+                onChange={(e) => setDateOfJoining(e.target.value)}
+              />
+            </div>
+          </div>
+
           {!staff ? (
             <div>
               <label className="text-sm text-slate-700 mb-1 block">Password</label>
