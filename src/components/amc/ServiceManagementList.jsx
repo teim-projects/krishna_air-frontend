@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdPersonAdd, MdAssignmentInd } from "react-icons/md";
 import Swal from "sweetalert2";
 import ServiceManagementForm from "./ServiceManagementForm";
+import AssignTechnicianModal from "./AssignTechnicianModal";
 
 export default function ServiceManagementList({ baseApi, token, filters = {} }) {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningService, setAssigningService] = useState(null);
 
   const fetchServices = async () => {
     setLoading(true);
@@ -160,6 +163,31 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   <td className="px-4 py-3 text-sm">₹{parseFloat(item.total_price_with_gst || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {/* Assign Technician button */}
+                      {item.assigned_technicians && item.assigned_technicians.length > 0 ? (
+                        <button
+                          onClick={() => {
+                            setAssigningService(item);
+                            setShowAssignModal(true);
+                          }}
+                          className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition"
+                          title={`Assigned: ${item.assigned_technicians.map((t) => t.name).join(", ")}`}
+                        >
+                          <MdAssignmentInd />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setAssigningService(item);
+                            setShowAssignModal(true);
+                          }}
+                          className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300 transition"
+                          title="Assign Technician"
+                        >
+                          <MdPersonAdd />
+                        </button>
+                      )}
+
                       <button
                         onClick={() => {
                           setSelectedService(item);
@@ -203,6 +231,25 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
           baseApi={baseApi}
           service={selectedService}
           token={token}
+        />
+      )}
+
+      {/* Assign Technician Modal */}
+      {showAssignModal && assigningService && (
+        <AssignTechnicianModal
+          open={showAssignModal}
+          onClose={() => {
+            setShowAssignModal(false);
+            setAssigningService(null);
+          }}
+          onSuccess={() => {
+            setShowAssignModal(false);
+            setAssigningService(null);
+            fetchServices();
+          }}
+          baseApi={baseApi}
+          token={token}
+          service={assigningService}
         />
       )}
     </div>
