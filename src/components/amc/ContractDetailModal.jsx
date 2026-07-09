@@ -173,7 +173,7 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
         <div className="px-6 pb-5 flex justify-center">
           <button
             onClick={() => setShowAssignModal(true)}
-            className="px-5 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5"
+            className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5"
           >
             <MdPersonAdd size={18} />
             <span>Assign Technician</span>
