@@ -319,6 +319,8 @@ export default function AmcList({ baseApi, token, filters = {} }) {
       {detailContract && (
         <ContractDetailModal
           contract={detailContract}
+          baseApi={baseApi}
+          token={token}
           onClose={() => setDetailContract(null)}
         />
       )}

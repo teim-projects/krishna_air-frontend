@@ -170,8 +170,8 @@ export default function AddStaffForm({
           </div>
 
           {/* Password field:
-             - show when creating (!staff)
-             - when editing (staff) show "Change password" toggle to reveal input */}
+          - show when creating (!staff)
+          - when editing (staff) show "Change password" toggle to reveal input */}
           {!staff ? (
             <div>
               <label className="text-sm text-slate-700 mb-1 block">Password</label>

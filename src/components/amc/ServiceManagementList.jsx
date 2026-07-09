@@ -164,28 +164,30 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {/* Assign Technician button */}
-                      {item.assigned_technicians && item.assigned_technicians.length > 0 ? (
-                        <button
-                          onClick={() => {
-                            setAssigningService(item);
-                            setShowAssignModal(true);
-                          }}
-                          className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition"
-                          title={`Assigned: ${item.assigned_technicians.map((t) => t.name).join(", ")}`}
-                        >
-                          <MdAssignmentInd />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setAssigningService(item);
-                            setShowAssignModal(true);
-                          }}
-                          className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300 transition"
-                          title="Assign Technician"
-                        >
-                          <MdPersonAdd />
-                        </button>
+                      {item.contract_type?.toLowerCase() !== "amc" && (
+                        item.assigned_technicians && item.assigned_technicians.length > 0 ? (
+                          <button
+                            onClick={() => {
+                              setAssigningService(item);
+                              setShowAssignModal(true);
+                            }}
+                            className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition"
+                            title={`Assigned: ${item.assigned_technicians.map((t) => t.name).join(", ")}`}
+                          >
+                            <MdAssignmentInd />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setAssigningService(item);
+                              setShowAssignModal(true);
+                            }}
+                            className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300 transition"
+                            title="Assign Technician"
+                          >
+                            <MdPersonAdd />
+                          </button>
+                        )
                       )}
 
                       <button
