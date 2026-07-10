@@ -2,23 +2,46 @@ import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { MdClose } from "react-icons/md";
 
-export default function AssignTechnicianModal({ open, onClose, onSuccess, baseApi, token, service }) {
+export default function AssignTechnicianModal({ open, onClose, onSuccess, baseApi, token, service, isContract = false }) {
   const [technicians, setTechnicians] = useState([]);
   const [loadingTechs, setLoadingTechs] = useState(false);
   const [selectedTech, setSelectedTech] = useState("");
-  const [paymentAmount, setPaymentAmount] = useState(service?.total_price_with_gst || 0);
+  const [paymentAmount, setPaymentAmount] = useState(
+    isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0)
+  );
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [gpsLocation, setGpsLocation] = useState("");
   const [workDescription, setWorkDescription] = useState("");
   const [workDate, setWorkDate] = useState(new Date().toISOString().split("T")[0]);
   const [submitting, setSubmitting] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [existingRecord, setExistingRecord] = useState(null);
 
   useEffect(() => {
     if (!open) return;
 
-    // Prefill payment amount with service totals if available
-    if (service?.total_price_with_gst) {
+    // Reset fields first to prevent leaks
+    setExistingRecord(null);
+    setSelectedTech("");
+    setWorkDate(new Date().toISOString().split("T")[0]);
+    setPaymentAmount(isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0));
+    setPaymentStatus("pending");
+    setGpsLocation("");
+    setWorkDescription("");
+    setCustomerName(service?.customer_name || "");
+    setCustomerPhone(service?.customer_contact || service?.customer_phone || "");
+
+    // Prefill payment amount with service/contract totals if available
+    if (isContract && service?.amc_cost) {
+      setPaymentAmount(parseFloat(service.amc_cost).toFixed(2));
+    } else if (service?.total_price_with_gst) {
       setPaymentAmount(parseFloat(service.total_price_with_gst).toFixed(2));
+    }
+
+    if (service) {
+      setCustomerName(service.customer_name || "");
+      setCustomerPhone(service.customer_contact || service.customer_phone || "");
     }
     
     // Fetch staff list and filter technicians
@@ -48,13 +71,52 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
       }
     };
 
+    const fetchExistingAssignment = async () => {
+      if (isContract || !service?.id) return;
+      try {
+        const res = await fetch(`${baseApi}/amc/technician-work-records/?service_record=${service.id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.results || data;
+          if (Array.isArray(list) && list.length > 0) {
+            const existing = list[0];
+            setExistingRecord(existing);
+            setSelectedTech(existing.technician || "");
+            setWorkDate(existing.work_date || new Date().toISOString().split("T")[0]);
+            setPaymentAmount(existing.payment_amount || 0);
+            setPaymentStatus(existing.payment_status || "pending");
+            setGpsLocation(existing.gps_location || "");
+            setWorkDescription(existing.work_description || "");
+            if (existing.customer_name) setCustomerName(existing.customer_name);
+            if (existing.customer_phone) setCustomerPhone(existing.customer_phone);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load existing assignment", err);
+      }
+    };
+
     fetchTechnicians();
-  }, [open, baseApi, token, service]);
+    fetchExistingAssignment();
+  }, [open, baseApi, token, service, isContract]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedTech) {
       Swal.fire({ icon: "warning", text: "Please select a technician" });
+      return;
+    }
+    if (!customerName.trim()) {
+      Swal.fire({ icon: "warning", text: "Customer name is required" });
+      return;
+    }
+    if (!customerPhone.trim()) {
+      Swal.fire({ icon: "warning", text: "Contact number is required" });
       return;
     }
 
@@ -66,11 +128,21 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
         payment_status: paymentStatus,
         gps_location: gpsLocation,
         work_description: workDescription,
-        work_date: workDate
+        work_date: workDate,
+        customer_name: customerName,
+        customer_phone: customerPhone,
       };
 
-      const res = await fetch(`${baseApi}/amc/service-records/${service.id}/allocate-work-to-technician/`, {
-        method: "POST",
+      const endpoint = existingRecord
+        ? `${baseApi}/amc/technician-work-records/${existingRecord.id}/`
+        : isContract
+        ? `${baseApi}/amc/contracts/${service.id}/allocate-work-to-technician/`
+        : `${baseApi}/amc/service-records/${service.id}/allocate-work-to-technician/`;
+
+      const method = existingRecord ? "PATCH" : "POST";
+
+      const res = await fetch(endpoint, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -81,15 +153,15 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
       if (res.ok) {
         Swal.fire({
           icon: "success",
-          title: "Assigned!",
-          text: "Technician assigned successfully",
+          title: existingRecord ? "Updated!" : "Assigned!",
+          text: existingRecord ? "Assignment updated successfully" : "Technician assigned successfully",
           timer: 1500,
           showConfirmButton: false
         });
         onSuccess();
       } else {
         const errorData = await res.json();
-        throw new Error(errorData.detail || errorData.message || "Failed to assign technician");
+        throw new Error(errorData.detail || errorData.message || "Failed to save technician assignment");
       }
     } catch (err) {
       Swal.fire({ icon: "error", title: "Error", text: err.message });
@@ -106,7 +178,7 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
         {/* Header (styled exactly like ServiceManagementForm) */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold text-slate-800">
-            Assign Technician
+            Allocate work to Technician
           </h2>
           <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-700">
             <MdClose size={24} />
@@ -117,48 +189,24 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           
           {/* Info Card */}
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-600 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Customer</span>
-              <span className="text-slate-800 font-medium">{service.customer_name}</span>
+              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Customer</label>
+              <input
+                type="text"
+                className="w-full px-3 py-1.5 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm focus:outline-none bg-white font-medium text-slate-800"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
             </div>
             <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Contact No.</span>
-              <span className="text-slate-800 font-medium">{service.customer_contact}</span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Subject</span>
-              <span className="text-slate-800 font-medium">{service.subject}</span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Contract Type</span>
-              <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 uppercase">
-                {service.contract_type === "one_time" ? "One Time" : service.contract_type?.toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Status</span>
-              <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-                service.contract_status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-              }`}>
-                {service.contract_status}
-              </span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Start Date</span>
-              <span className="text-slate-800 font-medium">
-                {service.service_start_date ? new Date(service.service_start_date).toLocaleDateString() : "—"}
-              </span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">End Date</span>
-              <span className="text-slate-800 font-medium">
-                {service.service_end_date ? new Date(service.service_end_date).toLocaleDateString() : "—"}
-              </span>
-            </div>
-            <div>
-              <span className="block text-xs font-semibold text-slate-500 uppercase">Total Price</span>
-              <span className="text-slate-800 font-bold text-base">₹{parseFloat(service.total_price_with_gst || 0).toFixed(2)}</span>
+              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Contact No.</label>
+              <input
+                type="text"
+                className="w-full px-3 py-1.5 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm focus:outline-none bg-white font-medium text-slate-800"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
             </div>
           </div>
 
@@ -283,7 +331,9 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
               disabled={submitting || technicians.length === 0}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:bg-gray-400 font-medium transition text-sm"
             >
-              {submitting ? "Assigning..." : "Assign"}
+              {submitting
+                ? (existingRecord ? "Updating Assign..." : "Assigning...")
+                : (existingRecord ? "Update Assign" : "Assign")}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
+import EditWorkRecordForm from "../components/accounts/EditWorkRecordForm";
 import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
@@ -29,6 +30,8 @@ export default function Accounts() {
   const [activeTab, setActiveTab] = useState("all");
   const [workRecords, setWorkRecords] = useState([]);
   const [loadingWork, setLoadingWork] = useState(false);
+  const [editingWorkRecord, setEditingWorkRecord] = useState(null);
+  const [showWorkForm, setShowWorkForm] = useState(false);
 
   const token = useMemo(() => {
     return (
@@ -228,6 +231,44 @@ export default function Accounts() {
     fetchData(currentPage);
   };
 
+  const handleDeleteWorkRecord = useCallback(async (id) => {
+    const confirm = await Swal.fire({
+      title: "Delete Work Record?",
+      text: "Are you sure you want to delete this work record?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete"
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await fetch(`${BASE_API}/amc/technician-work-records/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: "Work record deleted successfully",
+          timer: 1500,
+          showConfirmButton: false
+        });
+        fetchWorkRecords();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || data.message || "Failed to delete work record");
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Deletion Failed",
+        text: err.message
+      });
+    }
+  }, [BASE_API, token, fetchWorkRecords]);
+
   // table columns for TableView
   const columns = useMemo(() => ([
     {
@@ -305,6 +346,26 @@ export default function Accounts() {
       </button>
     </>
   ), [handleDeleteStaff]);
+
+  const workActionsRenderer = useCallback((row) => (
+    <>
+      <button
+        onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
+        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+        title="Edit"
+      >
+        <MdEdit />
+      </button>
+
+      <button
+        onClick={() => handleDeleteWorkRecord(row.id)}
+        className="px-2 py-1 bg-red-200 text-red-800 rounded"
+        title="Delete"
+      >
+        <MdDelete />
+      </button>
+    </>
+  ), [handleDeleteWorkRecord]);
 
   return (
     <Base
@@ -404,6 +465,7 @@ export default function Accounts() {
             totalPages={1}
             onPageChange={() => {}}
             pageSize={100}
+            actions={workActionsRenderer}
             emptyMessage="No work records found."
           />
         ) : (
@@ -441,6 +503,14 @@ export default function Accounts() {
         baseApi={BASE_API}
         roles={roles}
         staff={editingStaff}
+      />
+
+      <EditWorkRecordForm
+        open={showWorkForm}
+        onClose={() => setShowWorkForm(false)}
+        onSuccess={() => fetchWorkRecords()}
+        baseApi={BASE_API}
+        workRecord={editingWorkRecord}
       />
     </Base>
   );
