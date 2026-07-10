@@ -11,6 +11,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
   const [selectedService, setSelectedService] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assigningService, setAssigningService] = useState(null);
+  const [typeFilter, setTypeFilter] = useState(null);
 
   const fetchServices = async () => {
     setLoading(true);
@@ -80,6 +81,28 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
       : "bg-red-100 text-red-800";
   };
 
+  const filteredServices = services.filter((item) => {
+    if (!typeFilter) return true;
+    if (typeFilter === "amc") {
+      return item.contract_type === "amc";
+    }
+    return item.contract_type === "one_time" || item.contract_type === "warranty";
+  });
+
+  const getTypeLabel = (contractType) => {
+    if (contractType === "one_time") return "One Time";
+    if (contractType === "warranty") return "Warranty";
+    if (contractType === "amc") return "AMC";
+    return contractType?.toUpperCase() || "—";
+  };
+
+  const emptyMessage =
+    typeFilter === "amc"
+      ? 'No AMC service records found. Click "+ Add Service" to create one.'
+      : typeFilter === "one_time_warranty"
+        ? 'No One Time or Warranty service records found. Click "+ Add Service" to create one.'
+        : 'No service records found. Click "+ Add Service" to create one.';
+
   return (
     <div className="space-y-6">
       {/* Header card matching PackageList */}
@@ -87,10 +110,30 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
         <div>
           <h2 className="text-lg font-semibold">Service Management Records</h2>
           <div className="text-sm text-slate-600">
-            {loading ? "Loading..." : `${services.length} service(s) found`}
+            {loading ? "Loading..." : `${filteredServices.length} service(s) found`}
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setTypeFilter("amc")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              typeFilter === "amc"
+                ? "bg-sky-600 text-white hover:bg-sky-700"
+                : "bg-sky-50 text-sky-700 hover:bg-sky-100"
+            }`}
+          >
+            AMC Services
+          </button>
+          <button
+            onClick={() => setTypeFilter("one_time_warranty")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              typeFilter === "one_time_warranty"
+                ? "bg-sky-600 text-white hover:bg-sky-700"
+                : "bg-sky-50 text-sky-700 hover:bg-sky-100"
+            }`}
+          >
+            One Time / Warranty
+          </button>
           <button
             onClick={() => {
               setSelectedService(null);
@@ -127,14 +170,14 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   Loading services...
                 </td>
               </tr>
-            ) : services.length === 0 ? (
+            ) : filteredServices.length === 0 ? (
               <tr>
                 <td colSpan="10" className="px-4 py-8 text-center text-slate-500">
-                  No services found. Click "+ Add Service" to create one.
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
-              services.map((item, index) => (
+              filteredServices.map((item, index) => (
                 <tr key={item.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{item.customer_name}</td>
@@ -142,7 +185,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   <td className="px-4 py-3 text-sm">{item.subject}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                      {item.contract_type === "one_time" ? "One Time" : item.contract_type?.toUpperCase()}
+                      {getTypeLabel(item.contract_type)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
@@ -219,7 +262,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
       {/* Modal Form - Only shows when button is clicked */}
       {showAddForm && (
         <ServiceManagementForm
-          key={selectedService?.id ?? 'new'}
+          key={selectedService?.id ?? `new-${typeFilter}`}
           open={showAddForm}
           onClose={() => {
             setShowAddForm(false);
@@ -233,6 +276,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
           baseApi={baseApi}
           service={selectedService}
           token={token}
+          defaultContractType={typeFilter === "amc" ? "amc" : "one_time"}
         />
       )}
 

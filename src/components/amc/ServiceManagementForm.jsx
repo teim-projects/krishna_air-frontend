@@ -42,12 +42,12 @@ const mapQuotationLowItemToProduct = (lowItem, index, materialsList, acMaterialM
   };
 };
 
-const getInitialFormData = () => ({
+const getInitialFormData = (contractType = 'one_time') => ({
   customer_contact: '',
   customer_name: '',
   customer_email: '',
   subject: '',
-  contract_type: 'one_time',
+  contract_type: contractType,
   contract_status: 'active',
   amc_service_type: '',
   segment: 'residential',
@@ -82,6 +82,7 @@ export default function ServiceManagementForm({
   baseApi = BASE_API,
   token: tokenProp,
   service = null,
+  defaultContractType = 'one_time',
 }) {
   const token = tokenProp || localStorage.getItem('access');
   const isEdit = Boolean(service?.id);
@@ -110,7 +111,7 @@ export default function ServiceManagementForm({
 
   const resetForm = () => {
     setStep(1);
-    setFormData(getInitialFormData());
+    setFormData(getInitialFormData(defaultContractType));
     setNewMaterial(getInitialNewMaterial());
     setCustomerSearchInput('');
     setSelectedCustomer(null);
