@@ -86,6 +86,7 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
       EXPIRED: "bg-red-100 text-red-800",
       CANCELLED: "bg-amber-100 text-amber-800",
       INACTIVE: "bg-slate-100 text-slate-800",
+      CLOSED: "bg-blue-100 text-blue-800",
     };
     return map[status] || "bg-slate-100 text-slate-800";
   };

@@ -55,11 +55,11 @@ export default function AmcList({ baseApi, token, filters = {} }) {
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This will permanently delete the contract",
+      title: "Deactivate AMC Contract?",
+      text: "AMC contracts are not deleted. Status will be set to Inactive.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: "Yes, deactivate",
       confirmButtonColor: "#d33"
     });
 
@@ -74,10 +74,11 @@ export default function AmcList({ baseApi, token, filters = {} }) {
       });
 
       if (res.ok) {
-        Swal.fire({ icon: "success", text: "Contract deleted successfully", timer: 1200 });
+        Swal.fire({ icon: "success", text: "Contract set to Inactive", timer: 1200 });
         fetchContracts();
       } else {
-        throw new Error("Failed to delete contract");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to deactivate contract");
       }
     } catch (err) {
       Swal.fire({ icon: "error", title: "Error", text: err.message });
@@ -128,6 +129,8 @@ export default function AmcList({ baseApi, token, filters = {} }) {
         return "bg-green-100 text-green-800";
       case "INACTIVE":
         return "bg-slate-100 text-slate-800";
+      case "CLOSED":
+        return "bg-blue-100 text-blue-800";
       case "EXPIRED":
         return "bg-red-100 text-red-800";
       case "CANCELLED":

@@ -372,6 +372,7 @@ export default function AddAmcForm({
       options: [
         { value: "ACTIVE", label: "Active" },
         { value: "INACTIVE", label: "Inactive" },
+        { value: "CLOSED", label: "Closed" },
         { value: "EXPIRED", label: "Expired" },
         { value: "CANCELLED", label: "Cancelled" },
       ],

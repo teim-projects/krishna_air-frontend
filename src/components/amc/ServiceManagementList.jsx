@@ -44,20 +44,23 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
     fetchServices();
   }, [baseApi, token, filters]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (item) => {
+    const isAmc = item.contract_type === "amc";
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This will permanently delete this service record",
+      title: isAmc ? "Deactivate AMC Service?" : "Are you sure?",
+      text: isAmc
+        ? "AMC services are not deleted. Status will be set to Inactive."
+        : "This will permanently delete this service record",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: isAmc ? "Yes, deactivate" : "Yes, delete it!",
       confirmButtonColor: "#d33"
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`${baseApi}/amc/service-records/${id}/`, {
+      const res = await fetch(`${baseApi}/amc/service-records/${item.id}/`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -65,10 +68,15 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
       });
 
       if (res.ok) {
-        Swal.fire({ icon: "success", text: "Service record deleted successfully", timer: 1200 });
+        Swal.fire({
+          icon: "success",
+          text: isAmc ? "Service set to Inactive" : "Service record deleted successfully",
+          timer: 1200
+        });
         fetchServices();
       } else {
-        throw new Error("Failed to delete service record");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to delete service record");
       }
     } catch (err) {
       Swal.fire({ icon: "error", title: "Error", text: err.message });
@@ -76,9 +84,9 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
   };
 
   const getStatusBadgeClass = (status) => {
-    return status === "active"
-      ? "bg-green-100 text-green-800"
-      : "bg-red-100 text-red-800";
+    if (status === "active") return "bg-green-100 text-green-800";
+    if (status === "closed") return "bg-blue-100 text-blue-800";
+    return "bg-red-100 text-red-800";
   };
 
   const filteredServices = services.filter((item) => {
@@ -244,7 +252,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                         <MdEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
                         title="Delete"
                       >

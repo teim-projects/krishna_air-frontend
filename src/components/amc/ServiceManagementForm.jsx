@@ -837,6 +837,7 @@ const getMaterialName = (id) => {
                   <select name="contract_status" value={formData.contract_status} onChange={handleInputChange} className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
+                    <option value="closed">Closed</option>
                   </select>
                 </div>
                 <div>
