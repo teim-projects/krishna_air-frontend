@@ -1,4 +1,3 @@
-// src/components/inventory/DeliveryChallan.jsx
 import { useEffect, useState, useMemo } from "react";
 import { MdEdit, MdDelete, MdRemoveRedEye, MdPictureAsPdf } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -6,53 +5,71 @@ import DeliveryChallanForm from "./DeliveryChallanForm";
 import Pagination from "../Pagination";
 
 export default function DeliveryChallan({ base_api, filters }) {
-
   const [dcList, setDcList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDcForm, setShowDcForm] = useState(false);
   const [editingDc, setEditingDc] = useState(null);
-  const [viewingDc, setViewingDc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
   const PAGE_SIZE = 10;
-  const token = useMemo(() => localStorage.getItem("access") || "", []);
+  const token = useMemo(
+    () =>
+      localStorage.getItem("access") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      "",
+    []
+  );
 
   const fetchDC = async (page = 1) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('page', page);
-      params.append('page_size', PAGE_SIZE);
-      
-      // Add filters
+      params.append("page", page);
+      params.append("page_size", PAGE_SIZE);
+
       if (filters) {
-        if (filters.search) params.append('search', filters.search);
-        if (filters.status && filters.status !== 'All') params.append('status', filters.status.toLowerCase());
+        if (filters.search) params.append("search", filters.search);
+        if (filters.status && filters.status !== "All") {
+          params.append("status", filters.status.toLowerCase());
+        }
       }
 
       const response = await fetch(
         `${base_api}/inventory/delivery-challan/?${params.toString()}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         }
       );
 
       const data = await response.json();
-      console.log("API Response:", data);
-      
-      setDcList(data.results || data || []);
-      setTotalCount(data.count || (data.results?.length) || 0);
-      
-      if (data.count) {
-        setTotalPages(Math.ceil(data.count / PAGE_SIZE));
-      } else if (Array.isArray(data)) {
+      if (data.results) {
+        setDcList(data.results);
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / PAGE_SIZE));
+        setCurrentPage(page);
+      } else {
+        const list = Array.isArray(data) ? data : [];
+        setDcList(list);
+        setTotalCount(list.length);
         setTotalPages(1);
       }
     } catch (err) {
       console.error("Error fetching delivery challans:", err);
       setDcList([]);
+      setTotalCount(0);
+      setTotalPages(1);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch delivery challans",
+      });
     } finally {
       setLoading(false);
     }
@@ -60,7 +77,6 @@ export default function DeliveryChallan({ base_api, filters }) {
 
   useEffect(() => {
     fetchDC(1);
-    setCurrentPage(1);
   }, [filters]);
 
   const handleDelete = async (id) => {
@@ -71,7 +87,7 @@ export default function DeliveryChallan({ base_api, filters }) {
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!"
+      confirmButtonText: "Delete",
     });
 
     if (!result.isConfirmed) return;
@@ -79,89 +95,65 @@ export default function DeliveryChallan({ base_api, filters }) {
     try {
       const response = await fetch(`${base_api}/inventory/delivery-challan/${id}/`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
 
-      if (response.ok) {
-        Swal.fire("Deleted!", "Delivery Challan has been deleted.", "success");
-        fetchDC(currentPage);
-      } else {
-        throw new Error("Delete failed");
-      }
+      if (!response.ok) throw new Error("Delete failed");
+
+      Swal.fire({
+        icon: "success",
+        title: "Deleted",
+        text: "Delivery Challan deleted successfully",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      fetchDC(currentPage);
     } catch (err) {
-      console.error("Error deleting delivery challan:", err);
-      Swal.fire("Error!", "Failed to delete delivery challan.", "error");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to delete delivery challan",
+      });
     }
   };
 
-  // View PDF - Open in new tab
   const handleViewPDF = (id) => {
+    window.open(`${base_api}/inventory/delivery-challan/${id}/pdf/`, "_blank");
+  };
+
+  const handleDownloadPDF = (id) => {
     window.open(
-      `${base_api}/inventory/delivery-challan/${id}/pdf/`,
+      `${base_api}/inventory/delivery-challan/${id}/pdf/?download=1`,
       "_blank"
     );
   };
 
-  // Download PDF
-  const handleDownloadPDF = async (id, dcNumber) => {
-    try {
-      const response = await fetch(
-        `${base_api}/inventory/delivery-challan/${id}/pdf/?download=1`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      if (!response.ok) {
-        throw new Error("PDF download failed");
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `delivery_challan_${dcNumber || id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      Swal.fire("Success!", "PDF downloaded successfully!", "success");
-    } catch (err) {
-      console.error("Error downloading PDF:", err);
-      Swal.fire("Error!", "Failed to download PDF.", "error");
-    }
-  };
-
   const getStatusBadge = (status) => {
-    const statusStyles = {
-      'draft': 'bg-gray-100 text-gray-800',
-      'confirmed': 'bg-blue-100 text-blue-800',
-      'dispatched': 'bg-yellow-100 text-yellow-800',
-      'delivered': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-red-100 text-red-800'
+    const map = {
+      pending: "bg-yellow-100 text-yellow-800",
+      in_transit: "bg-blue-100 text-blue-800",
+      delivered: "bg-green-100 text-green-800",
     };
-    const style = statusStyles[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+    const style = map[status?.toLowerCase()] || "bg-slate-100 text-slate-800";
+    const label = status
+      ? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "Unknown";
+
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${style}`}>
-        {status || 'Unknown'}
+      <span className={`px-2 py-1 rounded text-xs font-semibold ${style}`}>
+        {label}
       </span>
     );
   };
 
   const openCreateForm = () => {
-    console.log("Opening create form");
     setEditingDc(null);
-    setViewingDc(null);
     setShowDcForm(true);
   };
 
   const closeModal = () => {
     setShowDcForm(false);
     setEditingDc(null);
-    setViewingDc(null);
   };
 
   return (
@@ -174,127 +166,122 @@ export default function DeliveryChallan({ base_api, filters }) {
             {loading ? "Loading..." : `${totalCount} delivery challan(s) found`}
           </div>
         </div>
-        <button
-          onClick={openCreateForm}
-          className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 transition-colors"
-          type="button"
-        >
-          + Add Delivery Challan
-        </button>
+        <div>
+          <button
+            onClick={openCreateForm}
+            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            type="button"
+          >
+            + Add Delivery Challan
+          </button>
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-md shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">DC Number</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Issue Number</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Dispatch Date</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Destination</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Delivery Partner</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Sr.No</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">DC Number</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Issue Number</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Dispatch Date</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Vehicle</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Transporter</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Actions</th>
+                <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                  Loading delivery challans...
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-8">
-                    <div className="flex justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+            ) : dcList.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                  No delivery challans found. Click "+ Add Delivery Challan" to create one.
+                </td>
+              </tr>
+            ) : (
+              dcList.map((dc, index) => (
+                <tr key={dc.id} className="border-b hover:bg-slate-50">
+                  <td className="px-4 py-3 text-sm">
+                    {(currentPage - 1) * PAGE_SIZE + index + 1}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium">{dc.dc_number || "-"}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {dc.material_issue_details?.issue_number || dc.issue_number || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">{dc.dispatch_date || "-"}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {dc.delivery_destination_name || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {dc.delivery_partner_name || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm">{getStatusBadge(dc.status)}</td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleViewPDF(dc.id)}
+                        className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300"
+                        title="View PDF"
+                        type="button"
+                      >
+                        <MdRemoveRedEye />
+                      </button>
+                      <button
+                        onClick={() => handleDownloadPDF(dc.id)}
+                        className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300"
+                        title="Download PDF"
+                        type="button"
+                      >
+                        <MdPictureAsPdf />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingDc(dc);
+                          setShowDcForm(true);
+                        }}
+                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                        title="Edit"
+                        type="button"
+                      >
+                        <MdEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(dc.id)}
+                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                        title="Delete"
+                        type="button"
+                      >
+                        <MdDelete />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ) : dcList.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-8 text-gray-500">
-                    No Delivery Challans Found
-                  </td>
-                </tr>
-              ) : (
-                dcList.map((dc, index) => (
-                  <tr key={dc.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{((currentPage - 1) * PAGE_SIZE) + index + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{dc.dc_number}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {dc.material_issue_details?.issue_number || dc.issue_number || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm">{dc.dispatch_date || '-'}</td>
-                    <td className="px-4 py-3 text-sm">{dc.vehicle_number || '-'}</td>
-                    <td className="px-4 py-3 text-sm">{dc.transporter_name || '-'}</td>
-                    <td className="px-4 py-3 text-sm">{getStatusBadge(dc.status)}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex gap-2">
-                        {/* View PDF */}
-                        <button
-                          onClick={() => handleViewPDF(dc.id)}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                          title="View PDF"
-                          type="button"
-                        >
-                          <MdRemoveRedEye size={18} />
-                        </button>
+              ))
+            )}
+          </tbody>
+        </table>
 
-                        {/* Download PDF */}
-                        <button
-                          onClick={() => handleDownloadPDF(dc.id, dc.dc_number)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          title="Download PDF"
-                          type="button"
-                        >
-                          <MdPictureAsPdf size={18} />
-                        </button>
-
-                        {/* Edit */}
-                        <button
-                          onClick={() => {
-                            setEditingDc(dc);
-                            setViewingDc(null);
-                            setShowDcForm(true);
-                          }}
-                          className="text-green-600 hover:text-green-800 transition-colors"
-                          title="Edit"
-                          type="button"
-                        >
-                          <MdEdit size={18} />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => handleDelete(dc.id)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                          title="Delete"
-                          type="button"
-                        >
-                          <MdDelete size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {!loading && totalPages > 1 && (
-          <div className="p-4 border-t">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => {
-                setCurrentPage(page);
-                fetchDC(page);
-              }}
-            />
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            fetchDC(page);
+          }}
+          totalItems={totalCount}
+          showInfo={true}
+          size="md"
+          variant="default"
+        />
       </div>
 
-      {/* Modal - Updated to use open prop pattern */}
       <DeliveryChallanForm
         open={showDcForm}
         onClose={closeModal}
@@ -303,7 +290,7 @@ export default function DeliveryChallan({ base_api, filters }) {
           fetchDC(currentPage);
         }}
         base_api={base_api}
-        dc={editingDc || viewingDc}
+        dc={editingDc}
       />
     </div>
   );

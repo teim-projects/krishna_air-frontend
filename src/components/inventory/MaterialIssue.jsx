@@ -97,10 +97,6 @@ export default function MaterialIssue({ base_api, filters }) {
   };
 
   const handleView = (materialIssue) => {
-  console.log("=== MATERIAL ISSUE DEBUG ===");
-  console.log("Full materialIssue object:", materialIssue);
-  console.log("Items array:", materialIssue.items);
-  
   // Build items table HTML
   const itemsHTML = materialIssue.items && materialIssue.items.length > 0 
     ? `
@@ -109,20 +105,22 @@ export default function MaterialIssue({ base_api, filters }) {
           <tr class="bg-gray-200 border">
             <th class="px-3 py-2 border">Sr.No</th>
             <th class="px-3 py-2 border">Item Details</th>
-            <th class="px-3 py-2 border">Quantity</th>
+            <th class="px-3 py-2 border text-center">Qty</th>
+            <th class="px-3 py-2 border text-center">Rate</th>
             <th class="px-3 py-2 border">UOM</th>
           </tr>
         </thead>
         <tbody>
           ${materialIssue.items.map((item, index) => {
-            // Use display_name or inventory_item_name (these exist!)
-            const itemName = item.display_name || item.inventory_item_name || 'Unknown';
-            console.log(`Item ${index} name:`, itemName);
+            const itemName = item.display_name || item.product_name || item.inventory_item_name || 'Unknown';
+            const qty = item.quantity ?? 0;
+            const rate = item.rate != null ? Number(item.rate).toFixed(2) : '0.00';
             return `
               <tr class="border hover:bg-gray-50">
                 <td class="px-3 py-2 border">${index + 1}</td>
                 <td class="px-3 py-2 border font-medium">${itemName}</td>
-                <td class="px-3 py-2 border text-center font-semibold">${item.quantity || 0}</td>
+                <td class="px-3 py-2 border text-center font-semibold">${qty}</td>
+                <td class="px-3 py-2 border text-center">₹${rate}</td>
                 <td class="px-3 py-2 border">${item.uom || '-'}</td>
               </tr>
             `;
@@ -150,7 +148,7 @@ export default function MaterialIssue({ base_api, filters }) {
     `,
     icon: "info",
     confirmButtonText: "Close",
-    width: 750,
+    width: 850,
   });
 };
 

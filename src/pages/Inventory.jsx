@@ -50,7 +50,7 @@ const Inventory = () => {
   ];
 
   const deliveryChallanFiltersConfig = [
-    { key: "search", label: "Search", type: "search", placeholder: "Search by DC number, vehicle number, transporter..." },
+      { key: "search", label: "Search", type: "search", placeholder: "Search by DC number, partner, destination..." },
     { key: "status", label: "Status", type: "select", options: ["All", "draft", "confirmed", "dispatched", "delivered", "cancelled"], placeholder: "Filter by status" }
   ];
 
