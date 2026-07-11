@@ -26,7 +26,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
     size: "",
     size_unit: "mm",
     thickness: "",
-    thickness_unit: "mm",
+    thickness_unit: "mm",       
     density: "",
     density_unit: "g/cm³",
     brand: "",

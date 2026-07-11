@@ -162,10 +162,44 @@ export default function AddCustomerForm({
       return false;
     }
     
-    // GST validation - 15 characters if provided
+    // GST validation - enhanced format validation
     if (gst && gst.trim()) {
-      if (gst.trim().length !== 15) {
+      const gstTrimmed = gst.trim().toUpperCase();
+      if (gstTrimmed.length !== 15) {
         Swal.fire({ icon: "error", title: "Validation", text: "GST number must be exactly 15 characters" });
+        return false;
+      }
+      
+      // Validate GST format
+      const gstPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+      if (!gstPattern.test(gstTrimmed)) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "GST Validation", 
+          text: "Invalid GST format. Expected format: 22AAAAA0000A1Z5" 
+        });
+        return false;
+      }
+      
+      // Extract and validate PAN from GST
+      const panFromGST = gstTrimmed.substring(2, 12);
+      const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panPattern.test(panFromGST)) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "GST Validation", 
+          text: "Invalid PAN format within GST number" 
+        });
+        return false;
+      }
+      
+      // If PAN is also provided separately, check if it matches
+      if (pan && pan.trim().toUpperCase() !== panFromGST) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "Validation", 
+          text: "PAN number doesn't match the PAN in GST number" 
+        });
         return false;
       }
     }

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
+import EditWorkRecordForm from "../components/accounts/EditWorkRecordForm";
 import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
@@ -26,6 +27,11 @@ export default function Accounts() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [workRecords, setWorkRecords] = useState([]);
+  const [loadingWork, setLoadingWork] = useState(false);
+  const [editingWorkRecord, setEditingWorkRecord] = useState(null);
+  const [showWorkForm, setShowWorkForm] = useState(false);
 
   const token = useMemo(() => {
     return (
@@ -160,6 +166,33 @@ export default function Accounts() {
     setAppliedFilters(prev => ({ ...prev, ...filters }));
   }, []);
 
+  const fetchWorkRecords = useCallback(async () => {
+    setLoadingWork(true);
+    try {
+      if (!token) return;
+      const res = await fetch(`${BASE_API}/amc/technician-work-records/`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWorkRecords(data.results || data);
+      }
+    } catch (err) {
+      console.error("Failed to load work records", err);
+    } finally {
+      setLoadingWork(false);
+    }
+  }, [token, BASE_API]);
+
+  useEffect(() => {
+    if (activeTab === "low" || activeTab === "installation") {
+      fetchWorkRecords();
+    }
+  }, [activeTab, fetchWorkRecords]);
+
   const handleDeleteStaff = async (id) => {
     const confirm = await Swal.fire({
       title: "Delete Staff?",
@@ -170,13 +203,71 @@ export default function Accounts() {
 
     if (!confirm.isConfirmed) return;
 
-    await fetch(`${BASE_API}/auth/staff/${id}/`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    try {
+      const res = await fetch(`${BASE_API}/auth/staff/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: "Staff member deleted successfully",
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } else {
+        const data = await res.json();
+        throw new Error(data.detail || data.message || "Failed to delete staff member");
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Deletion Failed",
+        text: err.message
+      });
+    }
 
     fetchData(currentPage);
   };
+
+  const handleDeleteWorkRecord = useCallback(async (id) => {
+    const confirm = await Swal.fire({
+      title: "Delete Work Record?",
+      text: "Are you sure you want to delete this work record?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Delete"
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await fetch(`${BASE_API}/amc/technician-work-records/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: "Work record deleted successfully",
+          timer: 1500,
+          showConfirmButton: false
+        });
+        fetchWorkRecords();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || data.message || "Failed to delete work record");
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Deletion Failed",
+        text: err.message
+      });
+    }
+  }, [BASE_API, token, fetchWorkRecords]);
 
   // table columns for TableView
   const columns = useMemo(() => ([
@@ -191,6 +282,49 @@ export default function Accounts() {
     { key: "last_name", label: "Last Name", render: r => r.last_name },
     { key: "role", label: "Role", render: r => r.role?.name ?? "" },
   ]), [currentPage]);
+
+  const displayRows = useMemo(() => {
+    if (activeTab === "technician") {
+      return rows.filter(r => r.role?.name?.toLowerCase() === "technician");
+    }
+    return rows;
+  }, [rows, activeTab]);
+
+  const completedRecords = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return workRecords.filter(r => 
+      r.payment_status === "completed" || 
+      (r.service_end_date && r.service_end_date <= today)
+    );
+  }, [workRecords]);
+
+  const workColumns = useMemo(() => ([
+    {
+      key: "sr",
+      label: "Sr.No",
+      render: (_, idx) => idx + 1
+    },
+    { key: "technician", label: "Technician", render: r => r.technician_name },
+    { key: "customer", label: "Customer Name", render: r => r.customer_name },
+    { key: "phone", label: "Phone", render: r => r.customer_phone },
+    { key: "work_date", label: "Work Date", render: r => r.work_date },
+    { key: "end_date", label: "End Date", render: r => r.service_end_date || "—" },
+    { key: "description", label: "Description", render: r => r.work_description || "—" },
+    { key: "payment", label: "Payment Amount", render: r => `₹${parseFloat(r.payment_amount || 0).toFixed(2)}` },
+    {
+      key: "status",
+      label: "Payment Status",
+      render: r => (
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+          r.payment_status === "completed" 
+            ? "bg-green-100 text-green-800" 
+            : "bg-amber-100 text-amber-800"
+        }`}>
+          {r.payment_status?.toUpperCase()}
+        </span>
+      )
+    }
+  ]), []);
 
   // actions renderer (centered by TableView)
   const actionsRenderer = useCallback((row) => (
@@ -213,6 +347,26 @@ export default function Accounts() {
     </>
   ), [handleDeleteStaff]);
 
+  const workActionsRenderer = useCallback((row) => (
+    <>
+      <button
+        onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
+        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+        title="Edit"
+      >
+        <MdEdit />
+      </button>
+
+      <button
+        onClick={() => handleDeleteWorkRecord(row.id)}
+        className="px-2 py-1 bg-red-200 text-red-800 rounded"
+        title="Delete"
+      >
+        <MdDelete />
+      </button>
+    </>
+  ), [handleDeleteWorkRecord]);
+
   return (
     <Base
       title="Accounts Overview"
@@ -221,47 +375,113 @@ export default function Accounts() {
       onFiltersChange={handleFilterChange}
     >
       <div className="space-y-6">
+        {/* Category Selection Tabs */}
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "all"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            All Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab("technician")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "technician"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Technician List
+          </button>
+          <button
+            onClick={() => setActiveTab("low")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "low"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Work history
+          </button>
+          <button
+            onClick={() => setActiveTab("installation")}
+            className={`px-4 py-2 rounded font-medium transition ${
+              activeTab === "installation"
+                ? "bg-blue-800 text-blue-100"
+                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+            }`}
+          >
+            Completed Work
+          </button>
+        </div>
+
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Staff Accounts & Roles</h2>
+            <h2 className="text-lg font-semibold">
+              {activeTab === "low" ? "Technician Work History" :
+               activeTab === "installation" ? "Completed Work Records" :
+               "Staff Accounts & Roles"}
+            </h2>
             <div className="text-sm text-slate-600">
-              {loading ? "Loading…" : `${totalCount} total • ${rows.length} shown`}
+              {activeTab === "low" ? `${workRecords.length} record(s) found` :
+               activeTab === "installation" ? `${completedRecords.length} record(s) found` :
+               (loading ? "Loading…" : `${activeTab === "technician" ? displayRows.length : totalCount} total • ${displayRows.length} shown`)}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAddRole(true)}
-              className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-            >
-              Manage Roles
-            </button>
+          {(activeTab === "all" || activeTab === "technician") && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowAddRole(true)}
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+              >
+                Manage Roles
+              </button>
 
-            <button
-              onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
-              className="px-4 py-2 rounded-md bg-sky-600 text-white"
-            >
-              + Add Staff
-            </button>
+              <button
+                onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
+                className="px-4 py-2 rounded-md bg-sky-600 text-white"
+              >
+                + Add Staff
+              </button>
 
-            {rolesLoading ? <div className="text-sm text-slate-500">Loading roles…</div> :
-             rolesError ? <div className="text-sm text-red-500">Roles error</div> : null}
-          </div>
+              {rolesLoading ? <div className="text-sm text-slate-500">Loading roles…</div> :
+               rolesError ? <div className="text-sm text-red-500">Roles error</div> : null}
+            </div>
+          )}
         </div>
 
         {/* Reusable TableView */}
-        <TableView
-          columns={columns}
-          rows={rows}
-          loading={loading}
-          error={error}
-          page={currentPage}
-          totalPages={totalPages}
-          onPageChange={(p) => setCurrentPage(p)}
-          pageSize={PAGE_SIZE}
-          actions={actionsRenderer}
-          emptyMessage="No records"
-        />
+        {activeTab === "low" || activeTab === "installation" ? (
+          <TableView
+            columns={workColumns}
+            rows={activeTab === "low" ? workRecords : completedRecords}
+            loading={loadingWork}
+            page={1}
+            totalPages={1}
+            onPageChange={() => {}}
+            pageSize={100}
+            actions={workActionsRenderer}
+            emptyMessage="No work records found."
+          />
+        ) : (
+          <TableView
+            columns={columns}
+            rows={displayRows}
+            loading={loading}
+            error={error}
+            page={currentPage}
+            totalPages={activeTab === "technician" ? 1 : totalPages}
+            onPageChange={(p) => setCurrentPage(p)}
+            pageSize={PAGE_SIZE}
+            actions={actionsRenderer}
+            emptyMessage="No records"
+          />
+        )}
       </div>
 
       {/* Manage Roles modal */}
@@ -274,6 +494,8 @@ export default function Accounts() {
         </div>
       )}
 
+
+
       <AddStaffForm
         open={showStaffForm}
         onClose={() => setShowStaffForm(false)}
@@ -281,6 +503,14 @@ export default function Accounts() {
         baseApi={BASE_API}
         roles={roles}
         staff={editingStaff}
+      />
+
+      <EditWorkRecordForm
+        open={showWorkForm}
+        onClose={() => setShowWorkForm(false)}
+        onSuccess={() => fetchWorkRecords()}
+        baseApi={BASE_API}
+        workRecord={editingWorkRecord}
       />
     </Base>
   );

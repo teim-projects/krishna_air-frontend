@@ -62,7 +62,7 @@ const STATES = [
 ];
 
 
-export default function AddInvoice({ id, onBack }) {
+export default function AddInvoice({ id, onBack, initialDraft = null, amcContractId = null, sparePartIds = [] }) {
 
   const { getOrCreateTermTypeId, loading } = useTermTypes({
     baseApi: BASE_API,
@@ -70,6 +70,7 @@ export default function AddInvoice({ id, onBack }) {
   });
 
   const isEdit = !!id;
+  const isAmcDraft = Boolean(initialDraft && !isEdit);
 
   // Step state for multistep form
   const [step, setStep] = useState(1);
@@ -296,6 +297,39 @@ export default function AddInvoice({ id, onBack }) {
 
     loadInvoiceData();
   }, [id, paymentTypeId, deliveryTypeId, otherTypeId]);
+
+  // ================= AMC SPARE PARTS DRAFT PREFILL =================
+  useEffect(() => {
+    if (!initialDraft || isEdit) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      customer_phone: initialDraft.customer_phone || "",
+      customer_name: initialDraft.customer_name || "",
+      customer_id: initialDraft.customer_id || "",
+      buyer_address: initialDraft.buyer_address || "",
+      buyer_gstin: initialDraft.buyer_gstin || "",
+      buyer_state: initialDraft.buyer_state || "",
+      ship_to_address: initialDraft.buyer_address || "",
+      same_as_buyer: true,
+      work_description: initialDraft.work_description || "",
+    }));
+
+    setLowItems(
+      (initialDraft.low_side_items || []).map((i) => ({
+        item: i.item,
+        item_code: i.item_code,
+        description: i.description || "",
+        hsn_sac: i.hsn_sac || "",
+        quantity: i.quantity,
+        unit: i.unit || "Nos",
+        rate: i.rate,
+        gst_percent: i.gst_percent,
+      }))
+    );
+    setStep(1);
+  }, [initialDraft, isEdit]);
+
   // ================= CUSTOMER SEARCH =================
   const handlePhoneSearch = async (phone) => {
     if (phone.length >= 10) {
@@ -507,7 +541,17 @@ export default function AddInvoice({ id, onBack }) {
       if (isEdit) {
         await api.put(`invoice/invoice/${id}/`, payload);
       } else {
-        await api.post("invoice/invoice/", payload);
+        const res = await api.post("invoice/invoice/", payload);
+
+        if (amcContractId && sparePartIds.length > 0 && res.data?.id) {
+          await api.post(
+            `amc/contracts/${amcContractId}/mark_spare_parts_invoiced/`,
+            {
+              invoice_id: res.data.id,
+              spare_part_ids: sparePartIds,
+            }
+          );
+        }
       }
 
       Swal.fire({

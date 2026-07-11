@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { MdEdit, MdDelete, MdCheckCircle } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddGrnForm from "./AddGrnForm";
@@ -24,10 +24,18 @@ export default function GRN({ base_api, filters }) {
     ""
   ), []);
 
-  const fetchGrns = async (page = 1) => {
+  // Build query string from current page + filters
+  const buildUrl = useCallback((page, f = {}) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (f.search) params.set("search", f.search);
+    return `${BASE_API}/inventory/grn/?${params.toString()}`;
+  }, [BASE_API]);
+
+  const fetchGrns = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BASE_API}/inventory/grn/?page=${page}`, {
+      const response = await axios.get(buildUrl(page, filters), {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -53,11 +61,19 @@ export default function GRN({ base_api, filters }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [BASE_API, token, filters, buildUrl]);
 
+  // Single source-of-truth effect:
+  // Re-fetch whenever filters OR currentPage changes.
+  // When filters change, reset to page 1 first.
   useEffect(() => {
     fetchGrns(currentPage);
-  }, [currentPage]);
+  }, [fetchGrns, currentPage]);
+
+  // When filters change, reset page to 1 (fetchGrns fires via fetchGrns dep change above)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const handleEdit = (grn) => {
     if (grn.is_completed) {

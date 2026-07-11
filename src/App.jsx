@@ -25,6 +25,7 @@ import Invoice from "./pages/Invoice";
 // import AcTypeList from "./components/products/AcTypeList";
 import ItemMaster from "./pages/ItemMaster";
 import Inventory from "./pages/Inventory";
+import AmcPage from "./pages/Amc";
 
 
 
@@ -117,6 +118,7 @@ function AppRoutes() {
 
               <Route path="/item_master" element={<ItemMaster />} />
               <Route path="/inventory" element={<Inventory/>} />
+              <Route path="/amc" element={<AmcPage/>} />
 
             </Routes>
             

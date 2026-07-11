@@ -1,9 +1,7 @@
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
-import { FiMail } from "react-icons/fi";
-
-import { FiEye, FiDownload, FiTrash2, FiEdit } from "react-icons/fi";
+import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory } from "react-icons/md";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -18,21 +16,53 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
+/**
+ * InvoiceList
+ * Props:
+ *   onAdd    – called when user clicks "+ Create Invoice"
+ *   onEdit   – called with invoice id when user clicks Edit
+ *   filters  – applied filter object from FiltersPanel (passed by Invoice.jsx)
+ *
+ * Exposed ref methods:
+ *   refreshList() – force re-fetch (called from parent after add/edit)
+ */
+const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchInvoices();
+  // ─── Build query string from filters ───────────────────────────────────────
+  const buildParams = useCallback((f = {}) => {
+    const params = new URLSearchParams();
+
+    // Full-text search → DRF SearchFilter uses ?search=
+    if (f.search) params.set("search", f.search);
+
+    // Date range → InvoiceFilter date_from / date_to
+    if (f.date?.from) params.set("date_from", f.date.from);
+    if (f.date?.to)   params.set("date_to",   f.date.to);
+
+    // GST type → InvoiceFilter exact match
+    if (f.gst_type) params.set("gst_type", f.gst_type);
+
+    return params.toString();
   }, []);
 
-  const fetchInvoices = () => {
+  // ─── Fetch invoices whenever filters change ─────────────────────────────────
+  const fetchInvoices = useCallback(() => {
+    setLoading(true);
+    const qs = buildParams(filters);
     api
-      .get("invoice/invoice/")
+      .get(`invoice/invoice/${qs ? `?${qs}` : ""}`)
       .then((res) => {
         setData(res.data.results || res.data);
       })
-      .catch((err) => console.error(err));
-  };
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [filters, buildParams]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
 
   // Expose refresh method to parent component
   useImperativeHandle(ref, () => ({
@@ -65,37 +95,37 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
   /* ================= PDF DOWNLOAD ================= */
 
   const handleDownloadPDF = async (invoiceId) => {
-  try {
-    const response = await api.get(
-      `/invoice/${invoiceId}/pdf/`,
-      {
-        responseType: "blob",
-      }
-    );
+    try {
+      const response = await api.get(
+        `/invoice/${invoiceId}/pdf/`,
+        {
+          responseType: "blob",
+        }
+      );
 
-    const blob = new Blob([response.data], {
-      type: "application/pdf",
-    });
+      const blob = new Blob([response.data], {
+        type: "application/pdf",
+      });
 
-    const fileURL = window.URL.createObjectURL(blob);
+      const fileURL = window.URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = fileURL;
+      const link = document.createElement("a");
+      link.href = fileURL;
 
-    // ✅ IMPORTANT
-    link.setAttribute("download", `invoice_${invoiceId}.pdf`);
+      // ✅ IMPORTANT
+      link.setAttribute("download", `invoice_${invoiceId}.pdf`);
 
-    document.body.appendChild(link);
-    link.click();
+      document.body.appendChild(link);
+      link.click();
 
-    // remove silently
-    link.remove();
-    window.URL.revokeObjectURL(fileURL);
-  } catch (err) {
-    console.error(err);
-    alert("Download failed");
-  }
-};
+      // remove silently
+      link.remove();
+      window.URL.revokeObjectURL(fileURL);
+    } catch (err) {
+      console.error(err);
+      alert("Download failed");
+    }
+  };
 
   /* ================= DELETE ================= */
 
@@ -113,45 +143,56 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
   };
 
   return (
-    <div style={pageWrap}>
-      {/* HEADER */}
-      <div style={headerWrap}>
-        <button onClick={onAdd} style={addBtn}>
-          + Create Invoice
-        </button>
+    <div className="space-y-6">
+      {/* Header Section — matches PurchaseOrder.jsx */}
+      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Invoice Management</h2>
+          <div className="text-sm text-slate-600">
+            {loading ? "Loading..." : `${data.length} invoice(s) found`}
+          </div>
+        </div>
+        <div>
+          <button
+            onClick={onAdd}
+            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+          >
+            + Create Invoice
+          </button>
+        </div>
       </div>
 
-      {/* CARD */}
-      <div style={cardWrap}>
-        <h3 style={cardTitle}>Invoices</h3>
-
-        <table width="100%" style={{ borderCollapse: "collapse" }}>
-          <thead style={thead}>
+      {/* Table — matches PurchaseOrder.jsx */}
+      <div className="bg-white rounded-md shadow overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-slate-50 border-b">
             <tr>
-              <th style={th}>Invoice No</th>
-              <th style={th}>Date</th>
-              <th style={th}>Buyer</th>
-              <th style={th}>Total Amount</th>
-              <th style={th}>Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Invoice No</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Buyer</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Total Amount</th>
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {data.map((inv) => (
-              <tr key={inv.id} style={row}>
-                <td style={{ ...td, fontWeight: 600 }}>
+            {data.map((inv, index) => (
+              <tr key={inv.id} className="border-b hover:bg-slate-50">
+                <td className="px-4 py-3 text-sm">{index + 1}</td>
+                <td className="px-4 py-3 text-sm font-medium">
                   {inv.invoice_no}
                 </td>
 
-                <td style={td}>
+                <td className="px-4 py-3 text-sm">
                   {inv.invoice_date
                     ? new Date(inv.invoice_date).toLocaleDateString()
                     : "N/A"}
                 </td>
 
-                <td style={td}>{inv.buyer_name}</td>
+                <td className="px-4 py-3 text-sm">{inv.buyer_name}</td>
 
-                <td style={{ ...td, fontWeight: 600 }}>
+                <td className="px-4 py-3 text-sm font-medium">
                   ₹
                   {Number(inv.grand_total || 0).toLocaleString(
                     "en-IN",
@@ -159,57 +200,45 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
                   )}
                 </td>
 
-                {/* ACTIONS ICON UI */}
-                <td style={td}>
-                  <div style={actionWrap}>
-  <button
-    onClick={() => handleViewPDF(inv.id)}
-    style={iconBtn}
-    title="View PDF"
-  >
-    <FiEye size={16} />
-  </button>
+                {/* ACTIONS */}
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    {/* ORDER matches PurchaseOrder.jsx: History | View | Edit | Download | WhatsApp | Email | Delete */}
+                    <button className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300" title="Invoice History">
+                      <MdHistory />
+                    </button>
 
-  <button
-    onClick={() => handleDownloadPDF(inv.id)}
-    style={iconBtn}
-    title="Download PDF"
-  >
-    <FiDownload size={16} />
-  </button>
+                    <button onClick={() => handleViewPDF(inv.id)} className="px-2 py-1 bg-blue-200 text-blue-800 rounded hover:bg-blue-300" title="View">
+                      <MdRemoveRedEye />
+                    </button>
 
-  {/* UI ONLY ICONS */}
-  <button style={iconBtn} title="WhatsApp">
-    <FaWhatsapp size={16} color="#25D366" />
-  </button>
+                    <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
+                      <MdEdit />
+                    </button>
 
-  <button style={iconBtn} title="Mail">
-    <FiMail size={16} />
-  </button>
+                    <button onClick={() => handleDownloadPDF(inv.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
+                      <MdDownload />
+                    </button>
 
-  <button
-    onClick={() => onEdit(inv.id)}
-    style={iconBtn}
-    title="Edit"
-  >
-    <FiEdit size={16} />
-  </button>
+                    <button className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="WhatsApp">
+                      <FaWhatsapp />
+                    </button>
 
-  <button
-    onClick={() => handleDeleteInvoice(inv.id)}
-    style={iconBtn}
-    title="Delete"
-  >
-    <FiTrash2 size={16} color="#e74c3c" />
-  </button>
-</div>
+                    <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                      <MdEmail />
+                    </button>
+
+                    <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                      <MdDelete />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
 
-            {data.length === 0 && (
+            {data.length === 0 && !loading && (
               <tr>
-                <td colSpan="5" style={emptyRow}>
+                <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
                   No invoices found. Create your first invoice!
                 </td>
               </tr>
@@ -222,75 +251,3 @@ const InvoiceList = forwardRef(({ onAdd, onEdit }, ref) => {
 });
 
 export default InvoiceList;
-
-/* ================= UI STYLES (MATCH QUOTATION PAGE) ================= */
-
-const pageWrap = {
-  padding: "30px",
-  background: "#f6f7fb",
-  minHeight: "100vh",
-};
-
-const headerWrap = {
-  marginBottom: "20px",
-};
-
-const addBtn = {
-  background: "#2d6cdf",
-  color: "#fff",
-  border: "none",
-  padding: "10px 18px",
-  borderRadius: "10px",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const cardWrap = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "22px",
-  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-};
-
-const cardTitle = {
-  marginBottom: "12px",
-  fontWeight: 600,
-};
-
-const thead = {
-  background: "#f3f4f8",
-};
-
-const th = {
-  textAlign: "left",
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const td = {
-  padding: "12px",
-  fontSize: "13px",
-};
-
-const row = {
-  borderBottom: "1px solid #eee",
-};
-
-const emptyRow = {
-  textAlign: "center",
-  padding: "40px",
-  color: "#777",
-};
-
-const actionWrap = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-};
-
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "4px",
-};

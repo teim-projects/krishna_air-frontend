@@ -265,7 +265,27 @@ export default function AddBranchForm({
     },
     { name: "pincode", label: "Pincode", type: "text", required: true, maxLength: 6, gridCols: 1, placeholder: "123456" },
     { name: "state_code", label: "State Code", type: "text", disabled: true, gridCols: 1, placeholder: "Auto-filled" },
-    { name: "gst_no", label: "GST Number", type: "text", maxLength: 15, gridCols: 1, placeholder: "22AAAAA0000A1Z5" },
+    { 
+      name: "gst_no", 
+      label: "GST Number", 
+      type: "text", 
+      maxLength: 15, 
+      gridCols: 1, 
+      placeholder: "22AAAAA0000A1Z5",
+      validation: (value) => {
+        if (!value) return true; // Optional field
+        if (value.length !== 15) return "GST must be 15 characters";
+        
+        const gst = value.toUpperCase();
+        const gstPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+        
+        if (!gstPattern.test(gst)) {
+          return "Invalid GST format. Expected: 22AAAAA0000A1Z5";
+        }
+        
+        return true;
+      }
+    },
     { name: "company_pan",label: "Company PAN",type: "text",maxLength: 10,gridCols: 1,placeholder: "ABCDE1234F"},
 
     { name: "msme_number",  label: "MSME / Udyam Number", type: "text", gridCols: 1,placeholder: "UDYAM-XX-00-0000000"},

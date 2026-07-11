@@ -7,26 +7,28 @@ import HighSide, {
     highSideModelFiltersConfig,
 } from '../components/products/HighSide';
 import axios from 'axios';
+import InstallationWork from "../components/products/InstallationWork";
 
 
 const ItemMaster = () => {
     const BASE_API = import.meta.env.VITE_BASE_API_URL;
     const [activeSide, setActiveSide] = useState('high') // 'high' | 'low'
+    // const [activeTab, setActiveTab] = useState("high"); // "high", "low", "installation"
     const [filters, setFilters] = useState({});
     const [activeHighTab, setActiveHighTab] = useState('product');
     const [brands, setBrands] = useState([]);
     const [acTypes, setAcTypes] = useState([]);
-    
+
     // Low Side dropdown options
     const [materialTypes, setMaterialTypes] = useState([]);
     const [itemTypes, setItemTypes] = useState([]);
     const [featureTypes, setFeatureTypes] = useState([]);
     const [classes, setClasses] = useState([]);
-    
+
     const authHeaders = () => ({
         headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
     });
-    
+
     // Fetch Low Side dropdown options
     useEffect(() => {
         const fetchLowSideOptions = async () => {
@@ -37,7 +39,7 @@ const ItemMaster = () => {
                     axios.get(`${BASE_API}/product/feature-type/`, authHeaders()),
                     axios.get(`${BASE_API}/product/item-class/`, authHeaders()),
                 ]);
-                
+
                 setMaterialTypes(Array.isArray(matRes.data) ? matRes.data : matRes.data?.results ?? []);
                 setItemTypes(Array.isArray(itemRes.data) ? itemRes.data : itemRes.data?.results ?? []);
                 setFeatureTypes(Array.isArray(featRes.data) ? featRes.data : featRes.data?.results ?? []);
@@ -46,10 +48,10 @@ const ItemMaster = () => {
                 console.error("Error fetching Low Side options:", err);
             }
         };
-        
+
         fetchLowSideOptions();
     }, [BASE_API]);
-    
+
     const handleFilterChange = (vals) => {
         setFilters(vals);
     };
@@ -97,6 +99,16 @@ const ItemMaster = () => {
                     >
                         Low Side
                     </button>
+
+                    <button
+                        onClick={() => setActiveSide("installation")}
+                        className={`px-4 py-2 rounded ${activeSide === "installation"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-100"
+                            }`}
+                    >
+                        Installation Work
+                    </button>
                 </div>
 
                 {/* Render based on selected button */}
@@ -121,6 +133,13 @@ const ItemMaster = () => {
                         itemTypes={itemTypes}
                         featureTypes={featureTypes}
                         classes={classes}
+                    />
+                )}
+
+                {activeSide === "installation" && (
+                    <InstallationWork 
+                        base_api={BASE_API} 
+                        filters={filters} 
                     />
                 )}
             </div>

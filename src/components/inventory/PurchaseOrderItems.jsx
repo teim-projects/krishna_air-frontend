@@ -64,6 +64,7 @@ export default function PurchaseOrderItems({
     feature: "",
     itemClass: "",
     item: "",
+    brand: "",  // Add brand field
     quantity: "",
     rate: "",
     uom: LENGTH_UNITS[0],
@@ -89,6 +90,7 @@ export default function PurchaseOrderItems({
     feature: "",
     itemClass: "",
     item: "",
+    brand: "",  // Add brand field
     quantity: "",
     rate: "",
     uom: LENGTH_UNITS[0],
@@ -137,6 +139,25 @@ export default function PurchaseOrderItems({
       })
       .catch(err => console.error("Brand load error", err));
   }, []);
+
+  // Auto-populate brand when material is selected
+  useEffect(() => {
+    if (selectedMaterials.length > 0) {
+      // Get unique brands from selected materials
+      const uniqueBrands = [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))];
+      
+      if (uniqueBrands.length === 1) {
+        // If all materials have the same brand, auto-populate it
+        setLowForm(prev => ({ ...prev, brand: uniqueBrands[0] }));
+      } else if (uniqueBrands.length > 1) {
+        // If materials have different brands, clear the selection to let user choose
+        setLowForm(prev => ({ ...prev, brand: "" }));
+      } else {
+        // If no materials have brands, clear the selection
+        setLowForm(prev => ({ ...prev, brand: "" }));
+      }
+    }
+  }, [selectedMaterials]);
 
   // Models depend on subtype and brand
   useEffect(() => {
@@ -352,6 +373,18 @@ export default function PurchaseOrderItems({
     const updated = [...products];
 
     selectedMaterials.forEach((mat, idx) => {
+      // Determine which brand to use
+      let brandToUse = mat.brand_id; // Use material's brand by default
+      let brandNameToUse = mat.brand_name;
+      
+      // If material has no brand, or user manually selected a different brand, use the selected one
+      if (!mat.brand_id || lowForm.brand) {
+        brandToUse = lowForm.brand;
+        // Find brand name from brands array
+        const selectedBrand = brands.find(b => b.id == lowForm.brand);
+        brandNameToUse = selectedBrand?.name || "";
+      }
+
       const newProduct = {
         serial_no: generateItemSerial(),
         sort_order: updated.length + 1,
@@ -363,6 +396,8 @@ export default function PurchaseOrderItems({
         // ✅ USE NAME FROM CHILD
         item_code: mat.material_name || `Material ${mat.id}`,
 
+        brand: brandToUse,
+        brand_name: brandNameToUse,
         description: lowForm.description,
         quantity: parseFloat(lowForm.quantity || 1),
         uom: lowForm.uom,
@@ -687,7 +722,7 @@ export default function PurchaseOrderItems({
           </div>
 
           {/* Row 2 - Remaining inputs except description */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {/* <select
               className="border rounded-md px-2 py-1"
               onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
@@ -715,6 +750,52 @@ export default function PurchaseOrderItems({
               value={lowForm.rate}
               onChange={e => setLowForm({ ...lowForm, rate: e.target.value })}
             />
+
+            {/* Brand Dropdown */}
+            <select
+              className="border rounded-md px-2 py-1"
+              value={lowForm.brand}
+              onChange={e => setLowForm({ ...lowForm, brand: e.target.value })}
+              disabled={selectedMaterials.length > 0 && 
+                       [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
+              title={
+                selectedMaterials.length > 0 && 
+                [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1 
+                  ? "Brand auto-populated from item" 
+                  : selectedMaterials.length > 0 && 
+                    [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length > 1
+                    ? "Multiple brands detected - please select one"
+                    : ""
+              }
+            >
+              <option value="">Select Brand</option>
+              {(() => {
+                // If materials are selected, only show brands from those materials
+                if (selectedMaterials.length > 0) {
+                  const materialBrands = selectedMaterials
+                    .filter(mat => mat.brand_id && mat.brand_name)
+                    .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
+                  
+                  // Remove duplicates based on brand_id
+                  const uniqueBrands = materialBrands.filter((brand, index, self) => 
+                    index === self.findIndex(b => b.id === brand.id)
+                  );
+                  
+                  return uniqueBrands.map(brand => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ));
+                } else {
+                  // If no materials selected, show all brands
+                  return brands.map(brand => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ));
+                }
+              })()}
+            </select>
 
             <select
               className="border rounded-md px-2 py-1"

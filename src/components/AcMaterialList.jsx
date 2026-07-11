@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { formatMaterialLabel, materialSelectionPayload } from "../utils/materialLabel";
 
 const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
     const [acTypes, setAcTypes] = useState([]);
@@ -30,19 +31,14 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
     };
 
     useEffect(() => {
-        if (onSelectionChange) {
-            const selectedData = mappedMaterials
-                .filter(mat => selectedItems.includes(mat.material_id))
-                .map(mat => ({
-                    id: mat.material_id,
-                    material_name: mat.material_name
-                }));
+        if (!onSelectionChange) return;
 
-            onSelectionChange({
-                materials: selectedData
-            });
-        }
-    }, [selectedItems]);
+        const selectedData = mappedMaterials
+            .filter(mat => selectedItems.includes(mat.material_id))
+            .map(materialSelectionPayload);
+
+        onSelectionChange({ materials: selectedData });
+    }, [selectedItems, mappedMaterials]);
 
     // 🔹 Fetch Selected Materials
     const fetchSelectedMaterials = async (acTypeId) => {
@@ -189,10 +185,10 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                     >
                         <option value="">Select Material</option>
                         {mappedMaterials.map((mat) => (
-                            <option key={mat.id} value={mat.material_id}>
-                                {mat.material_name}
-                            </option>
-                        ))}
+                                <option key={mat.id} value={mat.material_id}>
+                                    {formatMaterialLabel(mat)}
+                                </option>
+                            ))}
                     </select>
                 </div>
             </div>
@@ -202,12 +198,16 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
                 {selectedItems.map((id) => {
                     const mat = mappedMaterials.find(m => m.material_id === id);
 
+                    if (!mat) return null;
+
+                    let chipText = formatMaterialLabel(mat);
+
                     return (
                         <div
                             key={id}
                             className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
                         >
-                            {mat?.material_name}
+                            {chipText}
 
                             <button
                                 onClick={() =>

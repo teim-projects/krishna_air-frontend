@@ -27,6 +27,7 @@ export default function Lead() {
     date: { from: "", to: "" },
     followup_date: { from: "", to: "" },
     overdue: [],
+    sort_by: "",
   }), []);
 
 
@@ -181,6 +182,20 @@ export default function Lead() {
       type: "daterange",
       label: "Follow-up Date",
     },
+    {
+      key: "sort_by",
+      type: "select",
+      label: "Sort By",
+      placeholder: "Default (Priority)",
+      options: [
+        { value: "-date",           label: "Newest First" },
+        { value: "date",            label: "Oldest First" },
+        { value: "customer__name",  label: "Customer Name A to Z" },
+        { value: "-customer__name", label: "Customer Name Z to A" },
+        { value: "followup_date",   label: "Follow-up Date Ascending" },
+        { value: "-followup_date",  label: "Follow-up Date Descending" },
+      ],
+    },
   ], [status_choice, assignToOptions, loadingStaff, leadSourceOptions]);
 
   // ✅ CONDITIONAL FILTERING LOGIC: Hide Assign To filter for sales users
@@ -238,6 +253,11 @@ export default function Lead() {
       // The backend handles the restriction for sales users automatically.
       if (userRole?.name !== 'sales' && appliedFilters.assign_to) {
         params.set("assign_to", appliedFilters.assign_to);
+      }
+
+      // 🔹 SORT / ORDERING — maps to DRF OrderingFilter ?ordering=
+      if (appliedFilters.sort_by) {
+        params.set("ordering", appliedFilters.sort_by);
       }
 
       const url = `${API_URL}?${params.toString()}`;

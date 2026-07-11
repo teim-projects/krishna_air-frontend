@@ -113,15 +113,52 @@ export default function AddVendorForm({
     return true;
   };
 
+  // GST validation function
+  const validateGST = (gstNumber) => {
+    if (!gstNumber || gstNumber.length !== 15) {
+      return "GST must be 15 characters";
+    }
+
+    // Convert to uppercase for validation
+    const gst = gstNumber.toUpperCase();
+
+    // GST format: 2 digits (state) + 10 chars (PAN) + 1 digit (entity) + 1 letter (Z) + 1 digit (check)
+    const gstPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+    
+    if (!gstPattern.test(gst)) {
+      return "Invalid GST format. Expected: 22AAAAA0000A1Z5";
+    }
+
+    // Extract PAN from GST (characters 2-12)
+    const panFromGST = gst.substring(2, 12);
+    
+    // Validate PAN format within GST
+    const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panPattern.test(panFromGST)) {
+      return "Invalid PAN format within GST number";
+    }
+
+    // If PAN is also provided separately, check if it matches
+    if (formData.pan_details && formData.pan_details.toUpperCase() !== panFromGST) {
+      return "PAN in GST number doesn't match the provided PAN";
+    }
+
+    return null; // Valid
+  };
+
   const validateStep2 = () => {
     if (!formData.office_address.trim()) {
       Swal.fire({ icon: "error", title: "Validation", text: "Office address is required" });
       return false;
     }
-    if (!formData.gst_details.trim() || formData.gst_details.length !== 15) {
-      Swal.fire({ icon: "error", title: "Validation", text: "GST must be 15 characters" });
+    
+    // Enhanced GST validation
+    const gstError = validateGST(formData.gst_details);
+    if (gstError) {
+      Swal.fire({ icon: "error", title: "GST Validation", text: gstError });
       return false;
     }
+    
     if (formData.pan_details && formData.pan_details.length !== 10) {
       Swal.fire({ icon: "error", title: "Validation", text: "PAN must be 10 characters" });
       return false;
@@ -341,7 +378,28 @@ export default function AddVendorForm({
   const step2Fields = [
     { name: "office_address", label: "Office address", type: "textarea", required: true, rows: 2, gridCols: 2, placeholder: "Enter office address" },
     { name: "store_address", label: "Store address", type: "textarea", rows: 2, gridCols: 2, placeholder: "Enter store address" },
-    { name: "gst_details", label: "Gst details", type: "text", required: true, maxLength: 15, gridCols: 1, placeholder: "22AAAAA0000A1Z5" },
+    { 
+      name: "gst_details", 
+      label: "Gst details", 
+      type: "text", 
+      required: true, 
+      maxLength: 15, 
+      gridCols: 1, 
+      placeholder: "22AAAAA0000A1Z5",
+      validation: (value) => {
+        if (!value) return "GST is required";
+        if (value.length !== 15) return "GST must be 15 characters";
+        
+        const gst = value.toUpperCase();
+        const gstPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+        
+        if (!gstPattern.test(gst)) {
+          return "Invalid GST format. Expected: 22AAAAA0000A1Z5";
+        }
+        
+        return true;
+      }
+    },
     { name: "pan_details", label: "Pan details", type: "text", maxLength: 10, gridCols: 1, placeholder: "ABCDE1234F" },
     {
       name: "state",

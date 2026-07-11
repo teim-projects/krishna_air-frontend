@@ -5,6 +5,7 @@ import TermsMultiSelect from "../TermsMultiSelect";
 import useTermTypes from "../../hooks/useTermTypes";
 import ReusableForm from "../Form";
 import Swal from "sweetalert2";
+import { normalizeLowSideItem, normalizeHighSideItem } from "../../utils/numberFormat";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -56,6 +57,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
     site: "",
     gst_type: "CGST_SGST",
     thank_you_note: "",
+    declaration: "We declare that this quotation shows the actual price for the services.",
     payment_terms: [],
     validity_terms: [],
     warranty_terms: [],
@@ -66,6 +68,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
   const [branches, setBranches] = useState([]);
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [versionName, setVersionName] = useState("");  // Add state for version name
 
   // ================= HIGH SIDE ITEMS =================
   const [items, setItems] = useState([]);
@@ -125,6 +128,12 @@ export default function AddQuotation({ id, onBack, leadData }) {
         const res = await api.get(`quotation/quotation/${id}/`);
         const q = res.data;
 
+        // Get active version and set version name
+        const active = q.versions.find(v => v.is_active);
+        if (active && active.version_no) {
+          setVersionName(active.version_no);
+        }
+
         // Load Terms (exactly like invoice)
         if (q.terms_conditions_details) {
           const payment = q.terms_conditions_details
@@ -158,13 +167,13 @@ export default function AddQuotation({ id, onBack, leadData }) {
           branch: q.branch || "",
           site: q.site || "",
           thank_you_note: q.thank_you_note || "",
-          gst_type: q.versions.find(v => v.is_active)?.gst_type || "CGST_SGST"
+          declaration: q.declaration || "We declare that this quotation shows the actual price for the services.",
+          gst_type: active?.gst_type || "CGST_SGST"  // Use the active variable we already declared
         }));
 
-        const active = q.versions.find(v => v.is_active);
-
+        // Use the active variable we already declared above
         setItems(
-          active.high_side_items.map(i => ({
+          active.high_side_items.map(i => normalizeHighSideItem({
             product_variant: i.product_variant,
             unit: i.unit || "NOS",
             ac_type_name: i.ac_type_name,
@@ -183,7 +192,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
         );
 
         setLowItems(
-          active.low_side_items.map(l => ({
+          active.low_side_items.map(l => normalizeLowSideItem({
             item: l.item,
             item_code: l.item_code,
             unit: l.unit || "NOS",
@@ -462,7 +471,8 @@ export default function AddQuotation({ id, onBack, leadData }) {
       branch: "",
       site: "",
       gst_type: "CGST_SGST",
-      thank_you_note: ""
+      thank_you_note: "",
+      declaration: "We declare that this quotation shows the actual price for the services."
     });
 
     // Reset terms using separate state variables
@@ -530,7 +540,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
       branch: data.branch ? Number(data.branch) : null,
       site: data.site ? Number(data.site) : null,
       thank_you_note: data.thank_you_note,
-
+      declaration: data.declaration,
       // Add terms and conditions
       terms_conditions: [
         ...paymentTerms,
@@ -930,6 +940,24 @@ export default function AddQuotation({ id, onBack, leadData }) {
       ),
       gridCols: 2,
     },
+    {
+      name: "declaration",
+      label: "Custom Declaration",
+      type: "component",
+      gridCols: 2,
+      component: ({ value, onChange }) => (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-slate-700">Custom Declaration</label>
+          <textarea
+            className="w-full px-3 py-2 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            rows={3}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Enter customize declaration message..."
+          />
+        </div>
+      )
+    }
   ];
 
   // Get current step fields
@@ -952,7 +980,12 @@ export default function AddQuotation({ id, onBack, leadData }) {
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">
-                {isEdit ? "Edit Quotation" : isFromLead ? "Create Quotation from Enquiry" : "Add Quotation"}
+                {isEdit 
+                  ? (versionName ? `${versionName} - Edit Quotation` : "Edit Quotation")
+                  : isFromLead 
+                    ? "Create Quotation from Enquiry" 
+                    : "Add Quotation"
+                }
               </h2>
               <button
                 onClick={onBack}

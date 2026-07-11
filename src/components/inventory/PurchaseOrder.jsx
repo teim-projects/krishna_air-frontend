@@ -401,7 +401,9 @@ export default function PurchaseOrder({ base_api, filters }) {
                     <td className="px-4 py-3 text-sm font-medium">{order.vendor_name || "-"}</td>
                     <td className="px-4 py-3 text-sm">{order.site_name || "-"}</td>
                     <td className="px-4 py-3 text-sm">{order.po_date || "-"}</td>
-                    <td className="px-4 py-3 text-sm">{order.purchase_order_no || "-"}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {order.purchase_order_no ? `${order.purchase_order_no} (v${order.version || 1})` : "-"}
+                    </td>
                     <td className="px-4 py-3 text-sm">{order.contact_name || "-"}</td>
                     <td className="px-4 py-3 text-sm">{order.contact_no || "-"}</td>
                     <td className="px-4 py-3 text-sm">₹{order.grand_total || 0}</td>
@@ -483,7 +485,9 @@ export default function PurchaseOrder({ base_api, filters }) {
                             <td className="px-4 py-3 text-sm text-slate-600">
                               {new Date(version.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-3 text-sm text-slate-600">{version.purchase_order_no}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">
+                              {version.purchase_order_no ? `${version.purchase_order_no} (v${version.version || 1})` : "-"}
+                            </td>
                             <td className="px-4 py-3 text-sm text-slate-600">{version.contact_name || "-"}</td>
                             <td className="px-4 py-3 text-sm text-slate-600">{version.contact_no || "-"}</td>
                             <td className="px-4 py-3 text-sm text-slate-600">₹{version.grand_total || 0}</td>

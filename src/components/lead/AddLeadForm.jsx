@@ -10,6 +10,8 @@ import AddCustomerForm from "../customers/AddCustomerForm";
 import AddLeadProductForm from "./AddLeadProductForm";
 import { State, City } from "country-state-city";
 import CreatableSelect from "react-select/creatable";
+import GooglePlacesInput from "../common/GooglePlacesInput";
+import LeadQualifyingPanel from "./LeadQualifyingPanel";
 
 
 const createEmptyProductRow = () => ({
@@ -43,6 +45,7 @@ export default function AddLeadForm({
   lead = null,
 }) {
   const contactRef = useRef("");
+  const projectAddressRef = useRef(null);
   const productsInitializedRef = useRef(false);
   const states = useMemo(() => State.getStatesOfCountry("IN"), []);
   const API_URL = `${baseApi.replace(/\/$/, "")}/lead/lead/`;
@@ -112,6 +115,9 @@ export default function AddLeadForm({
   const [loadingLatestLead, setLoadingLatestLead] = useState(false);
   const [deletedProductIds, setDeletedProductIds] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  // Lead Qualifying Questions
+  const [isQualified, setIsQualified] = useState(true);
+  const [qualifyingAnswers, setQualifyingAnswers] = useState({});
 
 
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -342,6 +348,8 @@ export default function AddLeadForm({
       setCustomerId(lead.customer ?? null);
       setAssignId(lead.assign_to ?? null);
       setShowLeadSourceInput(!!selected?.needsInput);
+      setIsQualified(lead.is_qualified ?? true);
+      setQualifyingAnswers(lead.qualifying_answers || {});
     } else {
       // reset for new lead
       setFormData({
@@ -377,7 +385,8 @@ export default function AddLeadForm({
         remarks: "",
       });
       setCustomerId(null);
-
+      setIsQualified(true);
+      setQualifyingAnswers({});
     }
     setLoading(false);
     // cancel any pending lookup
@@ -746,6 +755,30 @@ export default function AddLeadForm({
     return true;
   };
 
+  const validateStep2 = () => {
+    if (!formData.leadSource) {
+      showError("leadSource", "Lead source is required");
+      return false;
+    }
+
+    if (!formData.enquiry_date) {
+      showError("enquiry_date", "Enquiry Date is required");
+      return false;
+    }
+
+    if (!formData.followupDate) {
+      showError("followupDate", "Follow-up Date is required");
+      return false;
+    }
+
+    if (userRole?.name !== "sales" && !formData.assignTo) {
+      showError("assignTo", "Assign To is required");
+      return false;
+    }
+
+    return true;
+  };
+
 
   const handleSubmit = async (e) => {
     e && e.preventDefault();
@@ -873,7 +906,9 @@ export default function AddLeadForm({
         enquiry_date: formData.enquiry_date || null,
         followup_date: formData.followupDate || null,
         remarks: formData.remarks || "",
-        products: productPayload
+        products: productPayload,
+        is_qualified: isQualified,
+        qualifying_answers: qualifyingAnswers,
       };
 
       payload.deleted_products = deletedProductIds;
@@ -1562,16 +1597,23 @@ export default function AddLeadForm({
                 <div>
                   <label className="text-sm font-normal text-gray-600">
                     Project Address
+                    <button
+                      type="button"
+                      onClick={() => projectAddressRef.current?.openMapPicker?.()}
+                      className="ml-1 text-xs font-normal text-blue-500 underline underline-offset-2 hover:text-blue-700"
+                    >
+                      (Google Maps)
+                    </button>
                   </label>
-                  <input
+                  <GooglePlacesInput
+                    ref={projectAddressRef}
                     name="projectAddress"
-                    placeholder="Project address"
                     value={formData.projectAddress}
-                    onChange={(e) => {
-                      clearError(e);
-                      handleChange(e);
-                    }}
-                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
+                    onChange={(address) =>
+                      setFormData((prev) => ({ ...prev, projectAddress: address }))
+                    }
+                    placeholder="Search project location on map..."
+                    className="w-full mt-1 py-2 rounded-md border border-slate-300 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
                   />
                 </div>
 
@@ -1809,14 +1851,24 @@ export default function AddLeadForm({
               </>
             )}
 
+            {/* Lead Qualifying Questions — final step */}
+            {step === 3 && (
+              <LeadQualifyingPanel
+                baseApi={baseApi}
+                token={authToken}
+                answers={qualifyingAnswers}
+                onChange={setQualifyingAnswers}
+              />
+            )}
+
             {/* BUTTONS */}
             <div className="flex justify-between mt-6">
 
               {/* BACK BUTTON */}
-              {step === 2 && (
+              {step > 1 && (
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep((prev) => prev - 1)}
                   className="px-4 py-2 border border-gray-400 rounded-md"
                 >
                   Back
@@ -1848,6 +1900,20 @@ export default function AddLeadForm({
                 )}
 
                 {step === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateStep2()) {
+                        setStep(3);
+                      }
+                    }}
+                    className="px-5 py-2 bg-blue-600 text-white rounded-md"
+                  >
+                    Next
+                  </button>
+                )}
+
+                {step === 3 && (
                   <button
                     type="submit"
                     className="px-5 py-2 bg-blue-600 text-white rounded-md"
