@@ -46,18 +46,20 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
       fetchItems();
 
       if (serviceToEdit) {
-        console.log("Editing service:", serviceToEdit);
+        const linkedItemIds = Array.isArray(serviceToEdit.items)
+          ? serviceToEdit.items.map((i) => (typeof i === "object" && i !== null ? i.id : i))
+          : [];
+
         setFormData({
           service_name: serviceToEdit.name || "",
-          service_category: serviceToEdit.category || serviceToEdit.service_category || "",  // ✅ Check both names
+          service_category: serviceToEdit.category || serviceToEdit.service_category || "",
           description: serviceToEdit.description || "",
           service_type: serviceToEdit.service_type || "",
-          items: serviceToEdit.items || [],
-          unit: serviceToEdit.unit || "",
+          items: linkedItemIds,
+          unit: serviceToEdit.unit || "Nos",
           labor_rate: serviceToEdit.labor_rate || 0,
           sequence: serviceToEdit.sequence || 0
         });
-        console.log("Form populated with:", serviceToEdit);  // ✅ Debug log
       } else {
         handleReset();
       }
@@ -128,7 +130,6 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
 
       handleReset();
       onClose();
-      3
       if (onServiceAdd) {
         onServiceAdd();
       }
