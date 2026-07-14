@@ -27,6 +27,6 @@ jobs:
           docker build -f docker/Dockerfile.uat \
             --no-cache \
             --build-arg VITE_BASE_API_URL=https://dsaqua.online/api \
-            -t teim123/krisna_air:frontend-uat-1.0.5 .
+            -t teim123/krisna_air:frontend-uat-1.0.6 .
 
-          docker push teim123/krisna_air:frontend-uat-1.0.5 
+          docker push teim123/krisna_air:frontend-uat-1.0.6 
