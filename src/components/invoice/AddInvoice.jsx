@@ -140,6 +140,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
   // ================= ITEMS =================
   const [items, setItems] = useState([]);
   const [lowItems, setLowItems] = useState([]);
+  const [serviceItems, setServiceItems] = useState([]);
 
   // ================= STATE SEARCH =================
   const [stateSearch, setStateSearch] = useState("");
@@ -1005,6 +1006,8 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
           setLowItems={setLowItems}
           mode="invoice"
           gstType={formData.gst_type}
+          serviceItems={serviceItems}
+          setServiceItems={setServiceItems}
         />
       ),
       gridCols: 2,

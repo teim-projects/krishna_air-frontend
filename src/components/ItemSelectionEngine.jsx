@@ -21,6 +21,8 @@ export default function ItemSelectionEngine({
   mode = "quotation",
   gstType,
   onServiceItemsChange,
+  serviceItems = [],
+  setServiceItems,
 }) {
 
   const isInvoice = mode === "invoice";
@@ -31,9 +33,6 @@ export default function ItemSelectionEngine({
 
   // Add tab state for low side
   const [lowSideActiveTab, setLowSideActiveTab] = useState("materials");
-
-  // Add service items state
-  const [serviceItems, setServiceItems] = useState([]);
 
   // Update existing high side items when GST toggle changes
   useEffect(() => {
@@ -266,6 +265,10 @@ export default function ItemSelectionEngine({
   };
 
   const addLowItem = () => {
+    if (serviceItems && serviceItems.length > 0) {
+      alert("You cannot add Materials when Services are already added. Please remove the Services first.");
+      return;
+    }
     if (selectedMaterials.length === 0) {
       alert("Select Material");
       return;
@@ -324,6 +327,10 @@ export default function ItemSelectionEngine({
   };
 
 const addServiceItem = () => {
+    if (lowItems && lowItems.length > 0) {
+        alert("You cannot add Services when Materials are already added. Please remove the Materials first.");
+        return;
+    }
     if (!draftServiceItem.service) {
         alert("Please select a service");
         return;
@@ -371,7 +378,23 @@ const addServiceItem = () => {
     } else {
         entriesToAdd = selectedMaterialIds.map(materialId => {
             const selectedMaterial = selectedService?.items?.find(item => item.id === materialId);
-            return buildServiceEntry(materialId, selectedMaterial?.item_code || "");
+            let completeName = "";
+            if (selectedMaterial) {
+                const parts = [];
+                if (selectedMaterial.material_type_name) parts.push(selectedMaterial.material_type_name.trim());
+                if (selectedMaterial.item_type_name) parts.push(selectedMaterial.item_type_name.trim());
+                if (selectedMaterial.feature_type_name) parts.push(selectedMaterial.feature_type_name.trim());
+                if (selectedMaterial.item_class_name) parts.push(selectedMaterial.item_class_name.trim());
+                
+                if (selectedMaterial.size) {
+                    parts.push(`${selectedMaterial.size} ${selectedMaterial.size_unit || ""}`.trim());
+                }
+                if (selectedMaterial.thickness) {
+                    parts.push(`${selectedMaterial.thickness} ${selectedMaterial.thickness_unit || ""}`.trim());
+                }
+                completeName = parts.length > 0 ? parts.join(" ") : (selectedMaterial.item_code || "");
+            }
+            return buildServiceEntry(materialId, completeName);
         });
     }
 
@@ -444,267 +467,281 @@ const addServiceItem = () => {
   }, {});
   /* ================= RENDER FUNCTIONS ================= */
 
-  const renderMaterialsTab = () => (
-    <div className="space-y-4">
-      <div className="gap-3">
-        <AcMaterialList
-          base_api={baseApi}
-          resetTrigger={resetMaterials}
-          onSelectionChange={(data) => {
-            setSelectedMaterials(data.materials || []);
-          }}
-          showValidation={false}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <input
-          type="number"
-          placeholder="Qty"
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={draftLowItem.quantity}
-          onChange={e => updateLowDraft("quantity", e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder={isInvoice ? "Rate" : "Price"}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
-          onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
-        />
-
-        <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={draftLowItem.brand}
-          onChange={e => updateLowDraft("brand", e.target.value)}
-          disabled={selectedMaterials.length > 0 &&
-            [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
-        >
-          <option value="">Select Brand</option>
-          {(() => {
-            if (selectedMaterials.length > 0) {
-              const materialBrands = selectedMaterials
-                .filter(mat => mat.brand_id && mat.brand_name)
-                .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
-
-              const uniqueBrands = materialBrands.filter((brand, index, self) =>
-                index === self.findIndex(b => b.id === brand.id)
-              );
-
-              return uniqueBrands.map(brand => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ));
-            } else {
-              return brands.map(brand => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ));
-            }
-          })()}
-        </select>
-
-        {lowSideGstEnabled && (
-          <input
-            type="number"
-            placeholder="GST%"
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-            value={draftLowItem.gst_percent}
-            onChange={e => updateLowDraft("gst_percent", e.target.value)}
+  const renderMaterialsTab = () => {
+    if (serviceItems && serviceItems.length > 0) {
+      return (
+        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md border border-yellow-200 font-medium text-sm">
+          ⚠️ You have already added Services. To add Materials, please remove the Services first.
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <div className="gap-3">
+          <AcMaterialList
+            base_api={baseApi}
+            resetTrigger={resetMaterials}
+            onSelectionChange={(data) => {
+              setSelectedMaterials(data.materials || []);
+            }}
+            showValidation={false}
           />
-        )}
-
-        {!isInvoice && (
-          <div className="grid grid-cols-1 gap-3">
-            <input
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              type="number"
-              placeholder="Mathadi Charges"
-              value={draftLowItem.mathadi_charges}
-              onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="HSN"
-          value={draftLowItem.hsn_sac}
-          onChange={e => updateLowDraft("hsn_sac", e.target.value)}
-        />
-
-        <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          value={draftLowItem.unit}
-          onChange={e => updateLowDraft("unit", e.target.value)}
-        >
-          {unitOptions.map(unit => (
-            <option key={unit} value={unit}>{unit}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-3 items-start">
-        <textarea
-          className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter item description..."
-          value={draftLowItem.description}
-          onChange={e => updateLowDraft("description", e.target.value)}
-          rows={2}
-        />
-      </div>
-    </div>
-  );
-
-  const renderServicesTab = () => (
-    <div className="space-y-6">
-      {/* Service Selection Form */}
-      {/* Service Selection Form */}
-      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-        <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
-
-        {/* ROW 1: Service Name & Materials */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Service Name Dropdown */}
-          <select
-            value={draftServiceItem.service}
-            onChange={(e) => handleMaterialChange(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Service</option>
-            {materials.map(service => (
-              <option key={service.id} value={service.id}>
-                {service.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Material Dropdown - ONLY if Material-Based */}
-          {draftServiceItem.service_type === 'MATERIAL' && (
-            <select
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                const currentMaterials = draftServiceItem.material
-                  ? draftServiceItem.material.split(',').map(Number)
-                  : [];
-                if (val && !currentMaterials.includes(val)) {
-                  updateServiceDraft("material", [...currentMaterials, val].join(','));
-                }
-                e.target.value = "";
-              }}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Material</option>
-              {materials
-                .find(s => s.id === parseInt(draftServiceItem.service))
-                ?.items?.map(item => (
-                  <option key={item.id} value={item.id}>
-                    {item.item_code}
-                  </option>
-                )) || []}
-            </select>
-          )}
         </div>
 
-        {/* Selected Materials Chips */}
-        {draftServiceItem.service_type === 'MATERIAL' && (
-          <div className="flex flex-wrap gap-2">
-            {(draftServiceItem.material
-              ? draftServiceItem.material.split(',').map(Number)
-              : [])
-              .map((materialId) => {
-                const mat = materials
-                  .find(s => s.id === parseInt(draftServiceItem.service))
-                  ?.items?.find(item => item.id === materialId);
-
-                return mat ? (
-                  <div
-                    key={materialId}
-                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
-                  >
-                    {mat.item_code}
-                    <button
-                      onClick={() => {
-                        const currentMaterials = draftServiceItem.material
-                          .split(',')
-                          .map(Number)
-                          .filter(id => id !== materialId);
-                        updateServiceDraft("material", currentMaterials.join(','));
-                      }}
-                      className="text-red-500 font-bold hover:text-red-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : null;
-              })}
-          </div>
-        )}
-
-        {/* ROW 2: Quantity, Unit, GST%, Mathadi */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <input
             type="number"
-            placeholder="Quantity"
-            value={draftServiceItem.quantity}
-            onChange={(e) => updateServiceDraft("quantity", e.target.value)}
+            placeholder="Qty"
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={draftLowItem.quantity}
+            onChange={e => updateLowDraft("quantity", e.target.value)}
+          />
+
+          <input
+            type="number"
+            placeholder={isInvoice ? "Rate" : "Price"}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
+            onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
           />
 
           <select
-            value={draftServiceItem.unit}
-            onChange={(e) => updateServiceDraft("unit", e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={draftLowItem.brand}
+            onChange={e => updateLowDraft("brand", e.target.value)}
+            disabled={selectedMaterials.length > 0 &&
+              [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
+          >
+            <option value="">Select Brand</option>
+            {(() => {
+              if (selectedMaterials.length > 0) {
+                const materialBrands = selectedMaterials
+                  .filter(mat => mat.brand_id && mat.brand_name)
+                  .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
+
+                const uniqueBrands = materialBrands.filter((brand, index, self) =>
+                  index === self.findIndex(b => b.id === brand.id)
+                );
+
+                return uniqueBrands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ));
+              } else {
+                return brands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ));
+              }
+            })()}
+          </select>
+
+          {lowSideGstEnabled && (
+            <input
+              type="number"
+              placeholder="GST%"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              value={draftLowItem.gst_percent}
+              onChange={e => updateLowDraft("gst_percent", e.target.value)}
+            />
+          )}
+
+          {!isInvoice && (
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                type="number"
+                placeholder="Mathadi Charges"
+                value={draftLowItem.mathadi_charges}
+                onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="HSN"
+            value={draftLowItem.hsn_sac}
+            onChange={e => updateLowDraft("hsn_sac", e.target.value)}
+          />
+
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={draftLowItem.unit}
+            onChange={e => updateLowDraft("unit", e.target.value)}
           >
             {unitOptions.map(unit => (
               <option key={unit} value={unit}>{unit}</option>
             ))}
           </select>
-
-          <input
-            type="number"
-            placeholder="GST Percentage"
-            value={draftServiceItem.gst_percent}
-            onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="number"
-            placeholder="Mathadi Charges"
-            value={draftServiceItem.mathadi_charges}
-            onChange={(e) => updateServiceDraft("mathadi_charges", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
 
-        {/* ROW 3: Price */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            type="number"
-            placeholder="Price per unit"
-            value={draftServiceItem.price}
-            onChange={(e) => updateServiceDraft("price", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="flex gap-3 items-start">
+          <textarea
+            className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter item description..."
+            value={draftLowItem.description}
+            onChange={e => updateLowDraft("description", e.target.value)}
+            rows={2}
           />
         </div>
-
-        {/* Add Service Button */}
-        <button
-          type="button"
-          onClick={addServiceItem}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-        >
-          + Add Service
-        </button>
       </div>
-    </div>
-  );
+    );
+    };
+    const renderServicesTab = () => {
+    if (lowItems && lowItems.length > 0) {
+      return (
+        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md border border-yellow-200 font-medium text-sm">
+          ⚠️ You have already added Materials. To add Services, please remove the Materials first.
+        </div>
+      );
+    }
+    const serviceMaterials = materials.find(s => s.id === parseInt(draftServiceItem.service))?.items || [];
+
+    return (
+      <div className="space-y-6">
+        {/* Service Selection Form */}
+        {/* Service Selection Form */}
+        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+          <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
+
+          {/* ROW 1: Service Name & Materials */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Service Name Dropdown */}
+            <select
+              value={draftServiceItem.service}
+              onChange={(e) => handleMaterialChange(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Service</option>
+              {materials.map(service => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Material MultiSelect */}
+            {draftServiceItem.service_type === 'MATERIAL' && (
+              <div className="flex flex-col gap-2">
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const current = draftServiceItem.material ? draftServiceItem.material.split(',') : [];
+                    if (!current.includes(val)) {
+                      const updated = [...current, val].join(',');
+                      updateServiceDraft("material", updated);
+                    }
+                    e.target.value = "";
+                  }}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Material</option>
+                  {serviceMaterials.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.item_code}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Selected Materials Badges */}
+                {draftServiceItem.material && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {draftServiceItem.material.split(',').map(id => {
+                      const itemObj = serviceMaterials.find(m => m.id === parseInt(id));
+                      return (
+                        <span key={id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {itemObj?.item_code || id}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = draftServiceItem.material
+                                .split(',')
+                                .filter(mId => mId !== id)
+                                .join(',');
+                              updateServiceDraft("material", updated);
+                            }}
+                            className="flex-shrink-0 ml-1.5 inline-flex text-blue-400 hover:text-blue-600 focus:outline-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ROW 2: Quantity & Unit */}
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              placeholder="Quantity"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.quantity}
+              onChange={(e) => updateServiceDraft("quantity", e.target.value)}
+            />
+
+            <select
+              value={draftServiceItem.unit}
+              onChange={(e) => updateServiceDraft("unit", e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {unitOptions.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ROW 3: GST & Mathadi */}
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              placeholder="GST Percentage"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.gst_percent}
+              onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
+            />
+
+            <input
+              type="number"
+              placeholder="Mathadi Charges"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.mathadi_charges}
+              onChange={(e) => updateServiceDraft("mathadi_charges", e.target.value)}
+            />
+          </div>
+
+          {/* ROW 4: Price Per Unit */}
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              type="number"
+              placeholder="Price per unit"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.price}
+              onChange={(e) => updateServiceDraft("price", e.target.value)}
+            />
+          </div>
+
+          {/* Add Service Button */}
+          <button
+            type="button"
+            onClick={addServiceItem}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            + Add Service
+          </button>
+        </div>
+      </div>
+    );
+  };
   /* ================= UI ================= */
 
   return (
