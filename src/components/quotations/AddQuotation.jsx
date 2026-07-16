@@ -76,6 +76,9 @@ export default function AddQuotation({ id, onBack, leadData }) {
   // ================= LOW SIDE ITEMS =================
   const [lowItems, setLowItems] = useState([]);
 
+  // ================= SERVICE ITEMS =================
+  const [serviceItems, setServiceItems] = useState([]);
+
   // ================= TERMS AND CONDITIONS =================
   const [paymentTerms, setPaymentTerms] = useState([]);
   const [validityTerms, setValidityTerms] = useState([]);
@@ -197,12 +200,31 @@ export default function AddQuotation({ id, onBack, leadData }) {
             item_code: l.item_code,
             unit: l.unit || "NOS",
             quantity: l.quantity,
-            gst_percent: l.gst_percent || 18,
+            gst_percent: l.gst_percent !== undefined && l.gst_percent !== null ? l.gst_percent : 18,
             unit_price: l.unit_price,
             mathadi_charges: l.mathadi_charges || 0,
             description: l.description || "",
             hsn_sac: l.hsn_sac || ""
           }))
+        );
+
+        setServiceItems(
+          active.service_items ? active.service_items.map(s => ({
+            id: s.id,
+            service_id: s.service,
+            service_name: s.service_name,
+            category: s.category_name || s.subcategory_name || "",
+            material_id: null,
+            material_name: s.description || "",
+            quantity: s.quantity,
+            unit: s.unit || "NOS",
+            price: s.unit_price,
+            gst_percent: s.gst_percentage !== undefined && s.gst_percentage !== null ? s.gst_percentage : 18,
+            mathadi_charges: s.mathadi_charges || 0,
+            base_amount: s.base_amount || 0,
+            gst_amount: s.gst_amount || 0,
+            total_amount: s.total_with_gst || 0
+          })) : []
         );
       } catch (err) {
         console.log("Error loading quotation:", err);
@@ -509,6 +531,8 @@ export default function AddQuotation({ id, onBack, leadData }) {
         mathadi_charges: 0
       }
     ]);
+
+    setServiceItems([]);
   };
 
 
@@ -527,7 +551,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please select a branch" });
       return;
     }
-    if (items.length === 0 && lowItems.length === 0) {
+    if (items.length === 0 && lowItems.length === 0 && serviceItems.length === 0) {
       Swal.fire({ icon: "error", title: "Validation", text: "Please add at least one item" });
       return;
     }
@@ -573,6 +597,17 @@ export default function AddQuotation({ id, onBack, leadData }) {
           gst_percent: Number(l.gst_percent),
           mathadi_charges: Number(l.mathadi_charges),
           hsn_sac: l.hsn_sac || ""
+        })),
+
+        service_items: serviceItems.map(s => ({
+          service: Number(s.service_id || s.service),
+          quantity: Number(s.quantity),
+          unit_price: Number(s.price || s.unit_price),
+          description: s.material_name || s.description || "",
+          unit: s.unit || "NOS",
+          gst_percentage: s.gst_percent !== undefined && s.gst_percent !== null ? Number(s.gst_percent) : (s.gst_percentage !== undefined && s.gst_percentage !== null ? Number(s.gst_percentage) : 18),
+          mathadi_charges: Number(s.mathadi_charges || 0),
+          transportation_charges: Number(s.transportation_charges || 0)
         }))
       }]
     };
@@ -876,6 +911,8 @@ export default function AddQuotation({ id, onBack, leadData }) {
           setLowItems={setLowItems}
           mode="quotation"
           gstType={formData.gst_type}
+          serviceItems={serviceItems}
+          setServiceItems={setServiceItems}
         />
       ),
       gridCols: 2,

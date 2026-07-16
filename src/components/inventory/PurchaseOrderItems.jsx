@@ -234,10 +234,11 @@ export default function PurchaseOrderItems({
 
   // ===================== HELPERS =====================
 
-  const generateItemSerial = () => {
+  const generateItemSerial = (currentList) => {
     if (!activeSection) return null;
 
-    const childCount = products.filter(
+    const listToUse = currentList || products;
+    const childCount = listToUse.filter(
       p =>
         !p.is_section &&
         p.serial_no.startsWith(activeSection + ".")
@@ -386,7 +387,7 @@ export default function PurchaseOrderItems({
       }
 
       const newProduct = {
-        serial_no: generateItemSerial(),
+        serial_no: generateItemSerial(updated),
         sort_order: updated.length + 1,
         is_section: false,
         section_title: null,
@@ -395,6 +396,7 @@ export default function PurchaseOrderItems({
 
         // ✅ USE NAME FROM CHILD
         item_code: mat.material_name || `Material ${mat.id}`,
+        complete_item_name: mat.material_display_name || mat.material_name,
 
         brand: brandToUse,
         brand_name: brandNameToUse,
@@ -880,7 +882,7 @@ export default function PurchaseOrderItems({
                 ) : (
                   <>
                     <td className="border px-3 py-2">
-                      {p.variant_sku || p.item_code || ""}
+                      {p.variant_sku || p.complete_item_name || p.item_code || ""}
                       <br />
                       {p.description}
                     </td>
