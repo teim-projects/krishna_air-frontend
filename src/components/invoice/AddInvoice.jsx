@@ -284,6 +284,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
         setLowItems(lowItemsList.map(i => ({
           item: i.item,
           item_code: i.item_code,
+          complete_item_name: i.complete_item_name,
           description: i.description,
           hsn_sac: i.hsn_sac,
           quantity: i.quantity,
@@ -320,6 +321,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
       (initialDraft.low_side_items || []).map((i) => ({
         item: i.item,
         item_code: i.item_code,
+        complete_item_name: i.complete_item_name,
         description: i.description || "",
         hsn_sac: i.hsn_sac || "",
         quantity: i.quantity,

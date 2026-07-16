@@ -200,7 +200,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
             item_code: l.item_code,
             unit: l.unit || "NOS",
             quantity: l.quantity,
-            gst_percent: l.gst_percent || 18,
+            gst_percent: l.gst_percent !== undefined && l.gst_percent !== null ? l.gst_percent : 18,
             unit_price: l.unit_price,
             mathadi_charges: l.mathadi_charges || 0,
             description: l.description || "",
@@ -219,7 +219,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
             quantity: s.quantity,
             unit: s.unit || "NOS",
             price: s.unit_price,
-            gst_percent: s.gst_percentage || 18,
+            gst_percent: s.gst_percentage !== undefined && s.gst_percentage !== null ? s.gst_percentage : 18,
             mathadi_charges: s.mathadi_charges || 0,
             base_amount: s.base_amount || 0,
             gst_amount: s.gst_amount || 0,
@@ -605,7 +605,7 @@ export default function AddQuotation({ id, onBack, leadData }) {
           unit_price: Number(s.price || s.unit_price),
           description: s.material_name || s.description || "",
           unit: s.unit || "NOS",
-          gst_percentage: Number(s.gst_percent || s.gst_percentage || 18),
+          gst_percentage: s.gst_percent !== undefined && s.gst_percent !== null ? Number(s.gst_percent) : (s.gst_percentage !== undefined && s.gst_percentage !== null ? Number(s.gst_percentage) : 18),
           mathadi_charges: Number(s.mathadi_charges || 0),
           transportation_charges: Number(s.transportation_charges || 0)
         }))

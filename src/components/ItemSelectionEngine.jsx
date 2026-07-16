@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import SmartProductSelect from "./SmartProductSelect";
 import { MdDelete } from "react-icons/md";
@@ -28,11 +28,45 @@ export default function ItemSelectionEngine({
   const isInvoice = mode === "invoice";
 
   // Add GST toggle states
-  const [highSideGstEnabled, setHighSideGstEnabled] = useState(true);
-  const [lowSideGstEnabled, setLowSideGstEnabled] = useState(true);
+  const [highSideGstEnabled, setHighSideGstEnabled] = useState(gstType !== "NO_GST");
+  const [lowSideGstEnabled, setLowSideGstEnabled] = useState(gstType !== "NO_GST");
+
+  const highSideInitialized = useRef(false);
+  const lowSideInitialized = useRef(false);
 
   // Add tab state for low side
   const [lowSideActiveTab, setLowSideActiveTab] = useState("materials");
+
+  // Detect initial GST toggle state from loaded items (on edit mode load)
+  useEffect(() => {
+    if (!highSideInitialized.current && items && items.length > 0) {
+      const hasGst = items.some(item => toNum(item.gst_percent) > 0);
+      setHighSideGstEnabled(hasGst);
+      highSideInitialized.current = true;
+    }
+  }, [items]);
+
+  useEffect(() => {
+    if (!lowSideInitialized.current) {
+      if (lowItems && lowItems.length > 0) {
+        const hasGst = lowItems.some(item => toNum(item.gst_percent) > 0);
+        setLowSideGstEnabled(hasGst);
+        lowSideInitialized.current = true;
+      } else if (serviceItems && serviceItems.length > 0) {
+        const hasGst = serviceItems.some(item => toNum(item.gst_percent) > 0);
+        setLowSideGstEnabled(hasGst);
+        lowSideInitialized.current = true;
+      }
+    }
+  }, [lowItems, serviceItems]);
+
+  // Sync GST enabled toggle state with loaded gstType prop on Edit/Update load
+  useEffect(() => {
+    if (gstType === "NO_GST") {
+      setLowSideGstEnabled(false);
+      setHighSideGstEnabled(false);
+    }
+  }, [gstType]);
 
   // Update existing high side items when GST toggle changes
   useEffect(() => {
@@ -52,6 +86,22 @@ export default function ItemSelectionEngine({
         gst_percent: lowSideGstEnabled ? (item.gst_percent || 18) : 0
       }))
     );
+    if (setServiceItems) {
+      setServiceItems(prev =>
+        prev.map(item => {
+          const base_amount = toNum(item.quantity) * toNum(item.price);
+          const gst_percent = lowSideGstEnabled ? (item.gst_percent || 18) : 0;
+          const gst_amount = (base_amount * gst_percent) / 100;
+          const total_amount = base_amount + gst_amount + toNum(item.mathadi_charges);
+          return {
+            ...item,
+            gst_percent,
+            gst_amount,
+            total_amount
+          };
+        })
+      );
+    }
   }, [lowSideGstEnabled]);
 
   // Unit options array
@@ -348,7 +398,7 @@ const addServiceItem = () => {
 
     const quantity = toNum(draftServiceItem.quantity);
     const price = toNum(draftServiceItem.price);
-    const gstPercent = toNum(draftServiceItem.gst_percent);
+    const gstPercent = lowSideGstEnabled ? toNum(draftServiceItem.gst_percent) : 0;
     const mathadiCharges = toNum(draftServiceItem.mathadi_charges);
     const baseAmount = quantity * price;
     const gstAmount = (baseAmount * gstPercent) / 100;
@@ -701,14 +751,16 @@ const addServiceItem = () => {
           </div>
 
           {/* ROW 3: GST & Mathadi */}
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="number"
-              placeholder="GST Percentage"
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={draftServiceItem.gst_percent}
-              onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
-            />
+          <div className={`grid ${lowSideGstEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            {lowSideGstEnabled && (
+              <input
+                type="number"
+                placeholder="GST Percentage"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={draftServiceItem.gst_percent}
+                onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
+              />
+            )}
 
             <input
               type="number"
@@ -1111,8 +1163,8 @@ const addServiceItem = () => {
                   {lowItems.map((row, i) => (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug" title={formatMaterialLabel(row) || row.material_display_name || ""}>
-                          {formatMaterialLabel(row) || row.material_display_name || row.item_code || "Unknown"}
+                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug" title={formatMaterialLabel(row) || row.complete_item_name || row.material_display_name || ""}>
+                          {formatMaterialLabel(row) || row.complete_item_name || row.material_display_name || row.item_code || "Unknown"}
                         </td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input
@@ -1203,7 +1255,9 @@ const addServiceItem = () => {
                     <th className="px-4 py-3 text-left font-medium">Unit</th>
                     <th className="px-4 py-3 text-left font-medium">Qty</th>
                     <th className="px-4 py-3 text-left font-medium">Price</th>
-                    <th className="px-4 py-3 text-left font-medium">GST%</th>
+                    {lowSideGstEnabled && (
+                        <th className="px-4 py-3 text-left font-medium">GST%</th>
+                    )}
                     <th className="px-4 py-3 text-center font-medium">Total</th>
                     <th className="px-4 py-3 text-center font-medium">Action</th>
                 </tr>
@@ -1231,7 +1285,7 @@ const addServiceItem = () => {
                                 <td className="px-4 py-3 font-semibold">
                                     {items[0].service_name} <span className="text-gray-600 text-sm"> {items[0].category}</span>
                                 </td>
-                                <td colSpan="6"></td>
+                                <td colSpan={lowSideGstEnabled ? "6" : "5"}></td>
                             </tr>
                         );
                         
@@ -1277,21 +1331,23 @@ const addServiceItem = () => {
                                         />
                                     </td>
                                     
-                                    <td className="px-4 py-3">
-                                        <input
-                                            type="number"
-                                            value={item.gst_percent}
-                                            onChange={(e) => {
-                                                const updated = [...serviceItems];
-                                                const idx = serviceItems.findIndex(i => i.id === item.id);
-                                                updated[idx].gst_percent = toNum(e.target.value);
-                                                updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
-                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
-                                                setServiceItems(updated);
-                                            }}
-                                            className="w-16 border border-gray-300 rounded px-2 py-1"
-                                        />
-                                    </td>
+                                    {lowSideGstEnabled && (
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="number"
+                                                value={item.gst_percent}
+                                                onChange={(e) => {
+                                                    const updated = [...serviceItems];
+                                                    const idx = serviceItems.findIndex(i => i.id === item.id);
+                                                    updated[idx].gst_percent = toNum(e.target.value);
+                                                    updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
+                                                    updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
+                                                    setServiceItems(updated);
+                                                }}
+                                                className="w-16 border border-gray-300 rounded px-2 py-1"
+                                            />
+                                        </td>
+                                    )}
                                     
                                     <td className="px-4 py-3 text-right font-semibold">₹{formatAmount(item.total_amount)}</td>
                                     
