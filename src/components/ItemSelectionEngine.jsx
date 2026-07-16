@@ -23,13 +23,18 @@ export default function ItemSelectionEngine({
   onServiceItemsChange,
   serviceItems = [],
   setServiceItems,
+  // New Props for GSTIN Enable and disable
+  highSideGstEnabled = true,
+  setHighSideGstEnabled = () => {},
+  lowSideGstEnabled = true,
+  setLowSideGstEnabled = () => {}
 }) {
 
   const isInvoice = mode === "invoice";
 
   // Add GST toggle states
-  const [highSideGstEnabled, setHighSideGstEnabled] = useState(gstType !== "NO_GST");
-  const [lowSideGstEnabled, setLowSideGstEnabled] = useState(gstType !== "NO_GST");
+  // const [highSideGstEnabled, setHighSideGstEnabled] = useState(gstType !== "NO_GST");
+  // const [lowSideGstEnabled, setLowSideGstEnabled] = useState(gstType !== "NO_GST");
 
   const highSideInitialized = useRef(false);
   const lowSideInitialized = useRef(false);
