@@ -52,8 +52,10 @@ export default function AddLeadForm({
   const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
   const [step, setStep] = useState(1);
 
+  const getTodayDate = () => new Date().toISOString().slice(0, 10);
+
   const [formData, setFormData] = useState({
-    enquiry_date: "",
+    enquiry_date: getTodayDate(),
     clientName: "",
     contactNumber: "",
     secondaryContactNumber: "",
@@ -353,7 +355,7 @@ export default function AddLeadForm({
     } else {
       // reset for new lead
       setFormData({
-        enquiry_date: "",
+        enquiry_date: getTodayDate(),
         clientName: "",
         contactNumber: "",
         email: "",
@@ -486,8 +488,9 @@ export default function AddLeadForm({
       const data = await res.json();
       setLatestLead(data);
 
-      // 🔹 OPTIONAL: Auto-fill some fields from latest lead
+      // 🔹 OPTIONAL: Auto-fill some fields from latest lead (keep other customer fields)
       setFormData((prev) => ({
+        ...prev,
         projectName: data.project_name || prev.projectName,
         projectAddress: data.project_adderess || prev.projectAddress,
       }));
@@ -789,7 +792,7 @@ export default function AddLeadForm({
 
       let finalCustomerId = customerId;
 
-      // ✅ Create customer ONLY if not exists
+      // ✅ Create customer ONLY if not exists; otherwise update with edited details
       if (!finalCustomerId) {
         if (!formData.clientName) {
           throw new Error("Customer name is required");
@@ -824,6 +827,33 @@ export default function AddLeadForm({
 
         const newCustomer = await customerRes.json();
         finalCustomerId = newCustomer.id;
+      } else {
+        const customerUpdateRes = await fetch(
+          `${baseApi.replace(/\/$/, "")}/lead/customer/${finalCustomerId}/`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+            body: JSON.stringify({
+              contact_number: formData.contactNumber,
+              name: formData.clientName,
+              email: formData.email,
+              secondary_email: formData.secondary_email,
+              secondary_contact_number: formData.secondaryContactNumber,
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              pin_code: formData.pincode,
+            }),
+          }
+        );
+
+        if (!customerUpdateRes.ok) {
+          const txt = await customerUpdateRes.text();
+          throw new Error(txt || "Failed to update customer");
+        }
       }
 
 
@@ -1301,7 +1331,7 @@ export default function AddLeadForm({
                   />
                 </div>
 
-                {/* Email (readonly) */}
+                {/* Email */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
                     Customer Email
@@ -1315,14 +1345,12 @@ export default function AddLeadForm({
                       clearError(e);
                       handleChange(e);
                     }}
-                    readOnly={!!customerId}
-                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                      }`}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                   />
 
                 </div>
 
-                {/* Secondary Email (readonly) */}
+                {/* Secondary Email */}
                 <div>
                   <label className="text-sm font-normal text-gray-600">
                     Customer Secondary Email
@@ -1336,9 +1364,7 @@ export default function AddLeadForm({
                       clearError(e);
                       handleChange(e);
                     }}
-                    readOnly={!!customerId}
-                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 ${customerId ? "bg-gray-100" : ""
-                      }`}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400"
                   />
 
                 </div>
@@ -1418,22 +1444,23 @@ export default function AddLeadForm({
                   </div>
                 </div>
 
-                <div>
+                <div className="relative z-10">
                   <label className="text-sm font-normal text-gray-600">
                     Address  <span className="text-red-500">*</span>
                   </label>
-                  <textarea
+                  <input
+                    type="text"
                     name="address"
                     placeholder="Address"
-                    value={formData.address}
+                    value={formData.address || ""}
                     onChange={(e) => {
                       clearError(e);
-                      handleChange(e);
+                      const value = e.target.value;
+                      setFormData((prev) => ({ ...prev, address: value }));
                     }}
-                    readOnly={!!customerId}
-                    rows={1}
-                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 
-                  ${customerId ? "bg-gray-100" : ""}`}
+                    disabled={false}
+                    readOnly={false}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 placeholder-slate-400 bg-white"
                   />
                 </div>
 
@@ -1774,14 +1801,12 @@ export default function AddLeadForm({
                   <input
                     type="date"
                     name="enquiry_date"
-                    value={formData.enquiry_date}
+                    value={formData.enquiry_date || ""}
                     onChange={(e) => {
                       clearError(e);
                       handleChange(e);
                     }}
-                    readOnly={!!lead}
-                    className={`w-full mt-1 px-3 py-2 rounded-md border border-slate-300 
-                  ${lead ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                    className="w-full mt-1 px-3 py-2 rounded-md border border-slate-300 bg-white"
                   />
                 </div>
 
