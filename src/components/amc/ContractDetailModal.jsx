@@ -165,8 +165,25 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
                 QUARTERLY: "Quarterly",
                 HALF_YEARLY: "Half Yearly",
                 YEARLY: "Yearly",
+                CUSTOM: "Custom",
               }[contract.visit_frequency] || "—"}
             </p>
+            {contract.expected_visit_count != null && (
+              <p className="text-xs text-slate-500 mt-1">
+                Expected visits: {contract.expected_visit_count}
+              </p>
+            )}
+            {contract.amount_per_visit != null && (
+              <p className="text-xs text-slate-500 mt-1">
+                Amount per visit: ₹{parseFloat(contract.amount_per_visit || 0).toLocaleString("en-IN")}
+                {contract.amc_cost != null && (
+                  <span> (total ₹{parseFloat(contract.amc_cost || 0).toLocaleString("en-IN")})</span>
+                )}
+              </p>
+            )}
+            {contract.visit_frequency === "CUSTOM" && contract.schedule_note && (
+              <p className="text-xs text-slate-500 mt-1">{contract.schedule_note}</p>
+            )}
           </div>
         </div>
 

@@ -53,6 +53,8 @@ const getInitialFormData = (contractType = 'one_time') => ({
   segment: 'residential',
   service_start_date: '',
   service_end_date: '',
+  service_frequency_count: '',
+  warranty_period_months: '',
   state: '',
   city: '',
   pincode: '',
@@ -169,6 +171,8 @@ export default function ServiceManagementForm({
         segment: data.segment || 'residential',
         service_start_date: data.service_start_date || '',
         service_end_date: data.service_end_date || '',
+        service_frequency_count: data.service_frequency_count ?? '',
+        warranty_period_months: data.warranty_period_months ?? '',
         state: data.state || '',
         city: data.city || '',
         pincode: data.pincode || '',
@@ -415,8 +419,35 @@ export default function ServiceManagementForm({
         ...prev,
         [name]: type === 'checkbox' ? checked : value,
       };
-      if (name === 'contract_type' && value !== 'amc') {
-        next.amc_service_type = '';
+      if (name === 'contract_type') {
+        if (value !== 'amc') {
+          next.amc_service_type = '';
+        }
+        if (value !== 'one_time') {
+          next.service_frequency_count = '';
+        }
+        if (value !== 'warranty') {
+          next.warranty_period_months = '';
+        }
+      }
+      if (
+        name === 'warranty_period_months' ||
+        (name === 'service_start_date' && prev.contract_type === 'warranty')
+      ) {
+        const months = parseInt(
+          name === 'warranty_period_months' ? value : prev.warranty_period_months,
+          10
+        );
+        const startStr = name === 'service_start_date' ? value : prev.service_start_date;
+        if (prev.contract_type === 'warranty' && months > 0 && startStr) {
+          const start = new Date(startStr);
+          if (!Number.isNaN(start.getTime())) {
+            const end = new Date(start);
+            end.setMonth(end.getMonth() + months);
+            end.setDate(end.getDate() - 1);
+            next.service_end_date = end.toISOString().split('T')[0];
+          }
+        }
       }
       return next;
     });
@@ -467,16 +498,25 @@ const handleAddMaterial = () => {
 
   const buildRecordPayload = (totals) => {
     const { products, ...fields } = formData;
-    return {
+    const payload = {
       ...fields,
       customer: selectedCustomer?.id || null,
       amc_service_type: fields.contract_type === 'amc' ? fields.amc_service_type : '',
       service_start_date: fields.service_start_date || null,
       service_end_date: fields.service_end_date || null,
+      service_frequency_count:
+        fields.contract_type === 'one_time' && fields.service_frequency_count
+          ? parseInt(fields.service_frequency_count, 10)
+          : null,
+      warranty_period_months:
+        fields.contract_type === 'warranty' && fields.warranty_period_months
+          ? parseInt(fields.warranty_period_months, 10)
+          : null,
       total_price_without_gst: totals.subtotal,
       gst_amount: totals.gst,
       total_price_with_gst: totals.total,
     };
+    return payload;
   };
 
   const addMaterialsToRecord = async (recordId, products) => {
@@ -537,6 +577,20 @@ const handleAddMaterial = () => {
     if (formData.contract_type === 'amc' && !formData.amc_service_type) {
       Swal.fire('Error', 'Please select AMC service type (Comprehensive or Non-Comprehensive)', 'error');
       return false;
+    }
+    if (formData.contract_type === 'one_time') {
+      const n = parseInt(formData.service_frequency_count, 10);
+      if (!n || n < 1) {
+        Swal.fire('Error', 'Please enter service frequency count (minimum 1)', 'error');
+        return false;
+      }
+    }
+    if (formData.contract_type === 'warranty') {
+      const m = parseInt(formData.warranty_period_months, 10);
+      if (!m || m < 1) {
+        Swal.fire('Error', 'Please enter warranty period in months (minimum 1)', 'error');
+        return false;
+      }
     }
     return true;
   };
@@ -830,6 +884,41 @@ const getMaterialName = (id) => {
                       <option value="COMPREHENSIVE">Comprehensive</option>
                       <option value="NON_COMPREHENSIVE">Non-Comprehensive</option>
                     </select>
+                  </div>
+                )}
+                {formData.contract_type === 'one_time' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Service frequency count <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      name="service_frequency_count"
+                      value={formData.service_frequency_count}
+                      onChange={handleInputChange}
+                      placeholder="Number of service visits"
+                      className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+                {formData.contract_type === 'warranty' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Warranty period (months) <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      name="warranty_period_months"
+                      value={formData.warranty_period_months}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 12"
+                      className="w-full px-3 py-2 border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Service end date is calculated from start date + warranty months.
+                    </p>
                   </div>
                 )}
                 <div>

@@ -239,7 +239,11 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                       QUARTERLY: "Quarterly",
                       HALF_YEARLY: "Half Yearly",
                       YEARLY: "Yearly",
+                      CUSTOM: "Custom",
                     }[item.visit_frequency] || "—"}
+                    {item.expected_visit_count != null && (
+                      <span className="text-slate-500"> ({item.expected_visit_count} visits)</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm">{item.product_name || `Variant ID: ${item.product_variant}`}</td>
                   <td className="px-4 py-3 text-sm">{item.amc_start_date}</td>
