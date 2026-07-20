@@ -476,12 +476,12 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     return (
         <div className="bg-white rounded-lg p-4">
             {/* Tabs */}
-            <div className="flex gap-6 border-b mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 border-b pb-2 sm:pb-0 mb-6">
                 <button
                     onClick={() => onTabChange("product")}
                     className={`pb-2 ${activeTab === "product"
-                        ? "border-b-2 border-black font-semibold"
-                        : "text-gray-500"
+                        ? "border-b-2 border-black font-semibold text-left sm:text-center"
+                        : "text-gray-500 text-left sm:text-center"
                         }`}
                 >
                     Product Details
@@ -557,9 +557,9 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
                     {/* ===== AC TYPE TABLE ===== */}
 
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-6">
 
-                        <table className="w-full text-md text-left">
+                        <table className="w-full min-w-[600px] text-md text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-sm">Sr.No</th>
@@ -631,8 +631,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                     </div>
 
                     {/* ===== BRAND TABLE ===== */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="w-full text-md text-left">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                        <table className="w-full min-w-[600px] text-md text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-sm">Sr.No</th>
@@ -669,10 +669,10 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                 <div className="space-y-6">
 
                     {/* Header with Create button */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h2 className="text-xl font-semibold text-slate-800"> </h2>
                         <button
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm w-full sm:w-auto text-center"
                             onClick={() => setOpenAddModel(true)}
                         >
                             + Create Model
@@ -681,8 +681,8 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                     </div>
 
                     {/* Models Table */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="w-full text-sm text-left">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                        <table className="w-full min-w-[1000px] text-sm text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-4 py-3">Sr.No</th>
@@ -1032,8 +1032,8 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 </div>
 
                 {/* 🔹 Variants Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                    <table className="w-full min-w-[800px] text-sm text-left">
                         <thead className="bg-gray-50 border-b">
                             <tr>
                                 <th className="px-4 py-3 font-medium text-gray-700">SKU No</th>

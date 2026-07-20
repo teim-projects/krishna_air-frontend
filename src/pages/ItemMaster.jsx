@@ -83,9 +83,9 @@ const ItemMaster = () => {
             onFiltersChange={handleFilterChange}
         >
             <div className="p-4">
-                <div className="item-sections flex gap-4 mb-4">
+                <div className="item-sections flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4">
                     <button
-                        className={`px-4 py-2 rounded ${activeSide === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-100'
+                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-100'
                             }`}
                         onClick={() => setActiveSide('high')}
                     >
@@ -93,7 +93,7 @@ const ItemMaster = () => {
                     </button>
 
                     <button
-                        className={`px-4 py-2 rounded ${activeSide === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-100'
+                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-100'
                             }`}
                         onClick={() => setActiveSide('low')}
                     >
@@ -102,7 +102,7 @@ const ItemMaster = () => {
 
                     <button
                         onClick={() => setActiveSide("installation")}
-                        className={`px-4 py-2 rounded ${activeSide === "installation"
+                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === "installation"
                             ? "bg-blue-600 text-white"
                             : "bg-blue-100"
                             }`}

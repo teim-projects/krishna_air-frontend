@@ -159,17 +159,17 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   return (
     <div className="space-y-6">
       {/* Header Section — matches PurchaseOrder.jsx */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Quotation Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${list.length} quotation(s) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <button
             onClick={onAdd}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
           >
             + Add Quotation
           </button>
@@ -177,8 +177,8 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
       </div>
 
       {/* Table — matches PurchaseOrder.jsx */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -266,13 +266,14 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                       <td colSpan="6" className="bg-slate-50 px-8 py-4">
                         <div className="font-semibold text-sm mb-2">Version History</div>
 
-                        <table className="w-full bg-white rounded-md overflow-hidden">
-                          <thead className="bg-slate-50 border-b">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Version</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Date</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Products</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Total</th>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[600px] bg-white rounded-md overflow-hidden">
+                            <thead className="bg-slate-50 border-b">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Version</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Date</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Products</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Total</th>
                               <th className="px-3 py-2 text-center text-xs font-semibold text-slate-700">Actions</th>
                             </tr>
                           </thead>
@@ -316,8 +317,9 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                   </td>
                                 </tr>
                               ))}
-                          </tbody>
-                        </table>
+                            </tbody>
+                          </table>
+                        </div>
                       </td>
                     </tr>
                   )}

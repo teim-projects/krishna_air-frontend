@@ -1128,6 +1128,15 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
     <>
       <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
         <div className="bg-white rounded-md shadow-lg w-full max-w-5xl relative max-h-[90vh] flex flex-col">
+          
+          {/* Mobile-only Close Cross Button */}
+          <button
+            onClick={onBack}
+            className="md:hidden absolute top-3 right-3 z-50 w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold text-lg shadow-sm"
+            aria-label="Close"
+          >
+            ✕
+          </button>
 
           {/* Header with Step Indicator */}
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
@@ -1137,7 +1146,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
               </h2>
               <button
                 onClick={onBack}
-                className="text-xl font-bold hover:text-red-500"
+                className="hidden md:block text-xl font-bold hover:text-red-500"
                 aria-label="Close"
               >
                 ✕
@@ -1150,21 +1159,21 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   1
                 </div>
-                <span className="ml-2">Basic & Ship To Info</span>
+                <span className="ml-2 hidden sm:inline">Basic & Ship To Info</span>
               </div>
               <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   2
                 </div>
-                <span className="ml-2">Items</span>
+                <span className="ml-2 hidden sm:inline">Items</span>
               </div>
               <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   3
                 </div>
-                <span className="ml-2">Buyer, Additional Info & Terms</span>
+                <span className="ml-2 hidden sm:inline">Buyer, Additional Info & Terms</span>
               </div>
             </div>
           </div>

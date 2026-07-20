@@ -172,17 +172,17 @@ export default function StockDashboard({ base_api, filters }) {
 
       {/* Stock Table */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Stock Inventory</h2>
             <p className="text-sm text-gray-600 mt-1">
               {totalCount} item(s) • Page {currentPage} of {totalPages}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => fetchStockItems(currentPage)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center gap-2"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-2 w-full sm:w-auto text-center"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -194,7 +194,7 @@ export default function StockDashboard({ base_api, filters }) {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse border border-gray-300">
+          <table className="w-full min-w-[900px] text-sm border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
                 <th className="border border-gray-300 px-4 py-3 text-left">Sr.No</th>

@@ -384,8 +384,8 @@ export default function AddCustomerForm({
           <div className="px-4 py-3 overflow-y-auto flex-1">
             <form className="space-y-4" onSubmit={handleSubmit}>
 
-              {/* Basic Information - 2 Column Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Basic Information - Responsive Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Salutation + Name */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">Name <span className="text-red-500">*</span></label>
@@ -514,7 +514,7 @@ export default function AddCustomerForm({
               </div>
 
               {/* City / State / Pin */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* Billing State */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">State</label>
@@ -587,7 +587,7 @@ export default function AddCustomerForm({
                       value={siteAddress} onChange={e => setSiteAddress(e.target.value)} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {/* Site State */}
                     <div>
                       <label className="text-sm text-slate-700 mb-1 block">Site State</label>
@@ -654,12 +654,12 @@ export default function AddCustomerForm({
               </div>
 
               {/* Buttons */}
-              <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+                <button type="button" onClick={onClose} className="w-full sm:w-auto px-4 py-2 bg-gray-200 rounded text-center">
                   Cancel
                 </button>
                 <button type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded"
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded text-center"
                   disabled={loading}>
                   {loading ? (customer ? "Updating..." : "Saving...") : (customer ? "Update" : "Save")}
                 </button>
