@@ -92,9 +92,9 @@ const Inventory = () => {
     >
       <div className="p-4">
         {/* Tab Buttons */}
-        <div className="flex gap-4 mb-4 flex-wrap">
+        <div className="flex gap-2 sm:gap-4 mb-4 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap flex-nowrap sm:flex-wrap">
           <button
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'site' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -104,7 +104,7 @@ const Inventory = () => {
             Site
           </button>
           <button
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'branch' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -114,7 +114,7 @@ const Inventory = () => {
             Branch
           </button>
           <button
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'vendor' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -124,7 +124,7 @@ const Inventory = () => {
             Vendor
           </button>
           <button
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'purchase' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -134,7 +134,7 @@ const Inventory = () => {
             Purchase Order
           </button>
           <button 
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'grn' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -144,7 +144,7 @@ const Inventory = () => {
             GRN
           </button>
           <button 
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'materialIssue' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -154,7 +154,7 @@ const Inventory = () => {
             Material Issue
           </button>
           <button 
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'materialReturn' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -164,7 +164,7 @@ const Inventory = () => {
             MRN
           </button>
           <button 
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'stockDashboard' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -174,7 +174,7 @@ const Inventory = () => {
             Stock
           </button>
           <button 
-            className={`px-4 py-2 rounded transition-colors ${
+            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
               activeTab === 'deliveryChallan' 
                 ? 'bg-green-600 text-white' 
                 : 'bg-green-100 text-green-700 hover:bg-green-200'

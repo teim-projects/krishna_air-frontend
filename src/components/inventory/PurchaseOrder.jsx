@@ -352,17 +352,17 @@ export default function PurchaseOrder({ base_api, filters }) {
     <div className="space-y-6">
 
       {/* Header Section */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Purchase Order Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${totalCount} purchase order(s) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <button
             onClick={handleAddPo}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Purchase Order
           </button>
@@ -370,8 +370,8 @@ export default function PurchaseOrder({ base_api, filters }) {
       </div>
 
       {/* Sites Table */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>

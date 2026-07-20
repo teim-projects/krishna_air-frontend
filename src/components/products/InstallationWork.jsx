@@ -146,17 +146,17 @@ const InstallationWork = ({ base_api, filters }) => {
   return (
     <div className="bg-white rounded-lg p-4">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold">Installation Work Services</h2>
           <p className="text-sm text-gray-500">{totalCount} service(s) available</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           {/* Add Service Button */}
           <button
             onClick={() => setShowAddServiceModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto text-center font-medium"
           >
             <span className="text-xl">+</span>
             Add Service
@@ -166,8 +166,8 @@ const InstallationWork = ({ base_api, filters }) => {
 
       {/* Table */}
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table className="w-full text-md text-left">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+        <table className="w-full min-w-[800px] text-md text-left">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-sm">SR.NO</th>

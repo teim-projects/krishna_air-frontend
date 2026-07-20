@@ -142,7 +142,7 @@ export default function MaterialReturn({ base_api }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Material Return Notes (MRN)</h2>
           <p className="text-sm text-gray-600 mt-1">
@@ -151,7 +151,7 @@ export default function MaterialReturn({ base_api }) {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+          className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition w-full sm:w-auto text-center"
         >
           <span className="text-xl">+</span>
           Create MRN
@@ -160,7 +160,7 @@ export default function MaterialReturn({ base_api }) {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse border border-gray-300">
+        <table className="w-full min-w-[800px] text-sm border-collapse border border-gray-300">
           <thead className="bg-gray-100">
             <tr>
               <th className="border border-gray-300 px-4 py-3 text-left">Sr.No</th>

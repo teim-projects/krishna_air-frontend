@@ -376,10 +376,10 @@ export default function Accounts() {
     >
       <div className="space-y-6">
         {/* Category Selection Tabs */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded font-medium transition ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
               activeTab === "all"
                 ? "bg-blue-800 text-blue-100"
                 : "bg-blue-100 text-blue-800 hover:bg-blue-200"
@@ -389,7 +389,7 @@ export default function Accounts() {
           </button>
           <button
             onClick={() => setActiveTab("technician")}
-            className={`px-4 py-2 rounded font-medium transition ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
               activeTab === "technician"
                 ? "bg-blue-800 text-blue-100"
                 : "bg-blue-100 text-blue-800 hover:bg-blue-200"
@@ -399,7 +399,7 @@ export default function Accounts() {
           </button>
           <button
             onClick={() => setActiveTab("low")}
-            className={`px-4 py-2 rounded font-medium transition ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
               activeTab === "low"
                 ? "bg-blue-800 text-blue-100"
                 : "bg-blue-100 text-blue-800 hover:bg-blue-200"
@@ -409,7 +409,7 @@ export default function Accounts() {
           </button>
           <button
             onClick={() => setActiveTab("installation")}
-            className={`px-4 py-2 rounded font-medium transition ${
+            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
               activeTab === "installation"
                 ? "bg-blue-800 text-blue-100"
                 : "bg-blue-100 text-blue-800 hover:bg-blue-200"
@@ -419,7 +419,7 @@ export default function Accounts() {
           </button>
         </div>
 
-        <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">
               {activeTab === "low" ? "Technician Work History" :
@@ -434,23 +434,23 @@ export default function Accounts() {
           </div>
 
           {(activeTab === "all" || activeTab === "technician") && (
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={() => setShowAddRole(true)}
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 text-center w-full sm:w-auto"
               >
                 Manage Roles
               </button>
 
               <button
                 onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
-                className="px-4 py-2 rounded-md bg-sky-600 text-white"
+                className="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 text-center w-full sm:w-auto"
               >
                 + Add Staff
               </button>
 
-              {rolesLoading ? <div className="text-sm text-slate-500">Loading roles…</div> :
-               rolesError ? <div className="text-sm text-red-500">Roles error</div> : null}
+              {rolesLoading ? <div className="text-sm text-slate-500 text-center">Loading roles…</div> :
+               rolesError ? <div className="text-sm text-red-500 text-center">Roles error</div> : null}
             </div>
           )}
         </div>

@@ -43,11 +43,11 @@ export default function AmcPage() {
       onFiltersChange={setFilters}
     >
       <div className="p-4">
-        <div className="flex gap-3 mb-4 flex-wrap">
+        <div className="flex gap-2 sm:gap-3 mb-4 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap flex-nowrap sm:flex-wrap">
           {tabs.map(({ key, label }) => (
             <button
               key={key}
-              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${activeTab === key
+              className={`flex-shrink-0 px-4 py-2 rounded text-sm font-medium transition-colors ${activeTab === key
                   ? "bg-blue-600 text-white shadow"
                   : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                 }`}
