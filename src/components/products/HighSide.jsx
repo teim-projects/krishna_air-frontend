@@ -108,7 +108,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
     // ================= API =================
     const fetchAcTypes = async () => {
-        const res = await axios.get(`${BASE_API}/product/actype/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/actype/?all=true`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setAcTypes(rows);
         setList(rows);
@@ -120,7 +120,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchAcSubTypesByType = async (acTypeId) => {
         // console.log("acType",acTypeId)
         const res = await axios.get(
-            `${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}&all=true`,
             authHeaders()
         );
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
@@ -132,7 +132,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
 
     const fetchBrands = async () => {
-        const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/ac-brand/?all=true`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setBrands(rows);
     };
@@ -308,7 +308,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         setEditingId(row.id);
 
         const res = await axios.get(
-            `${BASE_API}/product/ac-subtypes/?ac_type_id=${row.id}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${row.id}&all=true`,
             authHeaders()
         );
 
@@ -449,7 +449,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchVariants = async (modelId) => {
         try {
             const res = await axios.get(
-                `${BASE_API}/product/product-variant/?product_model=${modelId}`,
+                `${BASE_API}/product/product-variant/?product_model=${modelId}&all=true`,
                 authHeaders()
             );
 
@@ -888,7 +888,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     // Fetch variants
     const loadVariants = async () => {
         const res = await axios.get(
-            `${baseApi}/product/product-variant/?product_model=${model.id}`,
+            `${baseApi}/product/product-variant/?product_model=${model.id}&all=true`,
             authHeaders()
         );
 
@@ -899,7 +899,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 sku: v.sku,
                 capacity: v.capacity,
                 unit: v.unit || "",
-                star: String(v.star_rating),
+                star: v.star_rating != null && v.star_rating !== "" ? String(v.star_rating) : "",
                 mrp: v.mrp,
                 dp: v.dp,
                 active: v.is_active,
@@ -922,8 +922,8 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
 
     // Add or Update variant
     const saveVariant = async () => {
-        if (!form.capacity || !form.star) {
-            alert("Fill required fields");
+        if (!form.capacity) {
+            alert("Capacity is required");
             return;
         }
 
@@ -931,9 +931,9 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
             product_model: model.id,
             capacity: form.capacity,
             unit: form.unit || null,
-            star_rating: Number(form.star),
-            mrp: Number(form.mrp),
-            dp: Number(form.dp),
+            star_rating: form.star ? Number(form.star) : null,
+            mrp: form.mrp ? Number(form.mrp) : null,
+            dp: form.dp ? Number(form.dp) : null,
             is_active: form.active,
         };
 
@@ -1003,7 +1003,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     <option value="HP">HP</option>
 </select>
                         <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded flex-1">
-                            <option value="">Star(required)</option>
+                            <option value="">Star (optional)</option>
                             <option value="1">1 Star</option>
                             <option value="2">2 Star</option>
                             <option value="3">3 Star</option>
@@ -1053,7 +1053,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                                     <td className="px-4 py-3">{v.sku}</td>
                                     <td className="px-4 py-3">{v.capacity}</td>
                                     <td className="px-4 py-3">{v.unit || 'TR'}</td>
-                                    <td className="px-4 py-3">{v.star}</td>
+                                    <td className="px-4 py-3">{v.star || "-"}</td>
                                     <td className="px-4 py-3">₹{Number(v.mrp).toLocaleString()}</td>
                                     <td className="px-4 py-3">₹{Number(v.dp).toLocaleString()}</td>
                                     <td className="px-4 py-3">

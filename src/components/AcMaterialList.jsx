@@ -20,7 +20,7 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
     const fetchAcTypes = async () => {
         try {
             const res = await axios.get(
-                `${base_api}/product/actype/`,
+                `${base_api}/product/actype/?all=true`,
                 authHeaders()
             );
             const data = res.data?.results || res.data;

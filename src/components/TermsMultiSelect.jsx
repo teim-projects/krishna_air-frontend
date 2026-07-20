@@ -29,7 +29,7 @@ const TermsMultiSelect = ({
       setFetching(true);
 
       const res = await axios.get(
-        `${baseApi}/inventory/terms/?terms_condition_type=${termsType}`,
+        `${baseApi}/inventory/terms/?terms_condition_type=${termsType}&all=true`,
         {
           headers: {
             "Content-Type": "application/json",

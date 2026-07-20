@@ -198,6 +198,9 @@ export default function AddQuotation({ id, onBack, leadData }) {
           active.low_side_items.map(l => normalizeLowSideItem({
             item: l.item,
             item_code: l.item_code,
+            material_display_name: l.item_display_name || l.material_display_name,
+            complete_item_name: l.item_display_name || l.material_display_name,
+            material_name: l.material_name,
             unit: l.unit || "NOS",
             quantity: l.quantity,
             gst_percent: l.gst_percent !== undefined && l.gst_percent !== null ? l.gst_percent : 18,
@@ -240,12 +243,12 @@ export default function AddQuotation({ id, onBack, leadData }) {
     const loadMasterData = async () => {
       try {
         // Load branches
-        const branchRes = await api.get("auth/branch/");
+        const branchRes = await api.get("auth/branch/?all=true");
         const branchData = Array.isArray(branchRes.data) ? branchRes.data : branchRes.data?.results || [];
         setBranches(branchData);
 
         // Load sites
-        const siteRes = await api.get("auth/site/");
+        const siteRes = await api.get("auth/site/?all=true");
         const siteData = Array.isArray(siteRes.data) ? siteRes.data : siteRes.data?.results || [];
         setSites(siteData);
       } catch (err) {

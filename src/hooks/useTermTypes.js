@@ -21,7 +21,7 @@ const useTermTypes = ({ baseApi, token }) => {
       setLoading(true);
 
       const res = await axios.get(
-        `${baseApi}/inventory/terms-type/`,
+        `${baseApi}/inventory/terms-type/?all=true`,
         { headers }
       );
 

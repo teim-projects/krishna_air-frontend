@@ -103,7 +103,7 @@ export default function AddAmcForm({
         const [recordsRes, customersRes, variantsRes] = await Promise.all([
           fetch(`${baseApi}/amc/service-records/?contract_type=amc`, { headers }),
           fetch(`${baseApi}/quotation/customer/`, { headers }),
-          fetch(`${baseApi}/product/product-variant/`, { headers }),
+          fetch(`${baseApi}/product/product-variant/?all=true`, { headers }),
         ]);
 
         let records = [];

@@ -286,7 +286,7 @@ export default function Branch({ base_api, filters }) {
             ) : (
               branches.map((branch, index) => (
                 <tr key={branch.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{branch.name}</td>
                   <td className="px-4 py-3 text-sm">{branch.email}</td>
                   <td className="px-4 py-3 text-sm">{branch.primary_contact}</td>

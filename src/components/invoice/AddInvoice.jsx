@@ -157,11 +157,11 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
     const loadMasterData = async () => {
       try {
         // Load sites
-        const siteRes = await api.get("auth/site/");
+        const siteRes = await api.get("auth/site/?all=true");
         setSites(normalize(siteRes.data));
 
         // Load branches
-        const branchRes = await api.get("auth/branch/");
+        const branchRes = await api.get("auth/branch/?all=true");
         setBranches(normalize(branchRes.data));
       } catch (err) {
         console.log("Error loading master data:", err);
@@ -287,6 +287,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
         setLowItems(lowItemsList.map(i => ({
           item: i.item,
           item_code: i.item_code,
+          material_display_name: i.complete_item_name,
           complete_item_name: i.complete_item_name,
           description: i.description,
           hsn_sac: i.hsn_sac,

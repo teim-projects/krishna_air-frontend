@@ -181,7 +181,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const fetchBranches = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseApi}/auth/branch/`, {
+            const response = await axios.get(`${baseApi}/auth/branch/?all=true`, {
                 headers: {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -211,7 +211,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const fetchSites = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseApi}/auth/site/`, {
+            const response = await axios.get(`${baseApi}/auth/site/?all=true`, {
                 headers: {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {})

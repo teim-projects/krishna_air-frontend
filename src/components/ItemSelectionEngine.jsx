@@ -9,7 +9,7 @@ import {
   normalizeLowSideItem,
   normalizeHighSideItem,
 } from "../utils/numberFormat";
-import { formatMaterialLabel } from "../utils/materialLabel";
+import { formatMaterialLabel, formatLowSideTooltip, formatHighSideTooltip } from "../utils/materialLabel";
 
 export default function ItemSelectionEngine({
   baseApi,
@@ -188,7 +188,7 @@ export default function ItemSelectionEngine({
   const loadBrands = async () => {
     try {
       // Get brands from items endpoint instead
-      const res = await api.get("product/item/");
+      const res = await api.get("product/item/?all=true");
       const items = Array.isArray(res.data) ? res.data : (res.data.results || []);
 
       // Extract unique brands from items
@@ -213,7 +213,7 @@ export default function ItemSelectionEngine({
   };
 
   const loadLowSideItems = async (data) => {
-    const params = {};
+    const params = { all: "true" };
 
     if (data.material_type_id) params.material_type_id = data.material_type_id;
     if (data.item_type_id) params.item_type_id = data.item_type_id;
@@ -346,7 +346,7 @@ export default function ItemSelectionEngine({
         gst_percent: lowSideGstEnabled ? toNum(draftLowItem.gst_percent, 18) : 0,
         unit: mat.unit || draftLowItem.unit,
         item: mat.id,
-        item_code: displayName,
+        item_code: mat.item_code || displayName,
         material_display_name: displayName,
         material_name: mat.material_name,
         size: mat.size,
@@ -972,7 +972,9 @@ const addServiceItem = () => {
                     return (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                        <td className="w-40 px-2 py-2 border-r truncate">{variantName}</td>
+                        <td className="w-40 px-2 py-2 border-r truncate" title={formatHighSideTooltip(row)}>
+                          {variantName}
+                        </td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input className="w-full border rounded px-1 py-1"
                             value={row.hsn_sac || ""}
@@ -1168,8 +1170,8 @@ const addServiceItem = () => {
                   {lowItems.map((row, i) => (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug" title={formatMaterialLabel(row) || row.complete_item_name || row.material_display_name || ""}>
-                          {formatMaterialLabel(row) || row.complete_item_name || row.material_display_name || row.item_code || "Unknown"}
+                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug truncate" title={formatLowSideTooltip(row)}>
+                          {row.item_code || "Unknown"}
                         </td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input

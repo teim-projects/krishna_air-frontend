@@ -201,7 +201,7 @@ export default function ServiceManagementForm({
       try {
         setAcTypeLoadError(false);
         const response = await axios.get(
-          `${baseApi}/product/actype/`,
+          `${baseApi}/product/actype/?all=true`,
           { headers: authHeaders }
         );
 
@@ -228,7 +228,7 @@ export default function ServiceManagementForm({
     const fetchMaterials = async () => {
       try {
         const response = await axios.get(
-          `${baseApi}/product/item/`,
+          `${baseApi}/product/item/?all=true`,
           { headers: authHeaders }
         );
 
@@ -349,7 +349,7 @@ export default function ServiceManagementForm({
         axios.get(`${baseApi}/quotation/quotation/${quotation.id}/`, { headers }),
         materialsList.length
           ? Promise.resolve({ data: materialsList })
-          : axios.get(`${baseApi}/product/item/`, { headers }),
+          : axios.get(`${baseApi}/product/item/?all=true`, { headers }),
         acMaterialMappings.length
           ? Promise.resolve({ data: acMaterialMappings })
           : axios.get(`${baseApi}/product/ac-material/`, { headers }),

@@ -16,31 +16,31 @@ const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
       try {
         // Fetch all required data in parallel
         const [acTypesRes, acSubTypesRes, brandsRes, modelsRes, variantsRes] = await Promise.all([
-          fetch(`${baseApi}/product/actype/`, {
+          fetch(`${baseApi}/product/actype/?all=true`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/product/ac-subtypes/`, {
+          fetch(`${baseApi}/product/ac-subtypes/?all=true`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/product/ac-brand/`, {
+          fetch(`${baseApi}/product/ac-brand/?all=true`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/product/product-model/`, {
+          fetch(`${baseApi}/product/product-model/?all=true`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }),
-          fetch(`${baseApi}/product/product-variant/`, {
+          fetch(`${baseApi}/product/product-variant/?all=true`, {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),

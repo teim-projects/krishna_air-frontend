@@ -48,7 +48,7 @@ export default function AmcSparePartsModal({ contract, baseApi, token, onClose, 
     const endpoints = [
       `${baseApi}/inventory/inventory/all/`,
       `${baseApi}/inventory/inventory/low_side/`,
-      `${baseApi}/inventory/inventory/`,
+      `${baseApi}/inventory/inventory/?all=true`,
     ];
 
     setInventoryLoadError("");

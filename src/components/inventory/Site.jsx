@@ -285,7 +285,7 @@ export default function Site({ base_api, filters }) {
             ) : (
               sites.map((site, index) => (
                 <tr key={site.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{site.name}</td>
                   <td className="px-4 py-3 text-sm">{site.site_shortcut || "-"}</td>
                   <td className="px-4 py-3 text-sm">{site.city}</td>

@@ -33,7 +33,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchAcTypes = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/product/actype/`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/actype/?all=true`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setAcTypes(rows);
       // console.log("Ac Types:", rows);
@@ -47,7 +47,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchSubtypes = async (acTypeId) => {
     try {
-      const res = await axios.get(`${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}&all=true`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setSubtypes(rows);
       // console.log("Subtypes:", rows);
@@ -59,7 +59,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
   const fetchBrands = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
+      const res = await axios.get(`${BASE_API}/product/ac-brand/?all=true`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setBrands(rows);
       // console.log("Brands:", rows);
@@ -246,11 +246,11 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
 
   const createVariants = async (productModelId) => {
-    // Check which variants have at least capacity and star (minimum required)
-    const validVariants = variants.filter(v => v.capacity && v.star);
+    // Check which variants have at least capacity (star rating optional)
+    const validVariants = variants.filter(v => v.capacity);
 
     if (validVariants.length === 0) {
-      console.log("⚠️ No valid variants to create (need at least Capacity and Star Rating)");
+      console.log("⚠️ No valid variants to create (need at least Capacity)");
       return;
     }
 
@@ -262,7 +262,7 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
           product_model: productModelId,
           capacity: v.capacity,
           unit: v.unit || null,
-          star_rating: Number(v.star),
+          star_rating: v.star ? Number(v.star) : null,
           mrp: v.mrp ? Number(v.mrp) : null,  // ✅ Optional - send null if empty
           dp: v.dp ? Number(v.dp) : null,      // ✅ Optional - send null if empty
           is_active: v.active ?? true,
@@ -520,14 +520,14 @@ const AddModelForm = ({ open, base_api, authHeaders, onClose, onSuccess, model }
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Star Rating *
+                        Star Rating
                       </label>
                       <select
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
                         value={v.star}
                         onChange={(e) => updateVariant(idx, "star", e.target.value)}
                       >
-                        <option value="">Select</option>
+                        <option value="">Optional</option>
                         <option value="1">1 Star</option>
                         <option value="2">2 Star</option>
                         <option value="3">3 Star</option>
