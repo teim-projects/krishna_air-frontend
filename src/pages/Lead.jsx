@@ -1,13 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Base from "../components/Base";
 import TableView from "../components/TableView";
 import LeadDetails from "../components/lead/LeadDetails";
 import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
-import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument, MdAdd } from "react-icons/md";
+import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument, MdAdd, MdFileUpload, MdFileDownload } from "react-icons/md";
 import Swal from "sweetalert2";
 import { useUserRole } from '../hooks/useAuth';
 import AddQuotation from "../components/quotations/AddQuotation";
+/* Revert99 - START: XLSX import */
+import * as XLSX from "xlsx";
+const getXLSX = async () => XLSX;
+/* Revert99 - END */
 
 
 export default function Lead() {
@@ -46,6 +50,7 @@ export default function Lead() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE_FALLBACK = 10;
+  const PAGE_SIZE = 10;
 
   // modal / edit state
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -59,6 +64,214 @@ export default function Lead() {
 
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [assignToOptions, setAssignToOptions] = useState([]);
+
+  /* Revert99 - START: Import & Export References & Handlers */
+  // Revert99: Delete from here to Revert99 - END if not needed
+  const fileInputRef = useRef(null);
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      if (!rows || rows.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No enquiry data available to export." });
+        return;
+      }
+
+      const XLSX = await getXLSX();
+
+      const exportData = rows.map((r, idx) => ({
+        "Sr.No": (currentPage - 1) * PAGE_SIZE + (idx + 1),
+        "Date": formatDate(r.date),
+        "Followup Date": formatDate(r.followup_date),
+        "Project Name": r.project_name || "-",
+        "Name": r.customer_name || "-",
+        "Contact": r.customer_contact || "-",
+        "Source": r.lead_source || "-",
+        "Status": r.status || "-",
+        "Assign To": r.assign_to_details?.full_name || "-"
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Enquiries");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Enquiries_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Enquiries excel file downloaded successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export excel file." });
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validExtensions = [".xlsx", ".xls", ".csv"];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValid) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Please upload Excel files only (.xlsx, .xls, .csv).",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        Swal.fire({
+          title: "Saving to Database...",
+          text: "Importing and persisting enquiry records to database...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+
+        const XLSX = await getXLSX();
+        const bstr = evt.target.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        if (!parsedData || parsedData.length === 0) {
+          Swal.close();
+          Swal.fire({ icon: "warning", title: "Empty Sheet", text: "The uploaded excel sheet contains no data." });
+          return;
+        }
+
+        const processedReportRows = [];
+
+        for (let i = 0; i < parsedData.length; i++) {
+          const item = parsedData[i];
+          const todayStr = new Date().toISOString().split("T")[0];
+          const incomingContact = String(item["Contact"] || item["Mobile"] || item["Phone"] || item["contact"] || "").trim();
+          const incomingName = String(item["Name"] || item["Customer Name"] || item["name"] || item["Customer"] || "").trim();
+          const incomingProject = String(item["Project Name"] || item["Project"] || item["project_name"] || "").trim();
+          const incomingDate = item["Date"] || item["date"] || todayStr;
+          const incomingFollowup = item["Followup Date"] || item["Follow-up Date"] || item["followup_date"] || "";
+          const incomingSource = item["Source"] || item["Lead Source"] || item["lead_source"] || "other";
+          const incomingStatus = (item["Status"] || item["status"] || "open").toLowerCase().replace(" ", "_");
+
+          const cleanPhone = incomingContact.replace(/\D/g, "");
+
+          const existing = rows.find(r => {
+            const rPhone = String(r.customer_contact || "").replace(/\D/g, "");
+            if (cleanPhone && rPhone && cleanPhone === rPhone) return true;
+            if (incomingName && r.customer_name &&
+                incomingName.toLowerCase() === r.customer_name.toLowerCase() &&
+                incomingProject && r.project_name &&
+                incomingProject.toLowerCase() === r.project_name.toLowerCase()) {
+              return true;
+            }
+            return false;
+          });
+
+          if (existing && existing.id && !String(existing.id).startsWith("imp_")) {
+            const payload = {
+              date: incomingDate || existing.date,
+              followup_date: incomingFollowup || existing.followup_date,
+              project_name: incomingProject || existing.project_name,
+              customer_name: incomingName || existing.customer_name,
+              customer_contact: incomingContact || existing.customer_contact,
+              lead_source: incomingSource || existing.lead_source,
+              status: incomingStatus || existing.status
+            };
+
+            await fetch(`${API_URL}${existing.id}/`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(payload)
+            }).catch(err => console.error("Patch lead error:", err));
+
+            processedReportRows.push({
+              "Sr.No": processedReportRows.length + 1,
+              "Status Action": "Updated Record in DB",
+              "Date": payload.date,
+              "Name": payload.customer_name,
+              "Contact": payload.customer_contact,
+              "Project": payload.project_name,
+              "Status": payload.status
+            });
+
+          } else {
+            const payload = {
+              date: incomingDate,
+              followup_date: incomingFollowup,
+              project_name: incomingProject || "Imported Project",
+              customer_name: incomingName || "Imported Customer",
+              customer_contact: incomingContact || "-",
+              customer_email: item["Email"] || item["email"] || "",
+              lead_source: incomingSource,
+              status: incomingStatus
+            };
+
+            await fetch(API_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(payload)
+            }).catch(err => console.error("Post lead error:", err));
+
+            processedReportRows.push({
+              "Sr.No": processedReportRows.length + 1,
+              "Status Action": "Created New in DB",
+              "Date": payload.date,
+              "Name": payload.customer_name,
+              "Contact": payload.customer_contact,
+              "Project": payload.project_name,
+              "Status": payload.status
+            });
+          }
+        }
+
+        await fetchData(1);
+
+        const exportSheet = XLSX.utils.json_to_sheet(processedReportRows);
+        const exportBook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(exportBook, exportSheet, "Imported Enquiries");
+        const timestamp = new Date().getTime();
+        XLSX.writeFile(exportBook, `Enquiries_Imported_Report_${timestamp}.xlsx`);
+
+        Swal.fire({
+          icon: "success",
+          title: "Import Successful!",
+          text: `Excel data saved to database successfully from "${file.name}".`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+      } catch (err) {
+        console.error("Import Error:", err);
+        Swal.fire({ icon: "error", title: "Import Failed", text: "Failed to save imported data to database." });
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
+  /* Revert99 - END */
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -212,7 +425,6 @@ export default function Lead() {
     });
   }, [baseFilters, userRole, loadingUser]);
 
-  const PAGE_SIZE = 10;
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
     setError(null);
@@ -457,6 +669,36 @@ export default function Lead() {
       filtersConfig={leadFilters}
       initialFilterValues={initialFilters}
       onFiltersChange={handleFilterChange}
+      headerActions={
+        /* Revert99 - START: Import & Export Buttons near Filters */
+        /* Revert99: Delete from here to Revert99 - END if not needed */
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".xlsx, .xls, .csv"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-white hover:shadow-sm"
+            title="Import Excel Sheet (.xlsx, .xls, .csv)"
+          >
+            <MdFileUpload className="text-sky-600 text-base" />
+            <span className="hidden sm:inline text-sm text-slate-700">Import</span>
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-white hover:shadow-sm"
+            title="Export Enquiries to Excel"
+          >
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span className="hidden sm:inline text-sm text-slate-700">Export</span>
+          </button>
+        </>
+        /* Revert99 - END */
+      }
     >
       <div className="space-y-6 ">
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
@@ -467,7 +709,6 @@ export default function Lead() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-
             <button
               onClick={() => { setEditingLead(null); setShowLeadForm(true); }}
               className="px-4 py-2 rounded-md bg-sky-600 text-white"

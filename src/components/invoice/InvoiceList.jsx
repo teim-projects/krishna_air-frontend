@@ -1,7 +1,9 @@
 import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
-import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory } from "react-icons/md";
+import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFileDownload } from "react-icons/md";
+import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -68,6 +70,42 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   useImperativeHandle(ref, () => ({
     refreshList: fetchInvoices
   }));
+
+  const handleExportExcel = () => {
+    try {
+      if (!data || data.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No invoice data available to export." });
+        return;
+      }
+
+      const exportData = data.map((r, idx) => ({
+        "Sr.No": idx + 1,
+        "Invoice No": r.invoice_no || "-",
+        "Invoice Date": r.invoice_date ? new Date(r.invoice_date).toLocaleDateString() : "-",
+        "Buyer": r.buyer_name || "-",
+        "GST Type": r.gst_type || "-",
+        "Grand Total": `₹${Number(r.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Invoices_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Invoice list exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export invoice excel file." });
+    }
+  };
 
   /* ================= PDF VIEW ================= */
 
@@ -152,7 +190,16 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
             {loading ? "Loading..." : `${data.length} invoice(s) found`}
           </div>
         </div>
-        <div className="w-full sm:w-auto">
+        <div className="w-full sm:w-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center gap-1.5"
+            title="Export Invoices Excel Sheet"
+          >
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span>Export</span>
+          </button>
           <button
             onClick={onAdd}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"

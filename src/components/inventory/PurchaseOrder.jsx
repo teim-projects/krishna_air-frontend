@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
-import { MdEdit, MdDelete, MdRemoveRedEye, MdDownload, MdHistory, MdEmail } from "react-icons/md";
+import { MdEdit, MdDelete, MdRemoveRedEye, MdDownload, MdHistory, MdEmail, MdFileDownload } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
+import * as XLSX from "xlsx";
 
 export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
@@ -299,6 +300,44 @@ export default function PurchaseOrder({ base_api, filters }) {
     setShowPoForm(true);
   };
 
+  const handleExportExcel = () => {
+    try {
+      if (!po || po.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No purchase order data available to export." });
+        return;
+      }
+
+      const exportData = po.map((r, idx) => ({
+        "Sr.No": (currentPage - 1) * PAGE_SIZE + (idx + 1),
+        "Vendor": r.vendor_name || "-",
+        "Site": r.site_name || "-",
+        "PO Date": r.po_date || "-",
+        "PO Number": r.purchase_order_no ? `${r.purchase_order_no} (v${r.version || 1})` : "-",
+        "Contact Name": r.contact_name || "-",
+        "Contact Phone": r.contact_no || "-",
+        "Grand Total": `₹${r.grand_total || 0}`
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Purchase Orders");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Purchase_Orders_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Purchase order list exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export purchase order excel file." });
+    }
+  };
+
   // Handle form success (after add/edit)
   const handleFormSuccess = (data) => {
     console.log("Purchase Order saved:", data);
@@ -359,7 +398,16 @@ export default function PurchaseOrder({ base_api, filters }) {
             {loading ? "Loading..." : `${totalCount} purchase order(s) found`}
           </div>
         </div>
-        <div className="w-full sm:w-auto">
+        <div className="w-full sm:w-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center gap-1.5"
+            title="Export Purchase Orders Excel Sheet"
+          >
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span>Export</span>
+          </button>
           <button
             onClick={handleAddPo}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
