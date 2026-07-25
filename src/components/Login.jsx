@@ -266,11 +266,13 @@ const Login = () => {
           {message && (
             <div
               className={`mt-6 p-3 rounded-md text-sm text-center font-medium transition-all ${
-                message.startsWith("✅")
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                message.startsWith("Logging in") || message.includes("Logging in")
+                  ? "bg-sky-50 text-sky-700"
+                  : message.startsWith("✅")
+                  ? "bg-emerald-50 text-emerald-700"
                   : message.startsWith("⚠️")
-                  ? "bg-amber-50 text-amber-700 border border-amber-200"
-                  : "bg-rose-50 text-rose-600 border border-rose-200"
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-rose-50 text-rose-600"
               }`}
             >
               {message}
