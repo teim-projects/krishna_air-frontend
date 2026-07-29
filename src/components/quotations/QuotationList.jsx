@@ -11,8 +11,11 @@ import {
   MdDelete,
   MdEmail,
   MdHistory,
+  MdFileDownload,
 } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
+import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -156,6 +159,45 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     return isNaN(num) ? "0.00" : num.toFixed(2);
   };
 
+  const handleExportExcel = () => {
+    try {
+      if (!list || list.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No quotation data available to export." });
+        return;
+      }
+
+      const exportData = list.map((q, idx) => {
+        const activeVersion = getActiveVersion(q);
+        return {
+          "Sr.No": idx + 1,
+          "Customer Name": q.customer_name || "-",
+          "Customer Contact": q.customer_contact || "-",
+          "Site Name": q.site_name_detail || q.site_name || "-",
+          "Products": getProductCount(activeVersion),
+          "Total Amount": `₹${formatAmount(activeVersion?.total_amount)}`
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Quotations");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Quotations_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Quotation list exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export quotation excel file." });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Section — matches PurchaseOrder.jsx */}
@@ -166,7 +208,16 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
             {loading ? "Loading..." : `${list.length} quotation(s) found`}
           </div>
         </div>
-        <div className="w-full sm:w-auto">
+        <div className="w-full sm:w-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center gap-1.5"
+            title="Export Quotations Excel Sheet"
+          >
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span>Export</span>
+          </button>
           <button
             onClick={onAdd}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"

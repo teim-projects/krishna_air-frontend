@@ -11,6 +11,7 @@ export default function Base({
   onFiltersChange = () => { },
   sidebarWidth = 230,
   drawerWidth = 320,
+  headerActions = null,
   children,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -77,6 +78,7 @@ export default function Base({
           </div>
 
           <div className="flex items-center gap-3">
+            {headerActions}
             {/* show filter trigger only if filtersConfig provided */}
             {filtersConfig && (
               <button
