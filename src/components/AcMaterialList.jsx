@@ -37,8 +37,8 @@ const AcMaterialList = ({ base_api, onSelectionChange, resetTrigger }) => {
             .filter(mat => selectedItems.includes(mat.material_id))
             .map(materialSelectionPayload);
 
-        onSelectionChange({ materials: selectedData });
-    }, [selectedItems, mappedMaterials]);
+        onSelectionChange({ materials: selectedData, acType: selectedAcType });
+    }, [selectedItems, mappedMaterials, selectedAcType]);
 
     // 🔹 Fetch Selected Materials
     const fetchSelectedMaterials = async (acTypeId) => {

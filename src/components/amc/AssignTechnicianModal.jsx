@@ -7,7 +7,7 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
   const [loadingTechs, setLoadingTechs] = useState(false);
   const [selectedTech, setSelectedTech] = useState("");
   const [paymentAmount, setPaymentAmount] = useState(
-    isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0)
+    service?.payment_amount ?? service?.amount ?? (isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0))
   );
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [gpsLocation, setGpsLocation] = useState("");
@@ -24,16 +24,25 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
     // Reset fields first to prevent leaks
     setExistingRecord(null);
     setSelectedTech("");
-    setWorkDate(new Date().toISOString().split("T")[0]);
-    setPaymentAmount(isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0));
+    setWorkDate(service?.planned_date || service?.work_date || new Date().toISOString().split("T")[0]);
+    setPaymentAmount(
+      service?.payment_amount ?? service?.amount ?? (isContract ? (service?.amc_cost || 0) : (service?.total_price_with_gst || 0))
+    );
     setPaymentStatus("pending");
     setGpsLocation("");
     setWorkDescription("");
     setCustomerName(service?.customer_name || "");
-    setCustomerPhone(service?.customer_contact || service?.customer_phone || "");
+    setCustomerPhone(service?.customer_phone || service?.customer_contact || "");
+
+    if (service?.work_description) {
+      setWorkDescription(service.work_description);
+    }
 
     // Prefill payment amount with service/contract totals if available
-    if (isContract && service?.amc_cost) {
+    const draftAmount = service?.payment_amount ?? service?.amount;
+    if (draftAmount != null && draftAmount !== "") {
+      setPaymentAmount(parseFloat(draftAmount).toFixed(2));
+    } else if (isContract && service?.amc_cost) {
       setPaymentAmount(parseFloat(service.amc_cost).toFixed(2));
     } else if (service?.total_price_with_gst) {
       setPaymentAmount(parseFloat(service.total_price_with_gst).toFixed(2));
@@ -133,11 +142,16 @@ export default function AssignTechnicianModal({ open, onClose, onSuccess, baseAp
         customer_phone: customerPhone,
       };
 
-      const endpoint = existingRecord
-        ? `${baseApi}/amc/technician-work-records/${existingRecord.id}/`
-        : isContract
-        ? `${baseApi}/amc/contracts/${service.id}/allocate-work-to-technician/`
-        : `${baseApi}/amc/service-records/${service.id}/allocate-work-to-technician/`;
+      let endpoint = "";
+      if (existingRecord) {
+        endpoint = `${baseApi}/amc/technician-work-records/${existingRecord.id}/`;
+      } else if (service?.amc_service_visit_id) {
+        endpoint = `${baseApi}/amc/service-visits/${service.amc_service_visit_id}/allocate-work-to-technician/`;
+      } else if (isContract) {
+        endpoint = `${baseApi}/amc/contracts/${service.id}/allocate-work-to-technician/`;
+      } else {
+        endpoint = `${baseApi}/amc/service-records/${service.id}/allocate-work-to-technician/`;
+      }
 
       const method = existingRecord ? "PATCH" : "POST";
 

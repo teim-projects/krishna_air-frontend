@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
 import EditWorkRecordForm from "../components/accounts/EditWorkRecordForm";
+import CompletedWorkDetailModal from "../components/accounts/CompletedWorkDetailModal";
 import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
@@ -29,9 +30,13 @@ export default function Accounts() {
   const [editingStaff, setEditingStaff] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [workRecords, setWorkRecords] = useState([]);
+  const [completedWorkRows, setCompletedWorkRows] = useState([]);
   const [loadingWork, setLoadingWork] = useState(false);
+  const [loadingCompletedWork, setLoadingCompletedWork] = useState(false);
   const [editingWorkRecord, setEditingWorkRecord] = useState(null);
   const [showWorkForm, setShowWorkForm] = useState(false);
+  const [completedWorkDetailId, setCompletedWorkDetailId] = useState(null);
+  const [showCompletedWorkDetail, setShowCompletedWorkDetail] = useState(false);
 
   const token = useMemo(() => {
     return (
@@ -187,11 +192,36 @@ export default function Accounts() {
     }
   }, [token, BASE_API]);
 
+  const fetchCompletedWork = useCallback(async () => {
+    setLoadingCompletedWork(true);
+    try {
+      if (!token) return;
+      const res = await fetch(`${BASE_API}/amc/completed-work/`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCompletedWorkRows(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to load completed work", err);
+      setCompletedWorkRows([]);
+    } finally {
+      setLoadingCompletedWork(false);
+    }
+  }, [token, BASE_API]);
+
   useEffect(() => {
-    if (activeTab === "low" || activeTab === "installation") {
+    if (activeTab === "low") {
       fetchWorkRecords();
     }
-  }, [activeTab, fetchWorkRecords]);
+    if (activeTab === "installation") {
+      fetchCompletedWork();
+    }
+  }, [activeTab, fetchWorkRecords, fetchCompletedWork]);
 
   const handleDeleteStaff = async (id) => {
     const confirm = await Swal.fire({
@@ -290,13 +320,29 @@ export default function Accounts() {
     return rows;
   }, [rows, activeTab]);
 
-  const completedRecords = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    return workRecords.filter(r => 
-      r.payment_status === "completed" || 
-      (r.service_end_date && r.service_end_date <= today)
-    );
-  }, [workRecords]);
+  const completedWorkColumns = useMemo(() => ([
+    {
+      key: "sr",
+      label: "Sr.No",
+      render: (_, idx) => idx + 1,
+    },
+    { key: "customer", label: "Customer Name", render: r => r.customer_name || "—" },
+    { key: "technician", label: "Technician Name", render: r => r.technician_name || "—" },
+    { key: "completion_date", label: "Completion Date", render: r => r.completion_date || "—" },
+  ]), []);
+
+  const completedWorkActionsRenderer = useCallback((row) => (
+    <button
+      type="button"
+      onClick={() => {
+        setCompletedWorkDetailId(row.id);
+        setShowCompletedWorkDetail(true);
+      }}
+      className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700"
+    >
+      View more
+    </button>
+  ), []);
 
   const workColumns = useMemo(() => ([
     {
@@ -428,7 +474,7 @@ export default function Accounts() {
             </h2>
             <div className="text-sm text-slate-600">
               {activeTab === "low" ? `${workRecords.length} record(s) found` :
-               activeTab === "installation" ? `${completedRecords.length} record(s) found` :
+               activeTab === "installation" ? `${completedWorkRows.length} record(s) found` :
                (loading ? "Loading…" : `${activeTab === "technician" ? displayRows.length : totalCount} total • ${displayRows.length} shown`)}
             </div>
           </div>
@@ -456,10 +502,10 @@ export default function Accounts() {
         </div>
 
         {/* Reusable TableView */}
-        {activeTab === "low" || activeTab === "installation" ? (
+        {activeTab === "low" ? (
           <TableView
             columns={workColumns}
-            rows={activeTab === "low" ? workRecords : completedRecords}
+            rows={workRecords}
             loading={loadingWork}
             page={1}
             totalPages={1}
@@ -467,6 +513,18 @@ export default function Accounts() {
             pageSize={100}
             actions={workActionsRenderer}
             emptyMessage="No work records found."
+          />
+        ) : activeTab === "installation" ? (
+          <TableView
+            columns={completedWorkColumns}
+            rows={completedWorkRows}
+            loading={loadingCompletedWork}
+            page={1}
+            totalPages={1}
+            onPageChange={() => {}}
+            pageSize={100}
+            actions={completedWorkActionsRenderer}
+            emptyMessage="No completed work found."
           />
         ) : (
           <TableView
@@ -511,6 +569,16 @@ export default function Accounts() {
         onSuccess={() => fetchWorkRecords()}
         baseApi={BASE_API}
         workRecord={editingWorkRecord}
+      />
+
+      <CompletedWorkDetailModal
+        open={showCompletedWorkDetail}
+        onClose={() => {
+          setShowCompletedWorkDetail(false);
+          setCompletedWorkDetailId(null);
+        }}
+        baseApi={BASE_API}
+        itemId={completedWorkDetailId}
       />
     </Base>
   );

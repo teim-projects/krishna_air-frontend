@@ -1,80 +1,66 @@
-import { MdClose, MdPersonAdd, MdEdit, MdDelete } from "react-icons/md";
+import { MdClose, MdPersonAdd, MdEdit } from "react-icons/md";
 import AssignTechnicianModal from "./AssignTechnicianModal";
-import EditWorkRecordForm from "../accounts/EditWorkRecordForm";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import EditServiceVisitForm from "./EditServiceVisitForm";
 
 export default function ContractDetailModal({ contract, baseApi, token, onClose }) {
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [visits, setVisits] = useState([]);
+  const [assignmentDraft, setAssignmentDraft] = useState(null);
+  const [editingVisit, setEditingVisit] = useState(null);
+  const [serviceVisits, setServiceVisits] = useState([]);
   const [loadingVisits, setLoadingVisits] = useState(false);
 
-  const fetchVisits = async () => {
-    if (!contract?.service_record_id) return;
+  const fetchServiceVisits = async () => {
+    if (!contract?.id) return;
     setLoadingVisits(true);
     try {
-      const res = await fetch(`${baseApi}/amc/technician-work-records/?service_record=${contract.service_record_id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setVisits(data.results || data);
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      let res = await fetch(`${baseApi}/amc/service-visits/?amc_contract=${contract.id}`, { headers });
+      if (!res.ok) {
+        res = await fetch(`${baseApi}/amc/contracts/${contract.id}/service-visits/`, { headers });
       }
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error("AMC service-visits fetch failed:", res.status, text.slice(0, 500));
+        setServiceVisits([]);
+        return;
+      }
+      const data = await res.json();
+      setServiceVisits(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      console.error("Failed to fetch service visits", err);
+      console.error("Failed to fetch AMC service visits", err);
+      setServiceVisits([]);
     } finally {
       setLoadingVisits(false);
     }
   };
 
   useEffect(() => {
-    fetchVisits();
-  }, [contract?.service_record_id, baseApi, token]);
+    fetchServiceVisits();
+  }, [contract?.id, baseApi, token]);
 
-  const handleEditWorkRecord = (record) => {
-    setEditingRecord(record);
-  };
-
-  const handleDeleteWorkRecord = async (id) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const res = await fetch(`${baseApi}/amc/technician-work-records/${id}/`, {
-          method: "DELETE",
+  const openAllocateForVisit = async (visit) => {
+    if (!visit?.id) return;
+    try {
+      const res = await fetch(
+        `${baseApi}/amc/service-visits/${visit.id}/technician-allocation-draft/`,
+        {
           headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
-        });
-
-        if (res.ok) {
-          Swal.fire({
-            icon: "success",
-            title: "Deleted!",
-            text: "Work record has been deleted.",
-            timer: 1500,
-            showConfirmButton: false
-          });
-          fetchVisits();
-        } else {
-          throw new Error("Failed to delete record");
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         }
-      } catch (err) {
-        Swal.fire({ icon: "error", title: "Error", text: err.message });
-      }
+      );
+      if (!res.ok) throw new Error("Failed to load technician allocation draft");
+      const data = await res.json();
+      setAssignmentDraft(data);
+      setShowAssignModal(true);
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Error", text: err.message || "Failed to open allocation" });
     }
   };
 
@@ -190,7 +176,16 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
         {/* Assign Button centered horizontally and below the cards */}
         <div className="px-6 pb-5 flex justify-center">
           <button
-            onClick={() => setShowAssignModal(true)}
+            onClick={() => {
+              const pending = serviceVisits.find(
+                (v) => v?.status === "SCHEDULED" && !v?.is_allocated
+              );
+              if (!pending) {
+                Swal.fire({ icon: "info", title: "No pending visits", text: "All visits are already assigned/completed." });
+                return;
+              }
+              openAllocateForVisit(pending);
+            }}
             className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1.5"
           >
             <MdPersonAdd size={18} />
@@ -199,60 +194,79 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
         </div>
 
         {/* Service Visits Section */}
-        {contract?.service_record_id && visits.length > 0 && (
-          <div className="px-6 pb-6 border-t pt-5">
-            <h3 className="text-md font-bold text-slate-800 mb-3">Service Visits</h3>
+        <div className="px-6 pb-6 border-t pt-5">
+          <h3 className="text-md font-bold text-slate-800 mb-3">Service Visits</h3>
+          {loadingVisits ? (
+            <p className="text-sm text-slate-500">Loading service visits...</p>
+          ) : serviceVisits.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No service visits yet. Save the AMC again or run migrate + sync if this contract was created before visits were enabled.
+            </p>
+          ) : (
             <div className="overflow-x-auto border border-slate-200 rounded-lg">
               <table className="w-full text-sm text-left text-slate-500">
                 <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
                   <tr>
+                    <th className="px-4 py-2">Sr.No</th>
+                    <th className="px-4 py-2">Service Date</th>
+                    <th className="px-4 py-2">Product</th>
                     <th className="px-4 py-2">Technician</th>
-                    <th className="px-4 py-2">Work Date</th>
-                    <th className="px-4 py-2">Description</th>
-                    <th className="px-4 py-2">Payment Amount</th>
                     <th className="px-4 py-2">Status</th>
                     <th className="px-4 py-2 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visits.map((visit) => (
-                    <tr key={visit.id} className="bg-white border-b border-slate-200 hover:bg-slate-50 text-slate-700">
-                      <td className="px-4 py-2 font-medium text-slate-900">{visit.technician_name}</td>
-                      <td className="px-4 py-2">{visit.work_date}</td>
-                      <td className="px-4 py-2 max-w-[200px] truncate">{visit.work_description || "—"}</td>
-                      <td className="px-4 py-2">₹{parseFloat(visit.payment_amount || 0).toLocaleString("en-IN")}</td>
-                      <td className="px-4 py-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                          visit.payment_status === "completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                        }`}>
-                          {visit.payment_status === "completed" ? "Completed" : "Pending"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleEditWorkRecord(visit)}
-                            className="p-1 text-amber-600 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 rounded transition-colors"
-                            title="Edit visit"
-                          >
-                            <MdEdit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteWorkRecord(visit.id)}
-                            className="p-1 text-red-600 hover:text-red-950 bg-red-50 hover:bg-red-100 rounded transition-colors"
-                            title="Delete visit"
-                          >
-                            <MdDelete size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {serviceVisits.map((visit) => {
+                    const statusMap = {
+                      SCHEDULED: { label: "Scheduled", className: "bg-slate-100 text-slate-700" },
+                      ASSIGNED: { label: "Assigned", className: "bg-blue-100 text-blue-800" },
+                      COMPLETED: { label: "Completed", className: "bg-green-100 text-green-800" },
+                      CANCELLED: { label: "Cancelled", className: "bg-amber-100 text-amber-800" },
+                    };
+                    const st = statusMap[visit.status] || { label: visit.status || "—", className: "bg-slate-100 text-slate-700" };
+
+                    return (
+                      <tr key={visit.id} className="bg-white border-b border-slate-200 hover:bg-slate-50 text-slate-700">
+                        <td className="px-4 py-2 text-sm">{visit.visit_number}</td>
+                        <td className="px-4 py-2 text-sm">{visit.planned_date}</td>
+                        <td className="px-4 py-2 text-sm">{contract.product_name || "—"}</td>
+                        <td className="px-4 py-2 text-sm">{visit.technician_name || "—"}</td>
+                        <td className="px-4 py-2 text-sm">
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${st.className}`}>
+                            {st.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setEditingVisit(visit)}
+                              className="p-1 rounded transition-colors text-amber-600 hover:text-amber-950 bg-amber-50 hover:bg-amber-100"
+                              title="Edit visit"
+                            >
+                              <MdEdit size={16} />
+                            </button>
+                            <button
+                              onClick={() => openAllocateForVisit(visit)}
+                              disabled={visit?.is_allocated || visit.status === "COMPLETED"}
+                              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                visit?.is_allocated || visit.status === "COMPLETED"
+                                  ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                                  : "bg-sky-600 hover:bg-sky-700 text-white"
+                              }`}
+                              title={visit?.is_allocated ? "Already allocated" : "Allocate work to technician"}
+                            >
+                              Allocate
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="px-6 py-4 border-t bg-slate-50 rounded-b-xl flex justify-end">
           <button
@@ -270,26 +284,27 @@ export default function ContractDetailModal({ contract, baseApi, token, onClose 
           onClose={() => setShowAssignModal(false)}
           onSuccess={() => {
             setShowAssignModal(false);
-            fetchVisits();
+            setAssignmentDraft(null);
+            fetchServiceVisits();
           }}
           baseApi={baseApi}
           token={token}
-          service={contract}
+          service={assignmentDraft}
           isContract={true}
         />
       )}
 
-      {editingRecord && (
-        <EditWorkRecordForm
-          open={!!editingRecord}
-          onClose={() => setEditingRecord(null)}
+      {editingVisit && (
+        <EditServiceVisitForm
+          open={!!editingVisit}
+          onClose={() => setEditingVisit(null)}
           onSuccess={() => {
-            setEditingRecord(null);
-            fetchVisits();
+            setEditingVisit(null);
+            fetchServiceVisits();
           }}
           baseApi={baseApi}
           token={token}
-          workRecord={editingRecord}
+          visit={editingVisit}
         />
       )}
     </div>
