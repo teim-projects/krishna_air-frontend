@@ -10,11 +10,37 @@ import MaterialIssue from '../components/inventory/MaterialIssue';
 import MaterialReturn from '../components/inventory/MaterialReturn';
 import StockDashboard from '../components/inventory/StockDashboard';
 import DeliveryChallan from '../components/inventory/DeliveryChallan';
+import { useUserRole } from '../hooks/useAuth';
 
 const Inventory = () => {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
   const [activeTab, setActiveTab] = useState('vendor');
   const [filters, setFilters] = useState({});
+
+  const { isAdmin, hasPermission, hasAnyPermission } = useUserRole(BASE_API);
+
+  const {
+    canAccessInventory,
+    canAccessPO,
+    canAccessGRN,
+    canAccessMatIssue,
+    canAccessMatReturn,
+    canAccessDelChallan,
+    canAccessSite,
+    canAccessBranch,
+  } = React.useMemo(() => {
+    const inv = isAdmin || hasAnyPermission('Inventory');
+    return {
+      canAccessInventory:  inv,
+      canAccessPO:         isAdmin || inv || hasAnyPermission('Purchase Order (PO)'),
+      canAccessGRN:        isAdmin || inv || hasAnyPermission('GRN'),
+      canAccessMatIssue:   isAdmin || inv || hasAnyPermission('Material Issue'),
+      canAccessMatReturn:  isAdmin || inv || hasAnyPermission('Material Return'),
+      canAccessDelChallan: isAdmin || inv || hasAnyPermission('Delivery Challan'),
+      canAccessSite:       isAdmin || hasAnyPermission('Site'),
+      canAccessBranch:     isAdmin || hasAnyPermission('Branch'),
+    };
+  }, [isAdmin, hasAnyPermission]);
 
   // Filter configurations
   const vendorFiltersConfig = [
@@ -58,8 +84,6 @@ const Inventory = () => {
     setFilters(vals);
   };
 
-  console.log("Active Tab:", activeTab);
-
   return (
     <Base
       title="Inventory Management"
@@ -91,122 +115,92 @@ const Inventory = () => {
       onFiltersChange={handleFilterChange}
     >
       <div className="p-4">
-        {/* Tab Buttons */}
+        {/* Tab Buttons — only show tabs the user has permission for */}
         <div className="flex gap-2 sm:gap-4 mb-4 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap flex-nowrap sm:flex-wrap">
-          <button
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'site' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('site')}
-          >
-            Site
-          </button>
-          <button
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'branch' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('branch')}
-          >
-            Branch
-          </button>
-          <button
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'vendor' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('vendor')}
-          >
-            Vendor
-          </button>
-          <button
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'purchase' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('purchase')}
-          >
-            Purchase Order
-          </button>
-          <button 
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'grn' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('grn')}
-          >
-            GRN
-          </button>
-          <button 
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'materialIssue' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('materialIssue')}
-          >
-            Material Issue
-          </button>
-          <button 
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'materialReturn' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('materialReturn')}
-          >
-            MRN
-          </button>
-          <button 
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'stockDashboard' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
-            onClick={() => setActiveTab('stockDashboard')}
-          >
-            Stock
-          </button>
-          <button 
-            className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${
-              activeTab === 'deliveryChallan' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            }`}
-            onClick={() => setActiveTab('deliveryChallan')}
-          >
-            Delivery Challan
-          </button>
+          {canAccessSite && (
+            <button
+              className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'site' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+              onClick={() => setActiveTab('site')}
+            >
+              Site
+            </button>
+          )}
+          {canAccessBranch && (
+            <button
+              className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'branch' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+              onClick={() => setActiveTab('branch')}
+            >
+              Branch
+            </button>
+          )}
+          {canAccessInventory && (
+            <>
+              <button
+                className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'vendor' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                onClick={() => setActiveTab('vendor')}
+              >
+                Vendor
+              </button>
+              {canAccessPO && (
+                <button
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'purchase' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setActiveTab('purchase')}
+                >
+                  Purchase Order
+                </button>
+              )}
+              {canAccessGRN && (
+                <button
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'grn' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setActiveTab('grn')}
+                >
+                  GRN
+                </button>
+              )}
+              {canAccessMatIssue && (
+                <button
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'materialIssue' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setActiveTab('materialIssue')}
+                >
+                  Material Issue
+                </button>
+              )}
+              {canAccessMatReturn && (
+                <button
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'materialReturn' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                  onClick={() => setActiveTab('materialReturn')}
+                >
+                  MRN
+                </button>
+              )}
+              <button
+                className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'stockDashboard' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                onClick={() => setActiveTab('stockDashboard')}
+              >
+                Stock
+              </button>
+              {canAccessDelChallan && (
+                <button
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'deliveryChallan' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                  onClick={() => setActiveTab('deliveryChallan')}
+                >
+                  Delivery Challan
+                </button>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Render based on active tab */}
-        {activeTab === 'site' && <Site base_api={BASE_API} filters={filters} />}
-        {activeTab === 'branch' && <Branch base_api={BASE_API} filters={filters} />}
-        {activeTab === 'vendor' && <Vendor base_api={BASE_API} filters={filters} />}
-        {activeTab === 'purchase' && <PurchaseOrder base_api={BASE_API} filters={filters} />}
-        {activeTab === 'grn' && <GRN base_api={BASE_API} filters={filters} />}
-        {activeTab === 'materialIssue' && (
-          <MaterialIssue 
-            base_api={BASE_API} 
-            filters={filters} 
-          />
-        )}
-        {activeTab === 'materialReturn' && <MaterialReturn base_api={BASE_API} filters={filters} />}
-        {activeTab === 'stockDashboard' && <StockDashboard base_api={BASE_API} filters={filters} />}
-        
-        {/* Delivery Challan Component */}
-        {activeTab === 'deliveryChallan' && (
-          <DeliveryChallan 
-            base_api={BASE_API} 
-            filters={filters} 
-          />
-        )}
+        {/* Render based on active tab — also guard content */}
+        {activeTab === 'site'           && canAccessSite       && <Site base_api={BASE_API} filters={filters} />}
+        {activeTab === 'branch'         && canAccessBranch     && <Branch base_api={BASE_API} filters={filters} />}
+        {activeTab === 'vendor'         && canAccessInventory  && <Vendor base_api={BASE_API} filters={filters} />}
+        {activeTab === 'purchase'       && canAccessPO         && <PurchaseOrder base_api={BASE_API} filters={filters} />}
+        {activeTab === 'grn'            && canAccessGRN        && <GRN base_api={BASE_API} filters={filters} />}
+        {activeTab === 'materialIssue'  && canAccessMatIssue   && <MaterialIssue base_api={BASE_API} filters={filters} />}
+        {activeTab === 'materialReturn' && canAccessMatReturn  && <MaterialReturn base_api={BASE_API} filters={filters} />}
+        {activeTab === 'stockDashboard' && canAccessInventory  && <StockDashboard base_api={BASE_API} filters={filters} />}
+        {activeTab === 'deliveryChallan'&& canAccessDelChallan && <DeliveryChallan base_api={BASE_API} filters={filters} />}
       </div>
     </Base>
   );

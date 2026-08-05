@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import Base from '../components/Base'
-// import HighSide from '../components/products/HighSide'
 import LowSide, { getLowSideFiltersConfig } from '../components/products/LowSide'
 import HighSide, {
     highSideProductFiltersConfig,
@@ -8,22 +7,33 @@ import HighSide, {
 } from '../components/products/HighSide';
 import axios from 'axios';
 import InstallationWork from "../components/products/InstallationWork";
+import { useUserRole } from '../hooks/useAuth';
 
 
 const ItemMaster = () => {
     const BASE_API = import.meta.env.VITE_BASE_API_URL;
-    const [activeSide, setActiveSide] = useState('high') // 'high' | 'low'
-    // const [activeTab, setActiveTab] = useState("high"); // "high", "low", "installation"
+    const [activeSide, setActiveSide] = useState('high')
     const [filters, setFilters] = useState({});
     const [activeHighTab, setActiveHighTab] = useState('product');
     const [brands, setBrands] = useState([]);
     const [acTypes, setAcTypes] = useState([]);
 
-    // Low Side dropdown options
     const [materialTypes, setMaterialTypes] = useState([]);
     const [itemTypes, setItemTypes] = useState([]);
     const [featureTypes, setFeatureTypes] = useState([]);
     const [classes, setClasses] = useState([]);
+
+    const { isAdmin, hasPermission, hasAnyPermission } = useUserRole(BASE_API);
+
+    const { canAccessItemMaster, canAccessHighSide, canAccessLowSide, canAccessInstallation } = React.useMemo(() => {
+      const itemMaster = isAdmin || hasAnyPermission('Item Master');
+      return {
+        canAccessItemMaster:   itemMaster,
+        canAccessHighSide:     isAdmin || itemMaster || hasAnyPermission('High Side'),
+        canAccessLowSide:      isAdmin || itemMaster || hasAnyPermission('Low Side'),
+        canAccessInstallation: isAdmin || itemMaster || hasAnyPermission('Installation Work'),
+      };
+    }, [isAdmin, hasAnyPermission]);
 
     const authHeaders = () => ({
         headers: { Authorization: `Bearer ${localStorage.getItem("access")}` },
@@ -84,35 +94,36 @@ const ItemMaster = () => {
         >
             <div className="p-4">
                 <div className="item-sections flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4">
-                    <button
-                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-                            }`}
-                        onClick={() => setActiveSide('high')}
-                    >
-                        High Side
-                    </button>
-
-                    <button
-                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-100'
-                            }`}
-                        onClick={() => setActiveSide('low')}
-                    >
-                        Low Side
-                    </button>
-
-                    <button
-                        onClick={() => setActiveSide("installation")}
-                        className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === "installation"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-100"
-                            }`}
-                    >
-                        Installation Work
-                    </button>
+                    {canAccessHighSide && (
+                        <button
+                            className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'high' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+                            onClick={() => setActiveSide('high')}
+                        >
+                            High Side
+                        </button>
+                    )}
+                    {canAccessLowSide && (
+                        <button
+                            className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === 'low' ? 'bg-blue-600 text-white' : 'bg-blue-100'}`}
+                            onClick={() => setActiveSide('low')}
+                        >
+                            Low Side
+                        </button>
+                    )}
+                    {canAccessInstallation && (
+                        <button
+                            onClick={() => setActiveSide("installation")}
+                            className={`w-full sm:w-auto text-center px-4 py-2 rounded font-medium transition ${activeSide === "installation" ? "bg-blue-600 text-white" : "bg-blue-100"}`}
+                        >
+                            Installation Work
+                        </button>
+                    )}
+                    {!canAccessHighSide && !canAccessLowSide && !canAccessInstallation && (
+                        <p className="text-sm text-slate-500">You don't have permission to access Item Master.</p>
+                    )}
                 </div>
 
-                {/* Render based on selected button */}
-                {activeSide === 'high' && (
+                {canAccessHighSide && activeSide === 'high' && (
                     <HighSide
                         base_api={BASE_API}
                         filters={filters}
@@ -124,8 +135,7 @@ const ItemMaster = () => {
                         setAcTypes={setAcTypes}
                     />
                 )}
-
-                {activeSide === 'low' && (
+                {canAccessLowSide && activeSide === 'low' && (
                     <LowSide
                         base_api={BASE_API}
                         filters={filters}
@@ -135,11 +145,10 @@ const ItemMaster = () => {
                         classes={classes}
                     />
                 )}
-
-                {activeSide === "installation" && (
-                    <InstallationWork 
-                        base_api={BASE_API} 
-                        filters={filters} 
+                {canAccessInstallation && activeSide === "installation" && (
+                    <InstallationWork
+                        base_api={BASE_API}
+                        filters={filters}
                     />
                 )}
             </div>

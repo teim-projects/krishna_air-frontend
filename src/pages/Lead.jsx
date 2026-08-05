@@ -15,7 +15,7 @@ const getXLSX = async () => XLSX;
 
 
 export default function Lead() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  const BASE_API = import.meta.env.VITE_BASE_API_URL;
   const API_URL = `${BASE_API}/lead/lead/`;
 
   // ✅ Called hook to get user role

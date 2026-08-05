@@ -2,11 +2,22 @@ import { useState, useMemo } from "react";
 import Base from "../components/Base";
 import AmcList from "../components/amc/AmcList";
 import ServiceManagementList from "../components/amc/ServiceManagementList";
+import { useUserRole } from "../hooks/useAuth";
 
 export default function AmcPage() {
   const baseApi = import.meta.env.VITE_BASE_API_URL;
   const [activeTab, setActiveTab] = useState("contracts");
   const [filters, setFilters] = useState({});
+
+  const { isAdmin, hasPermission, hasAnyPermission } = useUserRole(baseApi);
+
+  const { canAccessAMC, canAccessServiceMgmt } = useMemo(() => {
+    const amc = isAdmin || hasAnyPermission('AMC');
+    return {
+      canAccessAMC:         amc,
+      canAccessServiceMgmt: isAdmin || amc || hasAnyPermission('Service Management'),
+    };
+  }, [isAdmin, hasAnyPermission]);
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -29,9 +40,10 @@ export default function AmcPage() {
     management: "Service Management Filters"
   };
 
+  // Only show tabs the user has access to
   const tabs = [
-    { key: "contracts", label: "AMC Contracts" },
-    { key: "management", label: "Service Management" },
+    ...(canAccessAMC         ? [{ key: "contracts",  label: "AMC Contracts"      }] : []),
+    ...(canAccessServiceMgmt ? [{ key: "management", label: "Service Management" }] : []),
   ];
 
   return (
@@ -58,8 +70,8 @@ export default function AmcPage() {
           ))}
         </div>
 
-        {activeTab === "contracts" && <AmcList baseApi={baseApi} token={token} filters={filters} />}
-        {activeTab === "management" && <ServiceManagementList baseApi={baseApi} token={token} filters={filters} />}
+        {activeTab === "contracts"  && canAccessAMC         && <AmcList baseApi={baseApi} token={token} filters={filters} />}
+        {activeTab === "management" && canAccessServiceMgmt  && <ServiceManagementList baseApi={baseApi} token={token} filters={filters} />}
       </div>
     </Base>
   );

@@ -79,6 +79,31 @@ const Login = () => {
       if (data.access) localStorage.setItem("access", data.access);
       if (data.refresh) localStorage.setItem("refresh", data.refresh);
 
+      // Pre-load role/permissions so sidebar is ready before dashboard mounts.
+      try {
+        const meRes = await fetch(`${BASE_API}/auth/me/`, {
+          headers: { Authorization: `Bearer ${data.access}` },
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          const roleName = (typeof meData.role === "object"
+            ? meData.role?.name
+            : String(meData.role || "")
+          ).toLowerCase();
+          const adminFlag =
+            !!meData.is_admin ||
+            ["admin", "administrator", "sub-admin", "super admin", "superadmin"].includes(roleName);
+          localStorage.setItem("cached_user_role", JSON.stringify(meData.role));
+          localStorage.setItem("cached_permissions", JSON.stringify(meData.permissions || []));
+          localStorage.setItem("cached_is_admin", String(adminFlag));
+          if (meData.permissions_version != null) {
+            localStorage.setItem("permissions_version", String(meData.permissions_version));
+          }
+        }
+      } catch {
+        // Non-blocking; useAuth will retry on dashboard.
+      }
+
       window.dispatchEvent(new Event("authChange"));
       
       setMessage("✅ Login successful!");

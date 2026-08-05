@@ -9,7 +9,7 @@ import * as XLSX from "xlsx";
 /* Revert99 - END */
 
 export default function Customer() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  const BASE_API = import.meta.env.VITE_BASE_API_URL;
   const API_URL = `${BASE_API}/lead/customer/`;
   const initialFilters = useMemo(() => ({ search: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
