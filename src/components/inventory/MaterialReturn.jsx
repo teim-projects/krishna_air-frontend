@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import AddMaterialReturnForm from "./AddMaterialReturnForm";
 import Swal from "sweetalert2";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function MaterialReturn({ base_api }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Material Return');
 
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -149,13 +151,15 @@ export default function MaterialReturn({ base_api }) {
             {totalCount} return note(s) • Page {currentPage} of {totalPages}
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition w-full sm:w-auto text-center"
-        >
-          <span className="text-xl">+</span>
-          Create MRN
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition w-full sm:w-auto text-center"
+          >
+            <span className="text-xl">+</span>
+            Create MRN
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -216,7 +220,7 @@ export default function MaterialReturn({ base_api }) {
                   </td>
                   <td className="border border-gray-300 px-4 py-3">
                     <div className="flex gap-2 justify-center">
-                      {!returnNote.is_completed && (
+                      {!returnNote.is_completed && canEdit && (
                         <button
                           onClick={() => handleComplete(returnNote.id)}
                           className="px-3 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition text-xs font-medium"
@@ -225,13 +229,15 @@ export default function MaterialReturn({ base_api }) {
                           Complete
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(returnNote.id)}
-                        className="px-3 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300 transition text-xs font-medium"
-                        title="Delete"
-                      >
-                        Delete
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(returnNote.id)}
+                          className="px-3 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300 transition text-xs font-medium"
+                          title="Delete"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

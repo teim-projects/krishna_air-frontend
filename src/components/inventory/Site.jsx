@@ -3,9 +3,11 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddSiteForm from "./AddSiteForm";
 import Pagination from "../Pagination";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function Site({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Site');
 
   // State for sites list
   const [sites, setSites] = useState([]);
@@ -250,12 +252,14 @@ export default function Site({ base_api, filters }) {
           </div>
         </div>
         <div className="w-full sm:w-auto">
+          {canCreate && (
           <button
             onClick={handleAddSite}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Site
           </button>
+          )}
         </div>
       </div>
 
@@ -295,6 +299,7 @@ export default function Site({ base_api, filters }) {
                   <td className="px-4 py-3 text-sm">{site.owner_contact}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {canEdit && (
                       <button
                         onClick={() => handleEdit(site)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -302,6 +307,8 @@ export default function Site({ base_api, filters }) {
                       >
                         <MdEdit />
                       </button>
+                      )}
+                      {canDelete && (
                       <button
                         onClick={() => handleDelete(site.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -309,6 +316,7 @@ export default function Site({ base_api, filters }) {
                       >
                         <MdDelete />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

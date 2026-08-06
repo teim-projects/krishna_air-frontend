@@ -4,6 +4,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFileDownload } from "react-icons/md";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -29,6 +30,7 @@ api.interceptors.request.use((config) => {
  *   refreshList() – force re-fetch (called from parent after add/edit)
  */
 const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Invoice');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -200,12 +202,14 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
-          <button
-            onClick={onAdd}
-            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
-          >
-            + Create Invoice
-          </button>
+          {canCreate && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
+            >
+              + Create Invoice
+            </button>
+          )}
         </div>
       </div>
 
@@ -259,9 +263,11 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <MdRemoveRedEye />
                     </button>
 
-                    <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
-                      <MdEdit />
-                    </button>
+                    {canEdit && (
+                      <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
+                        <MdEdit />
+                      </button>
+                    )}
 
                     <button onClick={() => handleDownloadPDF(inv.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                       <MdDownload />
@@ -275,9 +281,11 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <MdEmail />
                     </button>
 
-                    <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                      <MdDelete />
-                    </button>
+                    {canDelete && (
+                      <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                        <MdDelete />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

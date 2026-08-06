@@ -37,8 +37,6 @@ const PERMISSION_KEYS = [
   { key: "create_permission", label: "Create", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   { key: "write_permission", label: "Edit", color: "bg-amber-100 text-amber-800 border-amber-200" },
   { key: "delete_permission", label: "Delete", color: "bg-rose-100 text-rose-800 border-rose-200" },
-  { key: "import_permission", label: "Import", color: "bg-teal-100 text-teal-800 border-teal-200" },
-  { key: "export_permission", label: "Export", color: "bg-cyan-100 text-cyan-800 border-cyan-200" },
   { key: "view_all_permission", label: "View All", color: "bg-purple-100 text-purple-800 border-purple-200" },
   { key: "modify_all_permission", label: "Modify All", color: "bg-indigo-100 text-indigo-800 border-indigo-200" },
 ];
@@ -62,7 +60,6 @@ export default function RolePermissionsManager() {
   // Modal / Edit state
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
-  const [pendingChanges, setPendingChanges] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [newDocType, setNewDocType] = useState("Purchase Order (PO)");
   const [newRoleId, setNewRoleId] = useState("");
@@ -322,45 +319,6 @@ export default function RolePermissionsManager() {
     }
   };
 
-  // Restore Defaults
-  const handleRestoreDefaults = async () => {
-    Swal.fire({
-      title: "Restore Original Permissions?",
-      text: "This will create standard default permission rules for all document types.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#0284c7",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: "Restore Defaults",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const res = await fetch(
-            `${baseApi}/auth/role-permissions/restore-defaults/`,
-            {
-              method: "POST",
-              headers: authHeaders,
-            }
-          );
-          if (res.ok) {
-            Swal.fire({
-              icon: "success",
-              title: "Permissions Restored",
-              text: "Original default rules have been restored.",
-              timer: 1500,
-              showConfirmButton: false,
-            });
-            fetchData();
-          } else {
-            Swal.fire("Error", "Failed to restore defaults", "error");
-          }
-        } catch (err) {
-          Swal.fire("Error", "Network error restoring permissions", "error");
-        }
-      }
-    });
-  };
-
 
   // Helper for role badge colors matching site theme
   const getRoleBadgeStyle = (roleName = "") => {
@@ -418,12 +376,7 @@ export default function RolePermissionsManager() {
                 <MdAdd className="text-lg" />
                 Add Permission
               </button>
-              <button
-                onClick={handleRestoreDefaults}
-                className="px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-700 text-white text-sm font-medium transition shadow-sm flex items-center gap-2 whitespace-nowrap"
-              >
-                Restore Defaults
-              </button>
+
             </div>
           </div>
         </div>
@@ -500,7 +453,6 @@ export default function RolePermissionsManager() {
                             timer: 1500,
                             showConfirmButton: false,
                           });
-                          setPendingChanges(false);
                         } catch (err) {
                           Swal.close();
                           Swal.fire("Error", "Failed to grant full access", "error");
@@ -571,7 +523,6 @@ export default function RolePermissionsManager() {
                             timer: 1500,
                             showConfirmButton: false,
                           });
-                          setPendingChanges(false);
                         } catch (err) {
                           Swal.close();
                           Swal.fire("Error", "Failed to set read-only access", "error");
@@ -642,7 +593,6 @@ export default function RolePermissionsManager() {
                             timer: 1500,
                             showConfirmButton: false,
                           });
-                          setPendingChanges(false);
                         } catch (err) {
                           Swal.close();
                           Swal.fire("Error", "Failed to clear access", "error");
@@ -653,27 +603,6 @@ export default function RolePermissionsManager() {
                   className="px-4 py-2 rounded-md text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition"
                 >
                   Clear All Access
-                </button>
-                <button
-                  onClick={() => {
-                    Swal.fire({
-                      icon: "success",
-                      title: "Changes Saved",
-                      text: "All permission changes have been saved successfully.",
-                      timer: 1500,
-                      showConfirmButton: false,
-                    });
-                    setPendingChanges(false);
-                  }}
-                  className={`px-4 py-2 rounded-md text-white text-sm font-semibold transition shadow-sm flex items-center gap-2 ${
-                    pendingChanges
-                      ? "bg-sky-600 hover:bg-sky-700 cursor-pointer"
-                      : "bg-slate-300 cursor-not-allowed"
-                  }`}
-                  disabled={!pendingChanges}
-                >
-                  <MdCheck className="text-base" />
-                  Save Permissions
                 </button>
               </div>
             </div>

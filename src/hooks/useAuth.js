@@ -201,3 +201,70 @@ export function useUserRole(baseApi) {
 
   return { userRole, permissions, isAdmin, isLoading, hasPermission, hasAnyPermission };
 }
+
+/**
+ * useDocPermissions — returns create/edit/delete/view flags for a specific doc type.
+ * Also checks parent module (Inventory, Item Master, AMC) as fallback.
+ *
+ * Usage:
+ *   const { canCreate, canEdit, canDelete, canView } = useDocPermissions('GRN');
+ */
+export function useDocPermissions(docType) {
+  const baseApi = import.meta.env.VITE_BASE_API_URL ?? 'http://127.0.0.1:8000';
+  const { isAdmin, permissions } = useUserRole(baseApi);
+
+  // Parent fallback map
+  const PARENT_MAP = {
+    'purchase order (po)': 'Inventory',
+    'grn':                 'Inventory',
+    'material issue':      'Inventory',
+    'material return':     'Inventory',
+    'delivery challan':    'Inventory',
+    'high side':           'Item Master',
+    'low side':            'Item Master',
+    'installation work':   'Item Master',
+    'service management':  'AMC',
+  };
+
+  if (isAdmin) {
+    return { canView: true, canCreate: true, canEdit: true, canDelete: true };
+  }
+
+  if (!docType || !permissions || permissions.length === 0) {
+    return { canView: false, canCreate: false, canEdit: false, canDelete: false };
+  }
+
+  const key = docType.toLowerCase();
+
+  // Find own permission row
+  let perm = permissions.find(p => p.document_type?.toLowerCase() === key);
+
+  // If own row missing or all OFF, try parent
+  if (!perm) {
+    const parentKey = PARENT_MAP[key];
+    if (parentKey) {
+      perm = permissions.find(p => p.document_type?.toLowerCase() === parentKey.toLowerCase());
+    }
+  }
+
+  if (!perm) {
+    return { canView: false, canCreate: false, canEdit: false, canDelete: false };
+  }
+
+  // Own perm exists — check if parent has higher access
+  const parentKey = PARENT_MAP[key];
+  let parentPerm = null;
+  if (parentKey) {
+    parentPerm = permissions.find(p => p.document_type?.toLowerCase() === parentKey.toLowerCase());
+  }
+
+  // Use own perm OR parent perm (whichever grants access)
+  const resolve = (own, parent) => !!(own || (parent !== null && parent));
+
+  return {
+    canView:   resolve(perm.read_permission,   parentPerm?.read_permission),
+    canCreate: resolve(perm.create_permission, parentPerm?.create_permission),
+    canEdit:   resolve(perm.write_permission,  parentPerm?.write_permission),
+    canDelete: resolve(perm.delete_permission, parentPerm?.delete_permission),
+  };
+}

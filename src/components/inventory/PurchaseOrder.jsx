@@ -5,9 +5,11 @@ import Swal from "sweetalert2";
 import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
 import * as XLSX from "xlsx";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Purchase Order (PO)');
 
   // State for sites list
   const [po, setPo] = useState([]);
@@ -408,12 +410,14 @@ export default function PurchaseOrder({ base_api, filters }) {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+          {canCreate && (
           <button
             onClick={handleAddPo}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Purchase Order
           </button>
+          )}
         </div>
       </div>
 
@@ -474,6 +478,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                         >
                           <MdRemoveRedEye />
                         </button>
+                        {canEdit && (
                         <button
                           onClick={() => handleEdit(order)}
                           className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -481,6 +486,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                         >
                           <MdEdit />
                         </button>
+                        )}
                         <button
                           onClick={() => handleDownload(order.id)}
                           className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300"
@@ -502,6 +508,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                         >
                           <MdEmail />
                         </button>
+                        {canDelete && (
                         <button
                           onClick={() => handleDelete(order.id)}
                           className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -509,6 +516,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                         >
                           <MdDelete />
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>

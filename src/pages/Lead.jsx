@@ -6,7 +6,7 @@ import AddLeadFollowUpForm from "../components/lead/AddLeadFollowUpForm";
 import AddLeadForm from "../components/lead/AddLeadForm";
 import { MdEdit, MdDelete, MdOutlineRemoveRedEye, MdEditDocument, MdAdd, MdFileUpload, MdFileDownload } from "react-icons/md";
 import Swal from "sweetalert2";
-import { useUserRole } from '../hooks/useAuth';
+import { useUserRole, useDocPermissions } from '../hooks/useAuth';
 import AddQuotation from "../components/quotations/AddQuotation";
 /* Revert99 - START: XLSX import */
 import * as XLSX from "xlsx";
@@ -20,6 +20,7 @@ export default function Lead() {
 
   // ✅ Called hook to get user role
   const { userRole, isLoading: loadingUser } = useUserRole(BASE_API);
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Lead');
 
   // Initialize assign_to filter as empty string as well
   // const initialFilters = useMemo(() => ({ search: "", status: "", assign_to: "", lead_source: "", }), []);
@@ -645,6 +646,7 @@ export default function Lead() {
         <MdAdd />
       </button>
 
+      {canEdit && (
       <button
         onClick={() => { setEditingLead(row); setShowLeadForm(true); }}
         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
@@ -652,7 +654,9 @@ export default function Lead() {
       >
         <MdEdit />
       </button>
+      )}
 
+      {canDelete && (
       <button
         onClick={() => handleDelete(row.id)}
         className="px-2 py-1 bg-red-200 text-red-800 rounded"
@@ -660,6 +664,7 @@ export default function Lead() {
       >
         <MdDelete />
       </button>
+      )}
     </>
   ), [handleDelete]);
 
@@ -709,12 +714,14 @@ export default function Lead() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {canCreate && (
             <button
               onClick={() => { setEditingLead(null); setShowLeadForm(true); }}
               className="px-4 py-2 rounded-md bg-sky-600 text-white"
             >
               + Add
             </button>
+            )}
           </div>
         </div>
 

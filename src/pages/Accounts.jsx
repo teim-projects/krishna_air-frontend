@@ -7,9 +7,13 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
 import TableView from "../components/TableView"; // <-- reusable table
+import { useDocPermissions, useUserRole } from "../hooks/useAuth";
 
 export default function Accounts() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Accounts');
+  const { canEdit: canEditWork, canDelete: canDeleteWork } = useDocPermissions('Service Management');
+  const { isAdmin } = useUserRole(BASE_API);
   const initialFilters = useMemo(() => ({ search: "", role: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
@@ -375,43 +379,51 @@ export default function Accounts() {
   // actions renderer (centered by TableView)
   const actionsRenderer = useCallback((row) => (
     <>
-      <button
-        onClick={() => { setEditingStaff(row); setShowStaffForm(true); }}
-        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
-        title="Edit"
-      >
-        <MdEdit />
-      </button>
+      {canEdit && (
+        <button
+          onClick={() => { setEditingStaff(row); setShowStaffForm(true); }}
+          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+          title="Edit"
+        >
+          <MdEdit />
+        </button>
+      )}
 
-      <button
-        onClick={() => handleDeleteStaff(row.id)}
-        className="px-2 py-1 bg-red-200 text-red-800 rounded"
-        title="Delete"
-      >
-        <MdDelete />
-      </button>
+      {canDelete && (
+        <button
+          onClick={() => handleDeleteStaff(row.id)}
+          className="px-2 py-1 bg-red-200 text-red-800 rounded"
+          title="Delete"
+        >
+          <MdDelete />
+        </button>
+      )}
     </>
-  ), [handleDeleteStaff]);
+  ), [handleDeleteStaff, canEdit, canDelete]);
 
   const workActionsRenderer = useCallback((row) => (
     <>
-      <button
-        onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
-        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
-        title="Edit"
-      >
-        <MdEdit />
-      </button>
+      {canEditWork && (
+        <button
+          onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
+          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+          title="Edit"
+        >
+          <MdEdit />
+        </button>
+      )}
 
-      <button
-        onClick={() => handleDeleteWorkRecord(row.id)}
-        className="px-2 py-1 bg-red-200 text-red-800 rounded"
-        title="Delete"
-      >
-        <MdDelete />
-      </button>
+      {canDeleteWork && (
+        <button
+          onClick={() => handleDeleteWorkRecord(row.id)}
+          className="px-2 py-1 bg-red-200 text-red-800 rounded"
+          title="Delete"
+        >
+          <MdDelete />
+        </button>
+      )}
     </>
-  ), [handleDeleteWorkRecord]);
+  ), [handleDeleteWorkRecord, canEditWork, canDeleteWork]);
 
   return (
     <Base
@@ -481,19 +493,23 @@ export default function Accounts() {
 
           {(activeTab === "all" || activeTab === "technician") && (
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-              <button
-                onClick={() => setShowAddRole(true)}
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 text-center w-full sm:w-auto"
-              >
-                Manage Roles
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAddRole(true)}
+                  className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 text-center w-full sm:w-auto"
+                >
+                  Manage Roles
+                </button>
+              )}
 
-              <button
-                onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
-                className="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 text-center w-full sm:w-auto"
-              >
-                + Add Staff
-              </button>
+              {canCreate && (
+                <button
+                  onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
+                  className="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 text-center w-full sm:w-auto"
+                >
+                  + Add Staff
+                </button>
+              )}
 
               {rolesLoading ? <div className="text-sm text-slate-500 text-center">Loading roles…</div> :
                rolesError ? <div className="text-sm text-red-500 text-center">Roles error</div> : null}

@@ -16,6 +16,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -41,6 +42,7 @@ const normalize = (d) => (Array.isArray(d) ? d : d?.results || []);
  *   filters  – applied filter object from FiltersPanel (parent passes via Quotation.jsx)
  */
 export default function QuotationList({ onAdd, onEdit, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Quotation');
   const [list, setList] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
@@ -218,12 +220,14 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
-          <button
-            onClick={onAdd}
-            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
-          >
-            + Add Quotation
-          </button>
+          {canCreate && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
+            >
+              + Add Quotation
+            </button>
+          )}
         </div>
       </div>
 
@@ -288,9 +292,11 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdRemoveRedEye />
                         </button>
 
-                        <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
-                          <MdEdit />
-                        </button>
+                        {canEdit && (
+                          <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
+                            <MdEdit />
+                          </button>
+                        )}
 
                         <button onClick={() => handleDownloadPDF(q.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                           <MdDownload />
@@ -304,9 +310,11 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdEmail />
                         </button>
 
-                        <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                          <MdDelete />
-                        </button>
+                        {canDelete && (
+                          <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                            <MdDelete />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -361,9 +369,11 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                         <MdEmail />
                                       </button>
 
-                                      <button onClick={() => handleDeleteVersion(q.id, v.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                                        <MdDelete />
-                                      </button>
+                                      {canDelete && (
+                                        <button onClick={() => handleDeleteVersion(q.id, v.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                                          <MdDelete />
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>

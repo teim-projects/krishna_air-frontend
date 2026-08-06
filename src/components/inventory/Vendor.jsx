@@ -7,9 +7,11 @@ import Pagination from "../Pagination";
 /* Revert99 - START: XLSX import */
 import * as XLSX from "xlsx";
 /* Revert99 - END */
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function Vendor({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Inventory');
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -547,12 +549,14 @@ export default function Vendor({ base_api, filters }) {
           )}
           {/* Revert99 - END */}
 
+          {canCreate && (
           <button
             onClick={handleAddVendor}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Vendor
           </button>
+          )}
         </div>
       </div>
 
@@ -592,6 +596,7 @@ export default function Vendor({ base_api, filters }) {
                   <td className="px-4 py-3 text-sm">{vendor.office_poc_name}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {canEdit && (
                       <button
                         onClick={() => handleEdit(vendor)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -599,6 +604,8 @@ export default function Vendor({ base_api, filters }) {
                       >
                         <MdEdit />
                       </button>
+                      )}
+                      {canDelete && (
                       <button
                         onClick={() => handleDelete(vendor.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -606,6 +613,7 @@ export default function Vendor({ base_api, filters }) {
                       >
                         <MdDelete />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -3,8 +3,10 @@ import { MdEdit, MdDelete, MdPersonAdd, MdAssignmentInd } from "react-icons/md";
 import Swal from "sweetalert2";
 import ServiceManagementForm from "./ServiceManagementForm";
 import AssignTechnicianModal from "./AssignTechnicianModal";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function ServiceManagementList({ baseApi, token, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Service Management');
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -142,15 +144,17 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
           >
             One Time / Warranty
           </button>
-          <button
-            onClick={() => {
-              setSelectedService(null);
-              setShowAddForm(true);
-            }}
-            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
-          >
-            + Add Service
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setSelectedService(null);
+                setShowAddForm(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
+            >
+              + Add Service
+            </button>
+          )}
         </div>
       </div>
 
@@ -215,7 +219,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {/* Assign Technician button */}
-                      {item.contract_type?.toLowerCase() !== "amc" && (
+                      {item.contract_type?.toLowerCase() !== "amc" && canEdit && (
                         item.assigned_technicians && item.assigned_technicians.length > 0 ? (
                           <button
                             onClick={() => {
@@ -241,23 +245,27 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                         )
                       )}
 
-                      <button
-                        onClick={() => {
-                          setSelectedService(item);
-                          setShowAddForm(true);
-                        }}
-                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                        title="Delete"
-                      >
-                        <MdDelete />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setSelectedService(item);
+                            setShowAddForm(true);
+                          }}
+                          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

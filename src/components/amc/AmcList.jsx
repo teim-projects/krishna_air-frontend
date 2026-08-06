@@ -4,8 +4,10 @@ import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
 import ContractDetailModal from "./ContractDetailModal";
 import AmcSparePartsModal from "./AmcSparePartsModal";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function AmcList({ baseApi, token, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('AMC');
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -177,15 +179,17 @@ export default function AmcList({ baseApi, token, filters = {} }) {
               Expiring Soon
             </button>
           </div>
-          <button
-            onClick={() => {
-              setSelectedAmc(null);
-              setShowAddForm(true);
-            }}
-            className="w-full sm:w-auto px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 text-sm font-medium text-center"
-          >
-            + Add AMC
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setSelectedAmc(null);
+                setShowAddForm(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 text-sm font-medium text-center"
+            >
+              + Add AMC
+            </button>
+          )}
         </div>
       </div>
 
@@ -272,17 +276,19 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                           <MdBuild />
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          setSelectedAmc(item);
-                          setShowAddForm(true);
-                        }}
-                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
-                      {item.status === "ACTIVE" && (
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setSelectedAmc(item);
+                            setShowAddForm(true);
+                          }}
+                          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
+                      {item.status === "ACTIVE" && canEdit && (
                         <button
                           onClick={() => handleRenew(item.id)}
                           className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300"
@@ -291,13 +297,15 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                           <MdAutorenew />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                        title="Delete"
-                      >
-                        <MdDelete />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

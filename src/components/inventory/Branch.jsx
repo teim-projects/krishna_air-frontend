@@ -3,9 +3,11 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddBranchForm from "./AddBranchForm";
 import Pagination from "../Pagination";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function Branch({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Branch');
 
   // State for branches list
   const [branches, setBranches] = useState([]);
@@ -249,12 +251,14 @@ export default function Branch({ base_api, filters }) {
           </div>
         </div>
         <div className="w-full sm:w-auto">
+          {canCreate && (
           <button
             onClick={handleAddBranch}
             className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Branch
           </button>
+          )}
         </div>
       </div>
 
@@ -304,6 +308,7 @@ export default function Branch({ base_api, filters }) {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {canEdit && (
                       <button
                         onClick={() => handleEdit(branch)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -311,6 +316,8 @@ export default function Branch({ base_api, filters }) {
                       >
                         <MdEdit />
                       </button>
+                      )}
+                      {canDelete && (
                       <button
                         onClick={() => handleDelete(branch.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -318,6 +325,7 @@ export default function Branch({ base_api, filters }) {
                       >
                         <MdDelete />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

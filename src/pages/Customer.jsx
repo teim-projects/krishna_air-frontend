@@ -3,13 +3,13 @@ import Base from "../components/Base";
 import TableView from "../components/TableView";
 import { MdEdit, MdDelete, MdFileUpload, MdFileDownload } from "react-icons/md";
 import Swal from "sweetalert2";
-import AddCustomerForm from "../components/customers/AddCustomerForm"; // <-- import the form
-/* Revert99 - START: XLSX import */
+import AddCustomerForm from "../components/customers/AddCustomerForm";
 import * as XLSX from "xlsx";
-/* Revert99 - END */
+import { useDocPermissions } from "../hooks/useAuth";
 
 export default function Customer() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Customer');
   const API_URL = `${BASE_API}/lead/customer/`;
   const initialFilters = useMemo(() => ({ search: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
@@ -384,9 +384,9 @@ export default function Customer() {
     // { key: "site_addr", label: "Site Address", render: (r) => r.site_address },
   ];
 
-  // actions renderer (centered by TableView)
-    const actionsRenderer = useCallback((row) => (
-      <>
+  const actionsRenderer = useCallback((row) => (
+    <>
+      {canEdit && (
         <button
           onClick={() => { setEditingCustomer(row); setShowCustomerForm(true); }}
           className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
@@ -394,7 +394,8 @@ export default function Customer() {
         >
           <MdEdit />
         </button>
-  
+      )}
+      {canDelete && (
         <button
           onClick={() => handleDelete(row.id)}
           className="px-2 py-1 bg-red-200 text-red-800 rounded"
@@ -402,8 +403,9 @@ export default function Customer() {
         >
           <MdDelete />
         </button>
-      </>
-    ), [handleDelete]);
+      )}
+    </>
+  ), [handleDelete, canEdit, canDelete]);
 
   return (
     <Base
@@ -451,13 +453,14 @@ export default function Customer() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            
-            <button
-              onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
-              className="px-4 py-2 rounded-md bg-sky-600 text-white"
-            >
-              + Add
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
+                className="px-4 py-2 rounded-md bg-sky-600 text-white"
+              >
+                + Add
+              </button>
+            )}
           </div>
         </div>
 
