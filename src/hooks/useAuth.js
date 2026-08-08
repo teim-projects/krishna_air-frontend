@@ -165,6 +165,7 @@ export function useUserRole(baseApi) {
       'inventory':   ['Purchase Order (PO)', 'GRN', 'Material Issue', 'Material Return', 'Delivery Challan'],
       'item master': ['High Side', 'Low Side', 'Installation Work'],
       'amc':         ['Service Management'],
+      'accounts':    ['Work History', 'Completed Work'],
     };
 
     const checkHasAny = (p) => !!(
@@ -224,6 +225,8 @@ export function useDocPermissions(docType) {
     'low side':            'Item Master',
     'installation work':   'Item Master',
     'service management':  'AMC',
+    'work history':        'Accounts',
+    'completed work':      'Accounts',
   };
 
   if (isAdmin) {

@@ -12,7 +12,8 @@ import { useDocPermissions, useUserRole } from "../hooks/useAuth";
 export default function Accounts() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
   const { canCreate, canEdit, canDelete } = useDocPermissions('Accounts');
-  const { canEdit: canEditWork, canDelete: canDeleteWork } = useDocPermissions('Service Management');
+  const { canView: canViewWork, canEdit: canEditWork, canDelete: canDeleteWork } = useDocPermissions('Work History');
+  const { canView: canViewCompletedWork } = useDocPermissions('Completed Work');
   const { isAdmin } = useUserRole(BASE_API);
   const initialFilters = useMemo(() => ({ search: "", role: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
@@ -33,6 +34,14 @@ export default function Accounts() {
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
+
+  useEffect(() => {
+    if (activeTab === "low" && !canViewWork) {
+      setActiveTab("all");
+    } else if (activeTab === "installation" && !canViewCompletedWork) {
+      setActiveTab("all");
+    }
+  }, [activeTab, canViewWork, canViewCompletedWork]);
   const [workRecords, setWorkRecords] = useState([]);
   const [completedWorkRows, setCompletedWorkRows] = useState([]);
   const [loadingWork, setLoadingWork] = useState(false);
@@ -455,26 +464,30 @@ export default function Accounts() {
           >
             Technician List
           </button>
-          <button
-            onClick={() => setActiveTab("low")}
-            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
-              activeTab === "low"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Work history
-          </button>
-          <button
-            onClick={() => setActiveTab("installation")}
-            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
-              activeTab === "installation"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Completed Work
-          </button>
+          {canViewWork && (
+            <button
+              onClick={() => setActiveTab("low")}
+              className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                activeTab === "low"
+                  ? "bg-blue-800 text-blue-100"
+                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+              }`}
+            >
+              Work history
+            </button>
+          )}
+          {canViewCompletedWork && (
+            <button
+              onClick={() => setActiveTab("installation")}
+              className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                activeTab === "installation"
+                  ? "bg-blue-800 text-blue-100"
+                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+              }`}
+            >
+              Completed Work
+            </button>
+          )}
         </div>
 
         <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -511,8 +524,7 @@ export default function Accounts() {
                 </button>
               )}
 
-              {rolesLoading ? <div className="text-sm text-slate-500 text-center">Loading roles…</div> :
-               rolesError ? <div className="text-sm text-red-500 text-center">Roles error</div> : null}
+              {rolesLoading ? <div className="text-sm text-slate-500 text-center">Loading roles…</div> : null}
             </div>
           )}
         </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { MdFileDownload } from "react-icons/md";
+import * as XLSX from "xlsx";
 
 export default function StockDashboard({ base_api, filters }) {
   const BASE_API = base_api;
@@ -94,6 +96,59 @@ export default function StockDashboard({ base_api, filters }) {
     setStockStats(stats);
   };
 
+  const handleExportExcel = () => {
+    try {
+      if (!stockItems || stockItems.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No stock data available to export." });
+        return;
+      }
+
+      const exportData = stockItems.map((item, idx) => {
+        const qty = parseFloat(item.quantity) || 0;
+        let statusLabel = "In Stock";
+        if (qty === 0) {
+          statusLabel = "Out of Stock";
+        } else if (qty <= LOW_STOCK_THRESHOLD) {
+          statusLabel = "Low Stock";
+        }
+
+        return {
+          "Sr.No": (currentPage - 1) * 10 + (idx + 1),
+          "Item Code/SKU": item.display_name || item.item_name || item.product_variant_name || "N/A",
+          "Item Type": item.product_variant ? "High Side" : "Low Side",
+          "Opening Stock": parseFloat(item.total_in_quantity || 0).toFixed(2),
+          "Closing Stock": parseFloat(item.total_out_quantity || 0).toFixed(2),
+          "Existing Stock": parseFloat(item.quantity || 0).toFixed(2),
+          "UOM": item.uom || "-",
+          "Status": statusLabel,
+          "Last Updated": item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "-",
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Inventory");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Stock_Inventory_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Stock inventory exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Export Failed",
+        text: err.message || "Could not export stock inventory excel file.",
+      });
+    }
+  };
+
   useEffect(() => {
     fetchStockItems(currentPage);
   }, [currentPage, filters]);
@@ -180,6 +235,15 @@ export default function StockDashboard({ base_api, filters }) {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center justify-center gap-1.5"
+              title="Export Stock Inventory Excel Sheet"
+            >
+              <MdFileDownload className="text-sky-600 text-base" />
+              <span>Export</span>
+            </button>
             <button
               onClick={() => fetchStockItems(currentPage)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition flex items-center justify-center gap-2 w-full sm:w-auto text-center"
