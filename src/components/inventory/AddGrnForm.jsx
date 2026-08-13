@@ -54,7 +54,7 @@ export default function AddGrnForm({
 
   const fetchPurchaseOrders = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/inventory/purchase-orders/`, {
+      const response = await axios.get(`${BASE_API}/inventory/purchase-orders/?all=true`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

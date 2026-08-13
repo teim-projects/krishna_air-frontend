@@ -26,9 +26,7 @@ import Invoice from "./pages/Invoice";
 import ItemMaster from "./pages/ItemMaster";
 import Inventory from "./pages/Inventory";
 import AmcPage from "./pages/Amc";
-
-
-
+import RolePermissionsManager from "./pages/RolePermissionsManager";
 
 function AppRoutes() {
   const location = useLocation();
@@ -45,8 +43,6 @@ function AppRoutes() {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
-
-
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
@@ -103,23 +99,43 @@ function AppRoutes() {
                 path="/password-reset-confirm/:uid/:token"
                 element={<ResetPasswordConfirm />}
               />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/customer" element={<Customer />} />
-              <Route path="/leads" element={<Lead />} />
 
-                {/* ✅ Product Module Routes (Inside Routes Now) */}
-            
-              
-              
-              <Route path="/quotation" element={<Quotation/>}/>
-              <Route path="/invoice" element={<Invoice/>}/>
-
-
-
-              <Route path="/item_master" element={<ItemMaster />} />
-              <Route path="/inventory" element={<Inventory/>} />
-              <Route path="/amc" element={<AmcPage/>} />
-
+              <Route
+                path="/accounts"
+                element={<Accounts />}
+              />
+              <Route
+                path="/customer"
+                element={<Customer />}
+              />
+              <Route
+                path="/leads"
+                element={<Lead />}
+              />
+              <Route
+                path="/quotation"
+                element={<Quotation />}
+              />
+              <Route
+                path="/invoice"
+                element={<Invoice />}
+              />
+              <Route
+                path="/item_master"
+                element={<ItemMaster />}
+              />
+              <Route
+                path="/inventory"
+                element={<Inventory />}
+              />
+              <Route
+                path="/amc"
+                element={<AmcPage />}
+              />
+              <Route
+                path="/role-permissions"
+                element={<RolePermissionsManager />}
+              />
             </Routes>
             
           </div>

@@ -1,7 +1,10 @@
 import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import axios from "axios";
 import { FaWhatsapp } from "react-icons/fa";
-import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory } from "react-icons/md";
+import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFileDownload } from "react-icons/md";
+import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -27,6 +30,7 @@ api.interceptors.request.use((config) => {
  *   refreshList() – force re-fetch (called from parent after add/edit)
  */
 const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Invoice');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -68,6 +72,42 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   useImperativeHandle(ref, () => ({
     refreshList: fetchInvoices
   }));
+
+  const handleExportExcel = () => {
+    try {
+      if (!data || data.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No invoice data available to export." });
+        return;
+      }
+
+      const exportData = data.map((r, idx) => ({
+        "Sr.No": idx + 1,
+        "Invoice No": r.invoice_no || "-",
+        "Invoice Date": r.invoice_date ? new Date(r.invoice_date).toLocaleDateString() : "-",
+        "Buyer": r.buyer_name || "-",
+        "GST Type": r.gst_type || "-",
+        "Grand Total": `₹${Number(r.grand_total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Invoices_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Invoice list exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export invoice excel file." });
+    }
+  };
 
   /* ================= PDF VIEW ================= */
 
@@ -145,26 +185,37 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   return (
     <div className="space-y-6">
       {/* Header Section — matches PurchaseOrder.jsx */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Invoice Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${data.length} invoice(s) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto flex items-center gap-2">
           <button
-            onClick={onAdd}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center gap-1.5"
+            title="Export Invoices Excel Sheet"
           >
-            + Create Invoice
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span>Export</span>
           </button>
+          {canCreate && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
+            >
+              + Create Invoice
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table — matches PurchaseOrder.jsx */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -212,9 +263,11 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <MdRemoveRedEye />
                     </button>
 
-                    <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
-                      <MdEdit />
-                    </button>
+                    {canEdit && (
+                      <button onClick={() => onEdit(inv.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
+                        <MdEdit />
+                      </button>
+                    )}
 
                     <button onClick={() => handleDownloadPDF(inv.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                       <MdDownload />
@@ -228,9 +281,11 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <MdEmail />
                     </button>
 
-                    <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                      <MdDelete />
-                    </button>
+                    {canDelete && (
+                      <button onClick={() => handleDeleteInvoice(inv.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                        <MdDelete />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

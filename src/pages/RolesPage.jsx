@@ -2,9 +2,12 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import AddRoleForm from "../components/accounts/AddRoleForm";
 import { MdEdit , MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
+import { useDocPermissions } from "../hooks/useAuth";
+
 export default function RolePage({ baseApi, onClose, open = true }) {
   const DEFAULT_API = "http://127.0.0.1:8000";
   const BASE_API = baseApi ?? import.meta.env.VITE_BASE_API_URL ?? DEFAULT_API;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Role Permissions');
 
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -150,12 +153,14 @@ export default function RolePage({ baseApi, onClose, open = true }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setEditingRole(null); setShowForm(true); }}
-            className="px-3 py-1 bg-indigo-600 text-white rounded"
-          >
-            + Add Role
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => { setEditingRole(null); setShowForm(true); }}
+              className="px-3 py-1 bg-indigo-600 text-white rounded"
+            >
+              + Add Role
+            </button>
+          )}
 
           <button onClick={onClose} className="px-3 py-1 bg-gray-200 rounded">Close</button>
         </div>
@@ -186,8 +191,12 @@ export default function RolePage({ baseApi, onClose, open = true }) {
                       <td className="py-2 px-3">{r.name}</td>
                       <td className="py-2 px-3">
                         <div className="flex gap-2 justify-center">
-                          <button onClick={() => { setEditingRole(r); setShowForm(true); }} className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-sm"><MdEdit /></button>
-                          <button onClick={() => handleDelete(r.id)} className="px-2 py-1 rounded bg-red-100 text-red-800 text-sm"><MdDelete /></button>
+                          {canEdit && (
+                            <button onClick={() => { setEditingRole(r); setShowForm(true); }} className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-sm"><MdEdit /></button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDelete(r.id)} className="px-2 py-1 rounded bg-red-100 text-red-800 text-sm"><MdDelete /></button>
+                          )}
                         </div>
                       </td>
                     </tr>

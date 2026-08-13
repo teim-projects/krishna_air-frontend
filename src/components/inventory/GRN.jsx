@@ -4,9 +4,11 @@ import Swal from "sweetalert2";
 import AddGrnForm from "./AddGrnForm";
 import TableView from "../TableView";
 import axios from "axios";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function GRN({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('GRN');
 
   const [grns, setGrns] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -221,6 +223,7 @@ export default function GRN({ base_api, filters }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">GRNs</h2>
+        {canCreate && (
         <button
           onClick={() => {
             setEditingGrn(null);
@@ -230,6 +233,7 @@ export default function GRN({ base_api, filters }) {
         >
           + Create GRN
         </button>
+        )}
       </div>
 
       <TableView
@@ -243,6 +247,7 @@ export default function GRN({ base_api, filters }) {
           <div className="flex gap-2">
             {!row.is_completed && (
               <>
+                {canEdit && (
                 <button
                   onClick={() => handleEdit(row)}
                   className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300 transition"
@@ -250,6 +255,7 @@ export default function GRN({ base_api, filters }) {
                 >
                   <MdEdit size={18} />
                 </button>
+                )}
                 <button
                   onClick={() => handleComplete(row.id)}
                   className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300 transition"
@@ -259,6 +265,7 @@ export default function GRN({ base_api, filters }) {
                 </button>
               </>
             )}
+            {canDelete && (
             <button
               onClick={() => handleDelete(row.id)}
               className={`px-2 py-1 rounded transition ${
@@ -271,6 +278,7 @@ export default function GRN({ base_api, filters }) {
             >
               <MdDelete size={18} />
             </button>
+            )}
           </div>
         )}
         emptyMessage="No GRNs found"

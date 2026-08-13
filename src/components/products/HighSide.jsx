@@ -3,6 +3,7 @@ import { FiEdit, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import axios from "axios";
 import AddModelForm from "./AddModelForm";
 import { MdOutlineNavigateNext, MdOutlineNavigateBefore } from "react-icons/md";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export const highSideProductFiltersConfig = [
     { key: "ac_type", label: "AC Type", type: "text", placeholder: "Search AC Type" },
@@ -73,6 +74,7 @@ export const highSideModelFiltersConfig = (brands = [], acTypes = []) => [
 
 const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands, acTypes,
     setAcTypes, }) => {
+    const { canCreate, canEdit, canDelete } = useDocPermissions('High Side');
     // const [activeTab, setActiveTab] = useState("product");
     const BASE_API = base_api;
     // ===== AC TYPES =====
@@ -108,7 +110,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
     // ================= API =================
     const fetchAcTypes = async () => {
-        const res = await axios.get(`${BASE_API}/product/actype/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/actype/?all=true`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setAcTypes(rows);
         setList(rows);
@@ -120,7 +122,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchAcSubTypesByType = async (acTypeId) => {
         // console.log("acType",acTypeId)
         const res = await axios.get(
-            `${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${acTypeId}&all=true`,
             authHeaders()
         );
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
@@ -132,7 +134,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
 
 
     const fetchBrands = async () => {
-        const res = await axios.get(`${BASE_API}/product/ac-brand/`, authHeaders());
+        const res = await axios.get(`${BASE_API}/product/ac-brand/?all=true`, authHeaders());
         const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         setBrands(rows);
     };
@@ -308,7 +310,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
         setEditingId(row.id);
 
         const res = await axios.get(
-            `${BASE_API}/product/ac-subtypes/?ac_type_id=${row.id}`,
+            `${BASE_API}/product/ac-subtypes/?ac_type_id=${row.id}&all=true`,
             authHeaders()
         );
 
@@ -449,7 +451,7 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     const fetchVariants = async (modelId) => {
         try {
             const res = await axios.get(
-                `${BASE_API}/product/product-variant/?product_model=${modelId}`,
+                `${BASE_API}/product/product-variant/?product_model=${modelId}&all=true`,
                 authHeaders()
             );
 
@@ -476,12 +478,12 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
     return (
         <div className="bg-white rounded-lg p-4">
             {/* Tabs */}
-            <div className="flex gap-6 border-b mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 border-b pb-2 sm:pb-0 mb-6">
                 <button
                     onClick={() => onTabChange("product")}
                     className={`pb-2 ${activeTab === "product"
-                        ? "border-b-2 border-black font-semibold"
-                        : "text-gray-500"
+                        ? "border-b-2 border-black font-semibold text-left sm:text-center"
+                        : "text-gray-500 text-left sm:text-center"
                         }`}
                 >
                     Product Details
@@ -501,65 +503,67 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             {activeTab === "product" && (
                 <>
                     {/* ===== AC TYPE FORM ===== */}
-                    <div className="rounded-lg p-4 mb-6 bg-gray-50">
-                        <h2 className="font-semibold mb-4">
-                            {editingId ? "Edit AC Type" : "Add AC Type"}
-                        </h2>
+                    {((editingId && canEdit) || (!editingId && canCreate)) && (
+                        <div className="rounded-lg p-4 mb-6 bg-gray-50">
+                            <h2 className="font-semibold mb-4">
+                                {editingId ? "Edit AC Type" : "Add AC Type"}
+                            </h2>
 
-                        <div className="mb-4">
-                            <label className="block text-sm mb-1">AC Type</label>
-                            <input
-                                className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
-                                placeholder="Enter AC Type name"
-                                value={acType}
-                                onChange={(e) => setAcType(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-4">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="text-sm">Sub Types</label>
-                                <button
-                                    onClick={addSubTypeField}
-                                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
-                                >
-                                    <FiPlus /> Add Sub Type
-                                </button>
+                            <div className="mb-4">
+                                <label className="block text-sm mb-1">AC Type</label>
+                                <input
+                                    className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
+                                    placeholder="Enter AC Type name"
+                                    value={acType}
+                                    onChange={(e) => setAcType(e.target.value)}
+                                />
                             </div>
-                            {subTypes.map((sub, i) => (
-                                <div key={sub.id ?? i} className="flex gap-2 mb-2">
-                                    <input
-                                        className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
-                                        placeholder={`Sub Type ${i + 1}`}
-                                        value={sub.name || ""}
-                                        onChange={(e) => updateSubType(i, e.target.value)}
-                                    />
-                                    {subTypes.length > 1 && (
-                                        <button
-                                            onClick={() => removeSubType(i)}
-                                            className="text-red-500 hover:bg-red-100 p-2 rounded"
-                                        >
-                                            <FiX />
-                                        </button>
-                                    )}
+
+                            <div className="mb-4">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-sm">Sub Types</label>
+                                    <button
+                                        onClick={addSubTypeField}
+                                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                                    >
+                                        <FiPlus /> Add Sub Type
+                                    </button>
                                 </div>
-                            ))}
+                                {subTypes.map((sub, i) => (
+                                    <div key={sub.id ?? i} className="flex gap-2 mb-2">
+                                        <input
+                                            className="w-full px-4 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:border-blue-500 focus:ring-0"
+                                            placeholder={`Sub Type ${i + 1}`}
+                                            value={sub.name || ""}
+                                            onChange={(e) => updateSubType(i, e.target.value)}
+                                        />
+                                        {subTypes.length > 1 && (
+                                            <button
+                                                onClick={() => removeSubType(i)}
+                                                className="text-red-500 hover:bg-red-100 p-2 rounded"
+                                            >
+                                                <FiX />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
 
+                            </div>
+
+                            <button
+                                onClick={handleAddOrUpdate}
+                                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                            >
+                                {editingId ? "Update" : "Add"}
+                            </button>
                         </div>
-
-                        <button
-                            onClick={handleAddOrUpdate}
-                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                        >
-                            {editingId ? "Update" : "Add"}
-                        </button>
-                    </div>
+                    )}
 
                     {/* ===== AC TYPE TABLE ===== */}
 
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-6">
 
-                        <table className="w-full text-md text-left">
+                        <table className="w-full min-w-[600px] text-md text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-sm">Sr.No</th>
@@ -583,14 +587,18 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-x-4">
-                                                    <FiEdit
-                                                        onClick={() => handleEdit(row)}
-                                                        className="text-yellow-600 hover:text-yellow-700 cursor-pointer"
-                                                    />
-                                                    <FiTrash2
-                                                        onClick={() => handleDelete(row.id)}
-                                                        className="text-red-600 hover:text-red-700 cursor-pointer"
-                                                    />
+                                                    {canEdit && (
+                                                        <FiEdit
+                                                            onClick={() => handleEdit(row)}
+                                                            className="text-yellow-600 hover:text-yellow-700 cursor-pointer"
+                                                        />
+                                                    )}
+                                                    {canDelete && (
+                                                        <FiTrash2
+                                                            onClick={() => handleDelete(row.id)}
+                                                            className="text-red-600 hover:text-red-700 cursor-pointer"
+                                                        />
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -608,31 +616,33 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                     </div>
 
                     {/* ===== BRAND FORM ===== */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                        <h2 className="font-semibold mb-4">
-                            {editingBrandId ? "Edit Brand" : "Add Brand"}
-                        </h2>
+                    {((editingBrandId && canEdit) || (!editingBrandId && canCreate)) && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                            <h2 className="font-semibold mb-4">
+                                {editingBrandId ? "Edit Brand" : "Add Brand"}
+                            </h2>
 
-                        <div className="flex gap-3">
-                            <input
-                                type="text"
-                                placeholder="Enter Brand name"
-                                value={brandInput}
-                                onChange={(e) => setBrandInput(e.target.value)}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-0"
-                            />
-                            <button
-                                onClick={handleAddOrUpdateBrand}
-                                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                            >
-                                {editingBrandId ? "Update" : "Add"}
-                            </button>
+                            <div className="flex gap-3">
+                                <input
+                                    type="text"
+                                    placeholder="Enter Brand name"
+                                    value={brandInput}
+                                    onChange={(e) => setBrandInput(e.target.value)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-0"
+                                />
+                                <button
+                                    onClick={handleAddOrUpdateBrand}
+                                    className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                                >
+                                    {editingBrandId ? "Update" : "Add"}
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* ===== BRAND TABLE ===== */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="w-full text-md text-left">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                        <table className="w-full min-w-[600px] text-md text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-6 py-3 text-sm">Sr.No</th>
@@ -647,14 +657,18 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                         <td className="px-6 py-4 text-sm">{brand.name}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-x-4">
-                                                <FiEdit
-                                                    onClick={() => handleEditBrand(brand)}
-                                                    className="text-yellow-600 hover:text-yellow-700 cursor-pointer"
-                                                />
-                                                <FiTrash2
-                                                    onClick={() => handleDeleteBrand(brand.id)}
-                                                    className="text-red-600 hover:text-red-700 cursor-pointer"
-                                                />
+                                                {canEdit && (
+                                                    <FiEdit
+                                                        onClick={() => handleEditBrand(brand)}
+                                                        className="text-yellow-600 hover:text-yellow-700 cursor-pointer"
+                                                    />
+                                                )}
+                                                {canDelete && (
+                                                    <FiTrash2
+                                                        onClick={() => handleDeleteBrand(brand.id)}
+                                                        className="text-red-600 hover:text-red-700 cursor-pointer"
+                                                    />
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -668,21 +682,21 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
             {activeTab === "model" && (
                 <div className="space-y-6">
 
-                    {/* Header with Create button */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h2 className="text-xl font-semibold text-slate-800"> </h2>
-                        <button
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm"
-                            onClick={() => setOpenAddModel(true)}
-                        >
-                            + Create Model
-                        </button>
-
+                        {canCreate && (
+                            <button
+                                className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm w-full sm:w-auto text-center"
+                                onClick={() => setOpenAddModel(true)}
+                            >
+                                + Create Model
+                            </button>
+                        )}
                     </div>
 
                     {/* Models Table */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="w-full text-sm text-left">
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                        <table className="w-full min-w-[1000px] text-sm text-left">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-4 py-3">Sr.No</th>
@@ -745,24 +759,27 @@ const HighSide = ({ base_api, filters, activeTab, onTabChange, brands, setBrands
                                                     </span>
                                                 )}
                                             </td>
-                                            {/* Actions */}
                                             <td className="px-4 py-2">
                                                 <div className="flex items-center gap-x-4">
-                                                    <button
-                                                        onClick={() => handleEditModel(model)}   // 👈 edit handler
-                                                        className="text-blue-600 hover:text-blue-800 cursor-pointer"
-                                                        title="Edit"
-                                                    >
-                                                        <FiEdit />
-                                                    </button>
+                                                    {canEdit && (
+                                                        <button
+                                                            onClick={() => handleEditModel(model)}   // 👈 edit handler
+                                                            className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                                            title="Edit"
+                                                        >
+                                                            <FiEdit />
+                                                        </button>
+                                                    )}
 
-                                                    <button
-                                                        onClick={() => handleDeleteModel(model.id)}   // 👈 delete handler
-                                                        className="text-red-600 hover:text-red-800 cursor-pointer"
-                                                        title="Delete"
-                                                    >
-                                                        <FiTrash2 />
-                                                    </button>
+                                                    {canDelete && (
+                                                        <button
+                                                            onClick={() => handleDeleteModel(model.id)}   // 👈 delete handler
+                                                            className="text-red-600 hover:text-red-800 cursor-pointer"
+                                                            title="Delete"
+                                                        >
+                                                            <FiTrash2 />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
 
@@ -874,6 +891,7 @@ export default HighSide;
 
 // Variant Modal Component
 const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
+    const { canCreate, canEdit, canDelete } = useDocPermissions('High Side');
     const [variants, setVariants] = useState([]);
     const [form, setForm] = useState({
         id: null,
@@ -888,7 +906,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
     // Fetch variants
     const loadVariants = async () => {
         const res = await axios.get(
-            `${baseApi}/product/product-variant/?product_model=${model.id}`,
+            `${baseApi}/product/product-variant/?product_model=${model.id}&all=true`,
             authHeaders()
         );
 
@@ -899,7 +917,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 sku: v.sku,
                 capacity: v.capacity,
                 unit: v.unit || "",
-                star: String(v.star_rating),
+                star: v.star_rating != null && v.star_rating !== "" ? String(v.star_rating) : "",
                 mrp: v.mrp,
                 dp: v.dp,
                 active: v.is_active,
@@ -922,8 +940,8 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
 
     // Add or Update variant
     const saveVariant = async () => {
-        if (!form.capacity || !form.star) {
-            alert("Fill required fields");
+        if (!form.capacity) {
+            alert("Capacity is required");
             return;
         }
 
@@ -931,9 +949,9 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
             product_model: model.id,
             capacity: form.capacity,
             unit: form.unit || null,
-            star_rating: Number(form.star),
-            mrp: Number(form.mrp),
-            dp: Number(form.dp),
+            star_rating: form.star ? Number(form.star) : null,
+            mrp: form.mrp ? Number(form.mrp) : null,
+            dp: form.dp ? Number(form.dp) : null,
             is_active: form.active,
         };
 
@@ -984,56 +1002,58 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                 </div>
 
                 {/* 🔹 Single Add/Edit Form */}
-                <div className="mb-6">
-                    {/* Input fields row */}
-                    <div className="flex gap-3 mb-3">
-                        <input 
-                            value={form.capacity} 
-                            onChange={e => updateForm("capacity", e.target.value)} 
-                            placeholder="Capacity(required)" 
-                            className="border px-3 py-2 rounded flex-1" 
-                        />
-                        <select
-    className="border rounded px-2 py-2 w-20"
-    value={form.unit || ''}
-    onChange={(e) => updateForm("unit", e.target.value)}
->
-    <option value="">Unit</option>
-    <option value="TR">TR</option>
-    <option value="HP">HP</option>
-</select>
-                        <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded flex-1">
-                            <option value="">Star(required)</option>
-                            <option value="1">1 Star</option>
-                            <option value="2">2 Star</option>
-                            <option value="3">3 Star</option>
-                            <option value="4">4 Star</option>
-                            <option value="5">5 Star</option>
-                        </select>
-                        <input value={form.mrp} onChange={e => updateForm("mrp", e.target.value)} placeholder="MRP" className="border px-3 py-2 rounded flex-1" />
-                        <input value={form.dp} onChange={e => updateForm("dp", e.target.value)} placeholder="DP" className="border px-3 py-2 rounded flex-1" />
-                    </div>
+                {((form.id && canEdit) || (!form.id && canCreate)) && (
+                    <div className="mb-6">
+                        {/* Input fields row */}
+                        <div className="flex gap-3 mb-3">
+                            <input 
+                                value={form.capacity} 
+                                onChange={e => updateForm("capacity", e.target.value)} 
+                                placeholder="Capacity(required)" 
+                                className="border px-3 py-2 rounded flex-1" 
+                            />
+                            <select
+                                className="border rounded px-2 py-2 w-20"
+                                value={form.unit || ''}
+                                onChange={(e) => updateForm("unit", e.target.value)}
+                            >
+                                <option value="">Unit</option>
+                                <option value="TR">TR</option>
+                                <option value="HP">HP</option>
+                            </select>
+                            <select value={form.star} onChange={e => updateForm("star", e.target.value)} className="border px-3 py-2 rounded flex-1">
+                                <option value="">Star (optional)</option>
+                                <option value="1">1 Star</option>
+                                <option value="2">2 Star</option>
+                                <option value="3">3 Star</option>
+                                <option value="4">4 Star</option>
+                                <option value="5">5 Star</option>
+                            </select>
+                            <input value={form.mrp} onChange={e => updateForm("mrp", e.target.value)} placeholder="MRP" className="border px-3 py-2 rounded flex-1" />
+                            <input value={form.dp} onChange={e => updateForm("dp", e.target.value)} placeholder="DP" className="border px-3 py-2 rounded flex-1" />
+                        </div>
 
-                    {/* Active checkbox and Add button row */}
-                    <div className="flex gap-2 items-center">
-                        <label className="flex items-center gap-2">
-                            <input type="checkbox" checked={form.active} onChange={e => updateForm("active", e.target.checked)} />
-                            Active
-                        </label>
-                        <button onClick={saveVariant} className="px-4 py-2 bg-blue-600 text-white rounded">
-                            {form.id ? "Update" : "Add"}
-                        </button>
-                        {form.id && (
-                            <button onClick={resetForm} className="px-4 py-2 border rounded">
-                                Cancel
+                        {/* Active checkbox and Add button row */}
+                        <div className="flex gap-2 items-center">
+                            <label className="flex items-center gap-2">
+                                <input type="checkbox" checked={form.active} onChange={e => updateForm("active", e.target.checked)} />
+                                Active
+                            </label>
+                            <button onClick={saveVariant} className="px-4 py-2 bg-blue-600 text-white rounded">
+                                {form.id ? "Update" : "Add"}
                             </button>
-                        )}
+                            {form.id && (
+                                <button onClick={resetForm} className="px-4 py-2 border rounded">
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 🔹 Variants Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto">
+                    <table className="w-full min-w-[800px] text-sm text-left">
                         <thead className="bg-gray-50 border-b">
                             <tr>
                                 <th className="px-4 py-3 font-medium text-gray-700">SKU No</th>
@@ -1053,7 +1073,7 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
                                     <td className="px-4 py-3">{v.sku}</td>
                                     <td className="px-4 py-3">{v.capacity}</td>
                                     <td className="px-4 py-3">{v.unit || 'TR'}</td>
-                                    <td className="px-4 py-3">{v.star}</td>
+                                    <td className="px-4 py-3">{v.star || "-"}</td>
                                     <td className="px-4 py-3">₹{Number(v.mrp).toLocaleString()}</td>
                                     <td className="px-4 py-3">₹{Number(v.dp).toLocaleString()}</td>
                                     <td className="px-4 py-3">
@@ -1070,21 +1090,25 @@ const VariantModal = ({ open, onClose, model, baseApi, authHeaders }) => {
 
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-3">
-                                            <button
-                                                onClick={() => handleEdit(v)}
-                                                className="p-1.5 rounded hover:bg-blue-50 text-blue-600"
-                                                title="Edit"
-                                            >
-                                                <FiEdit size={16} />
-                                            </button>
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => handleEdit(v)}
+                                                    className="p-1.5 rounded hover:bg-blue-50 text-blue-600"
+                                                    title="Edit"
+                                                >
+                                                    <FiEdit size={16} />
+                                                </button>
+                                            )}
 
-                                            <button
-                                                onClick={() => handleDelete(v.id)}
-                                                className="p-1.5 rounded hover:bg-red-50 text-red-600"
-                                                title="Delete"
-                                            >
-                                                <FiTrash2 size={16} />
-                                            </button>
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => handleDelete(v.id)}
+                                                    className="p-1.5 rounded hover:bg-red-50 text-red-600"
+                                                    title="Delete"
+                                                >
+                                                    <FiTrash2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

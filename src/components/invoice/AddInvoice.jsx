@@ -74,6 +74,9 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
 
   // Step state for multistep form
   const [step, setStep] = useState(1);
+  const [highSideGstEnabled,setHighSideGstEnabled] = useState(true);
+  const [lowSideGstEnabled,setLowSideGstEnabled] = useState(true);
+
 
   // Reset step when component mounts
   useEffect(() => {
@@ -140,6 +143,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
   // ================= ITEMS =================
   const [items, setItems] = useState([]);
   const [lowItems, setLowItems] = useState([]);
+  const [serviceItems, setServiceItems] = useState([]);
 
   // ================= STATE SEARCH =================
   const [stateSearch, setStateSearch] = useState("");
@@ -153,11 +157,11 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
     const loadMasterData = async () => {
       try {
         // Load sites
-        const siteRes = await api.get("auth/site/");
+        const siteRes = await api.get("auth/site/?all=true");
         setSites(normalize(siteRes.data));
 
         // Load branches
-        const branchRes = await api.get("auth/branch/");
+        const branchRes = await api.get("auth/branch/?all=true");
         setBranches(normalize(branchRes.data));
       } catch (err) {
         console.log("Error loading master data:", err);
@@ -283,6 +287,8 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
         setLowItems(lowItemsList.map(i => ({
           item: i.item,
           item_code: i.item_code,
+          material_display_name: i.complete_item_name,
+          complete_item_name: i.complete_item_name,
           description: i.description,
           hsn_sac: i.hsn_sac,
           quantity: i.quantity,
@@ -319,6 +325,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
       (initialDraft.low_side_items || []).map((i) => ({
         item: i.item,
         item_code: i.item_code,
+        complete_item_name: i.complete_item_name,
         description: i.description || "",
         hsn_sac: i.hsn_sac || "",
         quantity: i.quantity,
@@ -689,7 +696,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
       name: "buyer_gstin",
       label: "Buyer GSTIN",
       type: "text",
-      required: true,
+      required: highSideGstEnabled && lowSideGstEnabled,
       gridCols: 1,
       placeholder: "Enter 15-character GSTIN",
       component: ({ value, onChange }) => (
@@ -908,30 +915,6 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
       Swal.fire({ icon: "error", title: "Validation", text: "Please search and select a customer" });
       return false;
     }
-    if (!formData.buyer_gstin || !formData.buyer_gstin.trim()) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Buyer GSTIN is required" });
-      return false;
-    }
-    
-    // GSTIN validation - must be exactly 15 characters
-    const gstin = formData.buyer_gstin.trim();
-    if (gstin.length !== 15) {
-      Swal.fire({ icon: "error", title: "Validation", text: "GSTIN must be exactly 15 characters" });
-      return false;
-    }
-    
-    // GSTIN format validation (basic pattern check)
-    // Format: 2 digits (state code) + 10 alphanumeric (PAN) + 1 digit + 1 letter + 1 alphanumeric
-    const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    if (!gstinPattern.test(gstin)) {
-      Swal.fire({ 
-        icon: "error", 
-        title: "Validation", 
-        text: "Invalid GSTIN format. Please enter a valid GSTIN number" 
-      });
-      return false;
-    }
-    
     return true;
   };
 
@@ -944,6 +927,33 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
   };
 
   const validateStep3 = () => {
+    const isGstinRequired = highSideGstEnabled && lowSideGstEnabled;
+
+    if (isGstinRequired) {
+      if (!formData.buyer_gstin || !formData.buyer_gstin.trim()) {
+        Swal.fire({ icon: "error", title: "Validation", text: "Buyer GSTIN is required" });
+        return false;
+      }
+      
+      // GSTIN validation - must be exactly 15 characters
+      const gstin = formData.buyer_gstin.trim();
+      if (gstin.length !== 15) {
+        Swal.fire({ icon: "error", title: "Validation", text: "GSTIN must be exactly 15 characters" });
+        return false;
+      }
+      
+      // GSTIN format validation (basic pattern check)
+      const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinPattern.test(gstin)) {
+        Swal.fire({ 
+          icon: "error", 
+          title: "Validation", 
+          text: "Invalid GSTIN format. Please enter a valid GSTIN number" 
+        });
+        return false;
+      }
+    }
+
     if (!formData.bank_name || !formData.bank_name.trim()) {
       Swal.fire({ icon: "error", title: "Validation", text: "Bank Name is required" });
       return false;
@@ -959,22 +969,9 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
     return true;
   };
 
-  // Step 1 Fields - Basic & Buyer Information
+  // Step 1 Fields - Basic & Ship To Information
   const step1Fields = [
     ...basicInfoFields,
-    // Add a separator or section title
-    {
-      name: "buyer_section_title",
-      label: "Buyer Information",
-      type: "component",
-      gridCols: 2,
-      component: () => (
-        <div className="col-span-2 border-t pt-4 mt-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-4">Buyer Information</h4>
-        </div>
-      )
-    },
-    ...buyerInfoFields,
     // Ship To section
     {
       name: "ship_to_section_title",
@@ -1004,15 +1001,36 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
           lowItems={lowItems}
           setLowItems={setLowItems}
           mode="invoice"
+
           gstType={formData.gst_type}
+          serviceItems={serviceItems}
+          setServiceItems={setServiceItems}
+
+          highSideGstEnabled={highSideGstEnabled}
+          setHighSideGstEnabled={setHighSideGstEnabled}
+          lowSideGstEnabled={lowSideGstEnabled}
+          setLowSideGstEnabled={setLowSideGstEnabled}
         />
       ),
       gridCols: 2,
     },
   ];
 
-  // Step 3 Fields - Additional Info & Terms
+  // Step 3 Fields - Buyer, Additional Info & Terms
   const step3Fields = [
+    // Buyer Information section
+    {
+      name: "buyer_section_title",
+      label: "Buyer Information",
+      type: "component",
+      gridCols: 2,
+      component: () => (
+        <div className="col-span-2">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Buyer Information</h4>
+        </div>
+      )
+    },
+    ...buyerInfoFields,
     // Additional Information section
     {
       name: "additional_section_title",
@@ -1020,7 +1038,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
       type: "component",
       gridCols: 2,
       component: () => (
-        <div className="col-span-2">
+        <div className="col-span-2 border-t pt-4 mt-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-4">Additional Information</h4>
         </div>
       )
@@ -1110,6 +1128,15 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
     <>
       <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
         <div className="bg-white rounded-md shadow-lg w-full max-w-5xl relative max-h-[90vh] flex flex-col">
+          
+          {/* Mobile-only Close Cross Button */}
+          <button
+            onClick={onBack}
+            className="md:hidden absolute top-3 right-3 z-50 w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full flex items-center justify-center font-bold text-lg shadow-sm"
+            aria-label="Close"
+          >
+            ✕
+          </button>
 
           {/* Header with Step Indicator */}
           <div className="sticky top-0 bg-white z-10 border-b px-6 py-4">
@@ -1119,7 +1146,7 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
               </h2>
               <button
                 onClick={onBack}
-                className="text-xl font-bold hover:text-red-500"
+                className="hidden md:block text-xl font-bold hover:text-red-500"
                 aria-label="Close"
               >
                 ✕
@@ -1132,21 +1159,21 @@ export default function AddInvoice({ id, onBack, initialDraft = null, amcContrac
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   1
                 </div>
-                <span className="ml-2">Basic & Buyer Info</span>
+                <span className="ml-2 hidden sm:inline">Basic & Ship To Info</span>
               </div>
               <div className={`w-8 h-1 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   2
                 </div>
-                <span className="ml-2">Items</span>
+                <span className="ml-2 hidden sm:inline">Items</span>
               </div>
               <div className={`w-8 h-1 ${step >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
               <div className={`flex items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   3
                 </div>
-                <span className="ml-2">Additional Info & Terms</span>
+                <span className="ml-2 hidden sm:inline">Buyer, Additional Info & Terms</span>
               </div>
             </div>
           </div>

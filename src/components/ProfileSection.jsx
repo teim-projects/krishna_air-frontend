@@ -41,13 +41,15 @@ const ProfileSection = () => {
           mobile_no: data.mobile_no || "",
         });
         setLoading(false);
-      } else {
-        console.warn("❌ Token invalid or expired.");
+      } else if (res.status === 401 || res.status === 403) {
+        console.warn("Token invalid or expired.");
         navigate("/login", { replace: true });
+      } else {
+        setLoading(false);
       }
     } catch (error) {
-      console.error("⚠️ Error fetching user:", error);
-      navigate("/login", { replace: true });
+      console.error("Error fetching user:", error);
+      setLoading(false);
     }
   };
 
@@ -99,6 +101,10 @@ const ProfileSection = () => {
   const handleLogout = () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
+    localStorage.removeItem("cached_user_role");
+    localStorage.removeItem("cached_permissions");
+    localStorage.removeItem("cached_is_admin");
+    localStorage.removeItem("permissions_version");
     window.dispatchEvent(new Event("authChange"));
     navigate("/login", { replace: true });
   };

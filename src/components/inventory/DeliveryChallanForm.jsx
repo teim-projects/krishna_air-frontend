@@ -93,7 +93,7 @@ export default function DeliveryChallanForm({
 
   const fetchMaterialIssues = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/inventory/material-issue/`, { headers });
+      const res = await axios.get(`${BASE_API}/inventory/material-issue/?all=true`, { headers });
       setMaterialIssues(normalizeList(res.data));
     } catch (err) {
       setMaterialIssues([]);
@@ -102,7 +102,7 @@ export default function DeliveryChallanForm({
 
   const fetchBranches = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/auth/branch/`, { headers });
+      const res = await axios.get(`${BASE_API}/auth/branch/?all=true`, { headers });
       setBranches(normalizeList(res.data));
     } catch (err) {
       setBranches([]);
@@ -111,7 +111,7 @@ export default function DeliveryChallanForm({
 
   const fetchSites = async () => {
     try {
-      const res = await axios.get(`${BASE_API}/auth/site/`, { headers });
+      const res = await axios.get(`${BASE_API}/auth/site/?all=true`, { headers });
       setSites(normalizeList(res.data));
     } catch (err) {
       setSites([]);

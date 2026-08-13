@@ -3,9 +3,11 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddBranchForm from "./AddBranchForm";
 import Pagination from "../Pagination";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function Branch({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Branch');
 
   // State for branches list
   const [branches, setBranches] = useState([]);
@@ -241,26 +243,28 @@ export default function Branch({ base_api, filters }) {
     <div className="space-y-6">
 
       {/* Header Section */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Branch Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${totalCount} branch(es) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
+          {canCreate && (
           <button
             onClick={handleAddBranch}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Branch
           </button>
+          )}
         </div>
       </div>
 
       {/* Branches Table */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -286,7 +290,7 @@ export default function Branch({ base_api, filters }) {
             ) : (
               branches.map((branch, index) => (
                 <tr key={branch.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{branch.name}</td>
                   <td className="px-4 py-3 text-sm">{branch.email}</td>
                   <td className="px-4 py-3 text-sm">{branch.primary_contact}</td>
@@ -304,6 +308,7 @@ export default function Branch({ base_api, filters }) {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {canEdit && (
                       <button
                         onClick={() => handleEdit(branch)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -311,6 +316,8 @@ export default function Branch({ base_api, filters }) {
                       >
                         <MdEdit />
                       </button>
+                      )}
+                      {canDelete && (
                       <button
                         onClick={() => handleDelete(branch.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -318,6 +325,7 @@ export default function Branch({ base_api, filters }) {
                       >
                         <MdDelete />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

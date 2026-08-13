@@ -4,9 +4,11 @@ import Swal from "sweetalert2";
 import AddMaterialIssueForm from "./AddMaterialIssueForm";
 import Pagination from "../Pagination";
 import axios from "axios";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function MaterialIssue({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Material Issue');
 
   const [materialIssues, setMaterialIssues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -156,26 +158,28 @@ export default function MaterialIssue({ base_api, filters }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Material Issue Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${totalCount} material issue(s) found`}
           </div>
         </div>
-        <div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
-          >
-            + Create Material Issue
-          </button>
+        <div className="w-full sm:w-auto">
+          {canCreate && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
+            >
+              + Create Material Issue
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -210,13 +214,15 @@ export default function MaterialIssue({ base_api, filters }) {
                       >
                         <MdRemoveRedEye />
                       </button>
-                      <button
-                        onClick={() => handleDelete(issue.id)}
-                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                        title="Delete"
-                      >
-                        <MdDelete />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(issue.id)}
+                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

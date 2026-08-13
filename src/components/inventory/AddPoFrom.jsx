@@ -2,6 +2,7 @@ import React, { useState, useEffect, use } from "react";
 import ReusableForm from "../Form";
 import axios from "axios";
 import TermsMultiSelect from "../TermsMultiSelect";
+import Swal from "sweetalert2";
 import useTermTypes from "../../hooks/useTermTypes";
 // import ItemSelectionEngine from "../ItemSelectionEngine";
 import PurchaseOrderItems from "./PurchaseOrderItems";
@@ -181,7 +182,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const fetchBranches = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseApi}/auth/branch/`, {
+            const response = await axios.get(`${baseApi}/auth/branch/?all=true`, {
                 headers: {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -211,7 +212,7 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
     const fetchSites = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${baseApi}/auth/site/`, {
+            const response = await axios.get(`${baseApi}/auth/site/?all=true`, {
                 headers: {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -529,8 +530,20 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
             if (po) {
                 response = await axios.put(`${baseApi}/inventory/purchase-orders/${po.id}/`, payload, config);
+                Swal.fire({
+                    icon: "success",
+                    text: "Purchase Order updated successfully!",
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             } else {
                 response = await axios.post(`${baseApi}/inventory/purchase-orders/`, payload, config);
+                Swal.fire({
+                    icon: "success",
+                    text: "Purchase Order created successfully!",
+                    timer: 1500,
+                    showConfirmButton: false
+                });
             }
 
             onSuccess && onSuccess(response.data);
@@ -538,6 +551,26 @@ const AddPoForm = ({ open, onClose, baseApi, po, onSuccess, token }) => {
 
         } catch (error) {
             console.error("Error saving PO:", error.response?.data || error);
+            let errMsg = "Failed to save Purchase Order";
+            if (error.response?.data) {
+                if (typeof error.response.data === "object") {
+                    errMsg = Object.entries(error.response.data)
+                        .map(([field, messages]) => {
+                            const msg = Array.isArray(messages) ? messages.join(", ") : messages;
+                            return `${field}: ${msg}`;
+                        })
+                        .join("\n");
+                } else {
+                    errMsg = error.response.data;
+                }
+            } else if (error.message) {
+                errMsg = error.message;
+            }
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: errMsg
+            });
         } finally {
             setLoading(false);
         }

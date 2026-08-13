@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import SmartProductSelect from "./SmartProductSelect";
 import { MdDelete } from "react-icons/md";
@@ -9,7 +9,7 @@ import {
   normalizeLowSideItem,
   normalizeHighSideItem,
 } from "../utils/numberFormat";
-import { formatMaterialLabel } from "../utils/materialLabel";
+import { formatMaterialLabel, formatLowSideTooltip, formatHighSideTooltip } from "../utils/materialLabel";
 
 export default function ItemSelectionEngine({
   baseApi,
@@ -21,19 +21,57 @@ export default function ItemSelectionEngine({
   mode = "quotation",
   gstType,
   onServiceItemsChange,
+  serviceItems = [],
+  setServiceItems,
+  // New Props for GSTIN Enable and disable
+  highSideGstEnabled = true,
+  setHighSideGstEnabled = () => {},
+  lowSideGstEnabled = true,
+  setLowSideGstEnabled = () => {}
 }) {
 
   const isInvoice = mode === "invoice";
 
   // Add GST toggle states
-  const [highSideGstEnabled, setHighSideGstEnabled] = useState(true);
-  const [lowSideGstEnabled, setLowSideGstEnabled] = useState(true);
+  // const [highSideGstEnabled, setHighSideGstEnabled] = useState(gstType !== "NO_GST");
+  // const [lowSideGstEnabled, setLowSideGstEnabled] = useState(gstType !== "NO_GST");
+
+  const highSideInitialized = useRef(false);
+  const lowSideInitialized = useRef(false);
 
   // Add tab state for low side
   const [lowSideActiveTab, setLowSideActiveTab] = useState("materials");
 
-  // Add service items state
-  const [serviceItems, setServiceItems] = useState([]);
+  // Detect initial GST toggle state from loaded items (on edit mode load)
+  useEffect(() => {
+    if (!highSideInitialized.current && items && items.length > 0) {
+      const hasGst = items.some(item => toNum(item.gst_percent) > 0);
+      setHighSideGstEnabled(hasGst);
+      highSideInitialized.current = true;
+    }
+  }, [items]);
+
+  useEffect(() => {
+    if (!lowSideInitialized.current) {
+      if (lowItems && lowItems.length > 0) {
+        const hasGst = lowItems.some(item => toNum(item.gst_percent) > 0);
+        setLowSideGstEnabled(hasGst);
+        lowSideInitialized.current = true;
+      } else if (serviceItems && serviceItems.length > 0) {
+        const hasGst = serviceItems.some(item => toNum(item.gst_percent) > 0);
+        setLowSideGstEnabled(hasGst);
+        lowSideInitialized.current = true;
+      }
+    }
+  }, [lowItems, serviceItems]);
+
+  // Sync GST enabled toggle state with loaded gstType prop on Edit/Update load
+  useEffect(() => {
+    if (gstType === "NO_GST") {
+      setLowSideGstEnabled(false);
+      setHighSideGstEnabled(false);
+    }
+  }, [gstType]);
 
   // Update existing high side items when GST toggle changes
   useEffect(() => {
@@ -53,6 +91,22 @@ export default function ItemSelectionEngine({
         gst_percent: lowSideGstEnabled ? (item.gst_percent || 18) : 0
       }))
     );
+    if (setServiceItems) {
+      setServiceItems(prev =>
+        prev.map(item => {
+          const base_amount = toNum(item.quantity) * toNum(item.price);
+          const gst_percent = lowSideGstEnabled ? (item.gst_percent || 18) : 0;
+          const gst_amount = (base_amount * gst_percent) / 100;
+          const total_amount = base_amount + gst_amount + toNum(item.mathadi_charges);
+          return {
+            ...item,
+            gst_percent,
+            gst_amount,
+            total_amount
+          };
+        })
+      );
+    }
   }, [lowSideGstEnabled]);
 
   // Unit options array
@@ -134,7 +188,7 @@ export default function ItemSelectionEngine({
   const loadBrands = async () => {
     try {
       // Get brands from items endpoint instead
-      const res = await api.get("product/item/");
+      const res = await api.get("product/item/?all=true");
       const items = Array.isArray(res.data) ? res.data : (res.data.results || []);
 
       // Extract unique brands from items
@@ -159,7 +213,7 @@ export default function ItemSelectionEngine({
   };
 
   const loadLowSideItems = async (data) => {
-    const params = {};
+    const params = { all: "true" };
 
     if (data.material_type_id) params.material_type_id = data.material_type_id;
     if (data.item_type_id) params.item_type_id = data.item_type_id;
@@ -266,6 +320,10 @@ export default function ItemSelectionEngine({
   };
 
   const addLowItem = () => {
+    if (serviceItems && serviceItems.length > 0) {
+      alert("You cannot add Materials when Services are already added. Please remove the Services first.");
+      return;
+    }
     if (selectedMaterials.length === 0) {
       alert("Select Material");
       return;
@@ -288,7 +346,7 @@ export default function ItemSelectionEngine({
         gst_percent: lowSideGstEnabled ? toNum(draftLowItem.gst_percent, 18) : 0,
         unit: mat.unit || draftLowItem.unit,
         item: mat.id,
-        item_code: displayName,
+        item_code: mat.item_code || displayName,
         material_display_name: displayName,
         material_name: mat.material_name,
         size: mat.size,
@@ -324,6 +382,10 @@ export default function ItemSelectionEngine({
   };
 
 const addServiceItem = () => {
+    if (lowItems && lowItems.length > 0) {
+        alert("You cannot add Services when Materials are already added. Please remove the Materials first.");
+        return;
+    }
     if (!draftServiceItem.service) {
         alert("Please select a service");
         return;
@@ -341,7 +403,7 @@ const addServiceItem = () => {
 
     const quantity = toNum(draftServiceItem.quantity);
     const price = toNum(draftServiceItem.price);
-    const gstPercent = toNum(draftServiceItem.gst_percent);
+    const gstPercent = lowSideGstEnabled ? toNum(draftServiceItem.gst_percent) : 0;
     const mathadiCharges = toNum(draftServiceItem.mathadi_charges);
     const baseAmount = quantity * price;
     const gstAmount = (baseAmount * gstPercent) / 100;
@@ -371,7 +433,23 @@ const addServiceItem = () => {
     } else {
         entriesToAdd = selectedMaterialIds.map(materialId => {
             const selectedMaterial = selectedService?.items?.find(item => item.id === materialId);
-            return buildServiceEntry(materialId, selectedMaterial?.item_code || "");
+            let completeName = "";
+            if (selectedMaterial) {
+                const parts = [];
+                if (selectedMaterial.material_type_name) parts.push(selectedMaterial.material_type_name.trim());
+                if (selectedMaterial.item_type_name) parts.push(selectedMaterial.item_type_name.trim());
+                if (selectedMaterial.feature_type_name) parts.push(selectedMaterial.feature_type_name.trim());
+                if (selectedMaterial.item_class_name) parts.push(selectedMaterial.item_class_name.trim());
+                
+                if (selectedMaterial.size) {
+                    parts.push(`${selectedMaterial.size} ${selectedMaterial.size_unit || ""}`.trim());
+                }
+                if (selectedMaterial.thickness) {
+                    parts.push(`${selectedMaterial.thickness} ${selectedMaterial.thickness_unit || ""}`.trim());
+                }
+                completeName = parts.length > 0 ? parts.join(" ") : (selectedMaterial.item_code || "");
+            }
+            return buildServiceEntry(materialId, completeName);
         });
     }
 
@@ -444,267 +522,283 @@ const addServiceItem = () => {
   }, {});
   /* ================= RENDER FUNCTIONS ================= */
 
-  const renderMaterialsTab = () => (
-    <div className="space-y-4">
-      <div className="gap-3">
-        <AcMaterialList
-          base_api={baseApi}
-          resetTrigger={resetMaterials}
-          onSelectionChange={(data) => {
-            setSelectedMaterials(data.materials || []);
-          }}
-          showValidation={false}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <input
-          type="number"
-          placeholder="Qty"
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={draftLowItem.quantity}
-          onChange={e => updateLowDraft("quantity", e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder={isInvoice ? "Rate" : "Price"}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
-          onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
-        />
-
-        <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={draftLowItem.brand}
-          onChange={e => updateLowDraft("brand", e.target.value)}
-          disabled={selectedMaterials.length > 0 &&
-            [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
-        >
-          <option value="">Select Brand</option>
-          {(() => {
-            if (selectedMaterials.length > 0) {
-              const materialBrands = selectedMaterials
-                .filter(mat => mat.brand_id && mat.brand_name)
-                .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
-
-              const uniqueBrands = materialBrands.filter((brand, index, self) =>
-                index === self.findIndex(b => b.id === brand.id)
-              );
-
-              return uniqueBrands.map(brand => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ));
-            } else {
-              return brands.map(brand => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ));
-            }
-          })()}
-        </select>
-
-        {lowSideGstEnabled && (
-          <input
-            type="number"
-            placeholder="GST%"
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-            value={draftLowItem.gst_percent}
-            onChange={e => updateLowDraft("gst_percent", e.target.value)}
+  const renderMaterialsTab = () => {
+    if (serviceItems && serviceItems.length > 0) {
+      return (
+        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md border border-yellow-200 font-medium text-sm">
+          ⚠️ You have already added Services. To add Materials, please remove the Services first.
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <div className="gap-3">
+          <AcMaterialList
+            base_api={baseApi}
+            resetTrigger={resetMaterials}
+            onSelectionChange={(data) => {
+              setSelectedMaterials(data.materials || []);
+            }}
+            showValidation={false}
           />
-        )}
-
-        {!isInvoice && (
-          <div className="grid grid-cols-1 gap-3">
-            <input
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              type="number"
-              placeholder="Mathadi Charges"
-              value={draftLowItem.mathadi_charges}
-              onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <input
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="HSN"
-          value={draftLowItem.hsn_sac}
-          onChange={e => updateLowDraft("hsn_sac", e.target.value)}
-        />
-
-        <select
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          value={draftLowItem.unit}
-          onChange={e => updateLowDraft("unit", e.target.value)}
-        >
-          {unitOptions.map(unit => (
-            <option key={unit} value={unit}>{unit}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-3 items-start">
-        <textarea
-          className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter item description..."
-          value={draftLowItem.description}
-          onChange={e => updateLowDraft("description", e.target.value)}
-          rows={2}
-        />
-      </div>
-    </div>
-  );
-
-  const renderServicesTab = () => (
-    <div className="space-y-6">
-      {/* Service Selection Form */}
-      {/* Service Selection Form */}
-      <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-        <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
-
-        {/* ROW 1: Service Name & Materials */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Service Name Dropdown */}
-          <select
-            value={draftServiceItem.service}
-            onChange={(e) => handleMaterialChange(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select Service</option>
-            {materials.map(service => (
-              <option key={service.id} value={service.id}>
-                {service.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Material Dropdown - ONLY if Material-Based */}
-          {draftServiceItem.service_type === 'MATERIAL' && (
-            <select
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                const currentMaterials = draftServiceItem.material
-                  ? draftServiceItem.material.split(',').map(Number)
-                  : [];
-                if (val && !currentMaterials.includes(val)) {
-                  updateServiceDraft("material", [...currentMaterials, val].join(','));
-                }
-                e.target.value = "";
-              }}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Material</option>
-              {materials
-                .find(s => s.id === parseInt(draftServiceItem.service))
-                ?.items?.map(item => (
-                  <option key={item.id} value={item.id}>
-                    {item.item_code}
-                  </option>
-                )) || []}
-            </select>
-          )}
         </div>
 
-        {/* Selected Materials Chips */}
-        {draftServiceItem.service_type === 'MATERIAL' && (
-          <div className="flex flex-wrap gap-2">
-            {(draftServiceItem.material
-              ? draftServiceItem.material.split(',').map(Number)
-              : [])
-              .map((materialId) => {
-                const mat = materials
-                  .find(s => s.id === parseInt(draftServiceItem.service))
-                  ?.items?.find(item => item.id === materialId);
-
-                return mat ? (
-                  <div
-                    key={materialId}
-                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center gap-2 text-sm"
-                  >
-                    {mat.item_code}
-                    <button
-                      onClick={() => {
-                        const currentMaterials = draftServiceItem.material
-                          .split(',')
-                          .map(Number)
-                          .filter(id => id !== materialId);
-                        updateServiceDraft("material", currentMaterials.join(','));
-                      }}
-                      className="text-red-500 font-bold hover:text-red-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : null;
-              })}
-          </div>
-        )}
-
-        {/* ROW 2: Quantity, Unit, GST%, Mathadi */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <input
             type="number"
-            placeholder="Quantity"
-            value={draftServiceItem.quantity}
-            onChange={(e) => updateServiceDraft("quantity", e.target.value)}
+            placeholder="Qty"
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={draftLowItem.quantity}
+            onChange={e => updateLowDraft("quantity", e.target.value)}
+          />
+
+          <input
+            type="number"
+            placeholder={isInvoice ? "Rate" : "Price"}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={isInvoice ? draftLowItem.rate : draftLowItem.unit_price}
+            onChange={e => updateLowDraft(isInvoice ? "rate" : "unit_price", e.target.value)}
           />
 
           <select
-            value={draftServiceItem.unit}
-            onChange={(e) => updateServiceDraft("unit", e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={draftLowItem.brand}
+            onChange={e => updateLowDraft("brand", e.target.value)}
+            disabled={selectedMaterials.length > 0 &&
+              [...new Set(selectedMaterials.map(mat => mat.brand_id).filter(Boolean))].length === 1}
+          >
+            <option value="">Select Brand</option>
+            {(() => {
+              if (selectedMaterials.length > 0) {
+                const materialBrands = selectedMaterials
+                  .filter(mat => mat.brand_id && mat.brand_name)
+                  .map(mat => ({ id: mat.brand_id, name: mat.brand_name }));
+
+                const uniqueBrands = materialBrands.filter((brand, index, self) =>
+                  index === self.findIndex(b => b.id === brand.id)
+                );
+
+                return uniqueBrands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ));
+              } else {
+                return brands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ));
+              }
+            })()}
+          </select>
+
+          {lowSideGstEnabled && (
+            <input
+              type="number"
+              placeholder="GST%"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              value={draftLowItem.gst_percent}
+              onChange={e => updateLowDraft("gst_percent", e.target.value)}
+            />
+          )}
+
+          {!isInvoice && (
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                type="number"
+                placeholder="Mathadi Charges"
+                value={draftLowItem.mathadi_charges}
+                onChange={e => updateLowDraft("mathadi_charges", e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="HSN"
+            value={draftLowItem.hsn_sac}
+            onChange={e => updateLowDraft("hsn_sac", e.target.value)}
+          />
+
+          <select
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={draftLowItem.unit}
+            onChange={e => updateLowDraft("unit", e.target.value)}
           >
             {unitOptions.map(unit => (
               <option key={unit} value={unit}>{unit}</option>
             ))}
           </select>
-
-          <input
-            type="number"
-            placeholder="GST Percentage"
-            value={draftServiceItem.gst_percent}
-            onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="number"
-            placeholder="Mathadi Charges"
-            value={draftServiceItem.mathadi_charges}
-            onChange={(e) => updateServiceDraft("mathadi_charges", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
 
-        {/* ROW 3: Price */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            type="number"
-            placeholder="Price per unit"
-            value={draftServiceItem.price}
-            onChange={(e) => updateServiceDraft("price", e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="flex gap-3 items-start">
+          <textarea
+            className="border border-gray-300 rounded-md px-3 py-2 flex-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter item description..."
+            value={draftLowItem.description}
+            onChange={e => updateLowDraft("description", e.target.value)}
+            rows={2}
           />
         </div>
-
-        {/* Add Service Button */}
-        <button
-          type="button"
-          onClick={addServiceItem}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-        >
-          + Add Service
-        </button>
       </div>
-    </div>
-  );
+    );
+    };
+    const renderServicesTab = () => {
+    if (lowItems && lowItems.length > 0) {
+      return (
+        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-md border border-yellow-200 font-medium text-sm">
+          ⚠️ You have already added Materials. To add Services, please remove the Materials first.
+        </div>
+      );
+    }
+    const serviceMaterials = materials.find(s => s.id === parseInt(draftServiceItem.service))?.items || [];
+
+    return (
+      <div className="space-y-6">
+        {/* Service Selection Form */}
+        {/* Service Selection Form */}
+        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+          <h4 className="text-md font-medium mb-4">Add Installation Work Service</h4>
+
+          {/* ROW 1: Service Name & Materials */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Service Name Dropdown */}
+            <select
+              value={draftServiceItem.service}
+              onChange={(e) => handleMaterialChange(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Service</option>
+              {materials.map(service => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Material MultiSelect */}
+            {draftServiceItem.service_type === 'MATERIAL' && (
+              <div className="flex flex-col gap-2">
+                <select
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const current = draftServiceItem.material ? draftServiceItem.material.split(',') : [];
+                    if (!current.includes(val)) {
+                      const updated = [...current, val].join(',');
+                      updateServiceDraft("material", updated);
+                    }
+                    e.target.value = "";
+                  }}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Material</option>
+                  {serviceMaterials.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.item_code}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Selected Materials Badges */}
+                {draftServiceItem.material && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {draftServiceItem.material.split(',').map(id => {
+                      const itemObj = serviceMaterials.find(m => m.id === parseInt(id));
+                      return (
+                        <span key={id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {itemObj?.item_code || id}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = draftServiceItem.material
+                                .split(',')
+                                .filter(mId => mId !== id)
+                                .join(',');
+                              updateServiceDraft("material", updated);
+                            }}
+                            className="flex-shrink-0 ml-1.5 inline-flex text-blue-400 hover:text-blue-600 focus:outline-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ROW 2: Quantity & Unit */}
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              placeholder="Quantity"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.quantity}
+              onChange={(e) => updateServiceDraft("quantity", e.target.value)}
+            />
+
+            <select
+              value={draftServiceItem.unit}
+              onChange={(e) => updateServiceDraft("unit", e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {unitOptions.map(unit => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ROW 3: GST & Mathadi */}
+          <div className={`grid ${lowSideGstEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            {lowSideGstEnabled && (
+              <input
+                type="number"
+                placeholder="GST Percentage"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={draftServiceItem.gst_percent}
+                onChange={(e) => updateServiceDraft("gst_percent", e.target.value)}
+              />
+            )}
+
+            <input
+              type="number"
+              placeholder="Mathadi Charges"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.mathadi_charges}
+              onChange={(e) => updateServiceDraft("mathadi_charges", e.target.value)}
+            />
+          </div>
+
+          {/* ROW 4: Price Per Unit */}
+          <div className="grid grid-cols-1 gap-3">
+            <input
+              type="number"
+              placeholder="Price per unit"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={draftServiceItem.price}
+              onChange={(e) => updateServiceDraft("price", e.target.value)}
+            />
+          </div>
+
+          {/* Add Service Button */}
+          <button
+            type="button"
+            onClick={addServiceItem}
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          >
+            + Add Service
+          </button>
+        </div>
+      </div>
+    );
+  };
   /* ================= UI ================= */
 
   return (
@@ -878,7 +972,9 @@ const addServiceItem = () => {
                     return (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                        <td className="w-40 px-2 py-2 border-r truncate">{variantName}</td>
+                        <td className="w-40 px-2 py-2 border-r truncate" title={formatHighSideTooltip(row)}>
+                          {variantName}
+                        </td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input className="w-full border rounded px-1 py-1"
                             value={row.hsn_sac || ""}
@@ -1074,8 +1170,8 @@ const addServiceItem = () => {
                   {lowItems.map((row, i) => (
                       <tr key={i} className="border-b">
                         <td className="w-12 px-2 py-2 border-r">{i + 1}</td>
-                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug" title={formatMaterialLabel(row) || row.material_display_name || ""}>
-                          {formatMaterialLabel(row) || row.material_display_name || row.item_code || "Unknown"}
+                        <td className="w-48 px-2 py-2 border-r text-xs leading-snug truncate" title={formatLowSideTooltip(row)}>
+                          {row.item_code || "Unknown"}
                         </td>
                         <td className="w-24 px-2 py-2 border-r">
                           <input
@@ -1166,7 +1262,9 @@ const addServiceItem = () => {
                     <th className="px-4 py-3 text-left font-medium">Unit</th>
                     <th className="px-4 py-3 text-left font-medium">Qty</th>
                     <th className="px-4 py-3 text-left font-medium">Price</th>
-                    <th className="px-4 py-3 text-left font-medium">GST%</th>
+                    {lowSideGstEnabled && (
+                        <th className="px-4 py-3 text-left font-medium">GST%</th>
+                    )}
                     <th className="px-4 py-3 text-center font-medium">Total</th>
                     <th className="px-4 py-3 text-center font-medium">Action</th>
                 </tr>
@@ -1194,7 +1292,7 @@ const addServiceItem = () => {
                                 <td className="px-4 py-3 font-semibold">
                                     {items[0].service_name} <span className="text-gray-600 text-sm"> {items[0].category}</span>
                                 </td>
-                                <td colSpan="6"></td>
+                                <td colSpan={lowSideGstEnabled ? "6" : "5"}></td>
                             </tr>
                         );
                         
@@ -1240,21 +1338,23 @@ const addServiceItem = () => {
                                         />
                                     </td>
                                     
-                                    <td className="px-4 py-3">
-                                        <input
-                                            type="number"
-                                            value={item.gst_percent}
-                                            onChange={(e) => {
-                                                const updated = [...serviceItems];
-                                                const idx = serviceItems.findIndex(i => i.id === item.id);
-                                                updated[idx].gst_percent = toNum(e.target.value);
-                                                updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
-                                                updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
-                                                setServiceItems(updated);
-                                            }}
-                                            className="w-16 border border-gray-300 rounded px-2 py-1"
-                                        />
-                                    </td>
+                                    {lowSideGstEnabled && (
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="number"
+                                                value={item.gst_percent}
+                                                onChange={(e) => {
+                                                    const updated = [...serviceItems];
+                                                    const idx = serviceItems.findIndex(i => i.id === item.id);
+                                                    updated[idx].gst_percent = toNum(e.target.value);
+                                                    updated[idx].gst_amount = (updated[idx].base_amount * toNum(updated[idx].gst_percent)) / 100;
+                                                    updated[idx].total_amount = updated[idx].base_amount + updated[idx].gst_amount + toNum(updated[idx].mathadi_charges);
+                                                    setServiceItems(updated);
+                                                }}
+                                                className="w-16 border border-gray-300 rounded px-2 py-1"
+                                            />
+                                        </td>
+                                    )}
                                     
                                     <td className="px-4 py-3 text-right font-semibold">₹{formatAmount(item.total_amount)}</td>
                                     

@@ -3,8 +3,10 @@ import { MdEdit, MdDelete, MdPersonAdd, MdAssignmentInd } from "react-icons/md";
 import Swal from "sweetalert2";
 import ServiceManagementForm from "./ServiceManagementForm";
 import AssignTechnicianModal from "./AssignTechnicianModal";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function ServiceManagementList({ baseApi, token, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Service Management');
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -114,17 +116,17 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
   return (
     <div className="space-y-6">
       {/* Header card matching PackageList */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Service Management Records</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${filteredServices.length} service(s) found`}
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setTypeFilter("amc")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-md text-sm font-medium transition-colors text-center ${
               typeFilter === "amc"
                 ? "bg-sky-600 text-white hover:bg-sky-700"
                 : "bg-sky-50 text-sky-700 hover:bg-sky-100"
@@ -134,7 +136,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
           </button>
           <button
             onClick={() => setTypeFilter("one_time_warranty")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-md text-sm font-medium transition-colors text-center ${
               typeFilter === "one_time_warranty"
                 ? "bg-sky-600 text-white hover:bg-sky-700"
                 : "bg-sky-50 text-sky-700 hover:bg-sky-100"
@@ -142,21 +144,23 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
           >
             One Time / Warranty
           </button>
-          <button
-            onClick={() => {
-              setSelectedService(null);
-              setShowAddForm(true);
-            }}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
-          >
-            + Add Service
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setSelectedService(null);
+                setShowAddForm(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
+            >
+              + Add Service
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table Card matching PackageList */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -215,7 +219,7 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {/* Assign Technician button */}
-                      {item.contract_type?.toLowerCase() !== "amc" && (
+                      {item.contract_type?.toLowerCase() !== "amc" && canEdit && (
                         item.assigned_technicians && item.assigned_technicians.length > 0 ? (
                           <button
                             onClick={() => {
@@ -241,23 +245,27 @@ export default function ServiceManagementList({ baseApi, token, filters = {} }) 
                         )
                       )}
 
-                      <button
-                        onClick={() => {
-                          setSelectedService(item);
-                          setShowAddForm(true);
-                        }}
-                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                        title="Delete"
-                      >
-                        <MdDelete />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setSelectedService(item);
+                            setShowAddForm(true);
+                          }}
+                          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(item)}
+                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

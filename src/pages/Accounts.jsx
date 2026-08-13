@@ -1,14 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
 import EditWorkRecordForm from "../components/accounts/EditWorkRecordForm";
+import CompletedWorkDetailModal from "../components/accounts/CompletedWorkDetailModal";
 import { MdEdit, MdDelete } from "react-icons/md";
 import RolePage from "../pages/RolesPage";
 import Swal from "sweetalert2";
 import TableView from "../components/TableView"; // <-- reusable table
+import { useDocPermissions, useUserRole } from "../hooks/useAuth";
 
 export default function Accounts() {
   const BASE_API = import.meta.env.VITE_BASE_API_URL;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Accounts');
+  const { canView: canViewWork, canEdit: canEditWork, canDelete: canDeleteWork } = useDocPermissions('Work History');
+  const { canView: canViewCompletedWork } = useDocPermissions('Completed Work');
+  const { isAdmin, userRole } = useUserRole(BASE_API);
+  const isTechnician = userRole?.name?.toLowerCase() === 'technician';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const initialFilters = useMemo(() => ({ search: "", role: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
@@ -27,11 +37,41 @@ export default function Accounts() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-  const [activeTab, setActiveTab] = useState("all");
+  
+  const [activeTab, setActiveTab] = useState(() => {
+    if (tabParam === "work_history") return "low";
+    if (tabParam === "completed_work") return "installation";
+    return "all";
+  });
+
+  useEffect(() => {
+    if (tabParam === "work_history") {
+      setActiveTab("low");
+    } else if (tabParam === "completed_work") {
+      setActiveTab("installation");
+    } else if (tabParam === "staff") {
+      setActiveTab("all");
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
+    const isTech = userRole?.name?.toLowerCase() === 'technician';
+    if (isTech && (activeTab === "all" || activeTab === "technician")) {
+      setActiveTab("low");
+    } else if (activeTab === "low" && !canViewWork) {
+      setActiveTab("all");
+    } else if (activeTab === "installation" && !canViewCompletedWork) {
+      setActiveTab("all");
+    }
+  }, [activeTab, canViewWork, canViewCompletedWork, userRole]);
   const [workRecords, setWorkRecords] = useState([]);
+  const [completedWorkRows, setCompletedWorkRows] = useState([]);
   const [loadingWork, setLoadingWork] = useState(false);
+  const [loadingCompletedWork, setLoadingCompletedWork] = useState(false);
   const [editingWorkRecord, setEditingWorkRecord] = useState(null);
   const [showWorkForm, setShowWorkForm] = useState(false);
+  const [completedWorkDetailId, setCompletedWorkDetailId] = useState(null);
+  const [showCompletedWorkDetail, setShowCompletedWorkDetail] = useState(false);
 
   const token = useMemo(() => {
     return (
@@ -187,11 +227,36 @@ export default function Accounts() {
     }
   }, [token, BASE_API]);
 
+  const fetchCompletedWork = useCallback(async () => {
+    setLoadingCompletedWork(true);
+    try {
+      if (!token) return;
+      const res = await fetch(`${BASE_API}/amc/completed-work/`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCompletedWorkRows(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to load completed work", err);
+      setCompletedWorkRows([]);
+    } finally {
+      setLoadingCompletedWork(false);
+    }
+  }, [token, BASE_API]);
+
   useEffect(() => {
-    if (activeTab === "low" || activeTab === "installation") {
+    if (activeTab === "low") {
       fetchWorkRecords();
     }
-  }, [activeTab, fetchWorkRecords]);
+    if (activeTab === "installation") {
+      fetchCompletedWork();
+    }
+  }, [activeTab, fetchWorkRecords, fetchCompletedWork]);
 
   const handleDeleteStaff = async (id) => {
     const confirm = await Swal.fire({
@@ -290,13 +355,29 @@ export default function Accounts() {
     return rows;
   }, [rows, activeTab]);
 
-  const completedRecords = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    return workRecords.filter(r => 
-      r.payment_status === "completed" || 
-      (r.service_end_date && r.service_end_date <= today)
-    );
-  }, [workRecords]);
+  const completedWorkColumns = useMemo(() => ([
+    {
+      key: "sr",
+      label: "Sr.No",
+      render: (_, idx) => idx + 1,
+    },
+    { key: "customer", label: "Customer Name", render: r => r.customer_name || "—" },
+    { key: "technician", label: "Technician Name", render: r => r.technician_name || "—" },
+    { key: "completion_date", label: "Completion Date", render: r => r.completion_date || "—" },
+  ]), []);
+
+  const completedWorkActionsRenderer = useCallback((row) => (
+    <button
+      type="button"
+      onClick={() => {
+        setCompletedWorkDetailId(row.id);
+        setShowCompletedWorkDetail(true);
+      }}
+      className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700"
+    >
+      View more
+    </button>
+  ), []);
 
   const workColumns = useMemo(() => ([
     {
@@ -329,43 +410,51 @@ export default function Accounts() {
   // actions renderer (centered by TableView)
   const actionsRenderer = useCallback((row) => (
     <>
-      <button
-        onClick={() => { setEditingStaff(row); setShowStaffForm(true); }}
-        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
-        title="Edit"
-      >
-        <MdEdit />
-      </button>
+      {canEdit && (
+        <button
+          onClick={() => { setEditingStaff(row); setShowStaffForm(true); }}
+          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+          title="Edit"
+        >
+          <MdEdit />
+        </button>
+      )}
 
-      <button
-        onClick={() => handleDeleteStaff(row.id)}
-        className="px-2 py-1 bg-red-200 text-red-800 rounded"
-        title="Delete"
-      >
-        <MdDelete />
-      </button>
+      {canDelete && (
+        <button
+          onClick={() => handleDeleteStaff(row.id)}
+          className="px-2 py-1 bg-red-200 text-red-800 rounded"
+          title="Delete"
+        >
+          <MdDelete />
+        </button>
+      )}
     </>
-  ), [handleDeleteStaff]);
+  ), [handleDeleteStaff, canEdit, canDelete]);
 
   const workActionsRenderer = useCallback((row) => (
     <>
-      <button
-        onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
-        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
-        title="Edit"
-      >
-        <MdEdit />
-      </button>
+      {canEditWork && (
+        <button
+          onClick={() => { setEditingWorkRecord(row); setShowWorkForm(true); }}
+          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
+          title="Edit"
+        >
+          <MdEdit />
+        </button>
+      )}
 
-      <button
-        onClick={() => handleDeleteWorkRecord(row.id)}
-        className="px-2 py-1 bg-red-200 text-red-800 rounded"
-        title="Delete"
-      >
-        <MdDelete />
-      </button>
+      {canDeleteWork && (
+        <button
+          onClick={() => handleDeleteWorkRecord(row.id)}
+          className="px-2 py-1 bg-red-200 text-red-800 rounded"
+          title="Delete"
+        >
+          <MdDelete />
+        </button>
+      )}
     </>
-  ), [handleDeleteWorkRecord]);
+  ), [handleDeleteWorkRecord, canEditWork, canDeleteWork]);
 
   return (
     <Base
@@ -376,50 +465,58 @@ export default function Accounts() {
     >
       <div className="space-y-6">
         {/* Category Selection Tabs */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded font-medium transition ${
-              activeTab === "all"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            All Accounts
-          </button>
-          <button
-            onClick={() => setActiveTab("technician")}
-            className={`px-4 py-2 rounded font-medium transition ${
-              activeTab === "technician"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Technician List
-          </button>
-          <button
-            onClick={() => setActiveTab("low")}
-            className={`px-4 py-2 rounded font-medium transition ${
-              activeTab === "low"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Work history
-          </button>
-          <button
-            onClick={() => setActiveTab("installation")}
-            className={`px-4 py-2 rounded font-medium transition ${
-              activeTab === "installation"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Completed Work
-          </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          {!isTechnician && (
+            <>
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                  activeTab === "all"
+                    ? "bg-blue-800 text-blue-100"
+                    : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                }`}
+              >
+                All Accounts
+              </button>
+              <button
+                onClick={() => setActiveTab("technician")}
+                className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                  activeTab === "technician"
+                    ? "bg-blue-800 text-blue-100"
+                    : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                }`}
+              >
+                Technician List
+              </button>
+            </>
+          )}
+          {canViewWork && (
+            <button
+              onClick={() => setActiveTab("low")}
+              className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                activeTab === "low"
+                  ? "bg-blue-800 text-blue-100"
+                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+              }`}
+            >
+              Work List
+            </button>
+          )}
+          {canViewCompletedWork && (
+            <button
+              onClick={() => setActiveTab("installation")}
+              className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                activeTab === "installation"
+                  ? "bg-blue-800 text-blue-100"
+                  : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+              }`}
+            >
+              Completed Work
+            </button>
+          )}
         </div>
 
-        <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+        <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">
               {activeTab === "low" ? "Technician Work History" :
@@ -428,38 +525,41 @@ export default function Accounts() {
             </h2>
             <div className="text-sm text-slate-600">
               {activeTab === "low" ? `${workRecords.length} record(s) found` :
-               activeTab === "installation" ? `${completedRecords.length} record(s) found` :
+               activeTab === "installation" ? `${completedWorkRows.length} record(s) found` :
                (loading ? "Loading…" : `${activeTab === "technician" ? displayRows.length : totalCount} total • ${displayRows.length} shown`)}
             </div>
           </div>
 
           {(activeTab === "all" || activeTab === "technician") && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowAddRole(true)}
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-              >
-                Manage Roles
-              </button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAddRole(true)}
+                  className="px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 text-center w-full sm:w-auto"
+                >
+                  Manage Roles
+                </button>
+              )}
 
-              <button
-                onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
-                className="px-4 py-2 rounded-md bg-sky-600 text-white"
-              >
-                + Add Staff
-              </button>
+              {canCreate && (
+                <button
+                  onClick={() => { setEditingStaff(null); setShowStaffForm(true); }}
+                  className="px-4 py-2 rounded-md bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 text-center w-full sm:w-auto"
+                >
+                  + Add Staff
+                </button>
+              )}
 
-              {rolesLoading ? <div className="text-sm text-slate-500">Loading roles…</div> :
-               rolesError ? <div className="text-sm text-red-500">Roles error</div> : null}
+              {rolesLoading ? <div className="text-sm text-slate-500 text-center">Loading roles…</div> : null}
             </div>
           )}
         </div>
 
         {/* Reusable TableView */}
-        {activeTab === "low" || activeTab === "installation" ? (
+        {activeTab === "low" ? (
           <TableView
             columns={workColumns}
-            rows={activeTab === "low" ? workRecords : completedRecords}
+            rows={workRecords}
             loading={loadingWork}
             page={1}
             totalPages={1}
@@ -467,6 +567,18 @@ export default function Accounts() {
             pageSize={100}
             actions={workActionsRenderer}
             emptyMessage="No work records found."
+          />
+        ) : activeTab === "installation" ? (
+          <TableView
+            columns={completedWorkColumns}
+            rows={completedWorkRows}
+            loading={loadingCompletedWork}
+            page={1}
+            totalPages={1}
+            onPageChange={() => {}}
+            pageSize={100}
+            actions={completedWorkActionsRenderer}
+            emptyMessage="No completed work found."
           />
         ) : (
           <TableView
@@ -511,6 +623,16 @@ export default function Accounts() {
         onSuccess={() => fetchWorkRecords()}
         baseApi={BASE_API}
         workRecord={editingWorkRecord}
+      />
+
+      <CompletedWorkDetailModal
+        open={showCompletedWorkDetail}
+        onClose={() => {
+          setShowCompletedWorkDetail(false);
+          setCompletedWorkDetailId(null);
+        }}
+        baseApi={BASE_API}
+        itemId={completedWorkDetailId}
       />
     </Base>
   );

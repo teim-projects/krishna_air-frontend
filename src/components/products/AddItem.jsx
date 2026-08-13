@@ -85,7 +85,7 @@ const AddItem = ({ open, onClose, base_api, editMode = false, itemData = null })
   // Fetch Brands
   const fetchBrands = async () => {
     try {
-      const res = await axios.get(`${base_api}/product/ac-brand/`, authHeaders());
+      const res = await axios.get(`${base_api}/product/ac-brand/?all=true`, authHeaders());
       const rows = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
       setBrands(rows);
     } catch (err) {

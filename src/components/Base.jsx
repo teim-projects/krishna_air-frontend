@@ -11,6 +11,7 @@ export default function Base({
   onFiltersChange = () => { },
   sidebarWidth = 230,
   drawerWidth = 320,
+  headerActions = null,
   children,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -28,14 +29,16 @@ export default function Base({
       {/* Render drawer only if page supplies a filtersConfig */}
       {filtersConfig && filtersOpen && (
         <>
-    // Inside Base.js
           <div
             role="dialog"
             aria-modal="true"
-            className="fixed inset-y-0 top-15 bg-white shadow-lg z-50 transform transition-transform duration-200 flex flex-col" // Added flex flex-col
-            style={leftStyle}
+            className="fixed inset-y-0 top-0 md:top-15 left-0 w-full max-w-[320px] md:max-w-none md:w-[var(--drawer-width)] md:left-[var(--sidebar-width)] bg-white shadow-lg z-[9999] transform transition-transform duration-200 flex flex-col border-r border-slate-100"
+            style={{
+              "--sidebar-width": `${sidebarWidth}px`,
+              "--drawer-width": `${drawerWidth}px`
+            }}
           >
-            <div className="p-6 flex items-center justify-between border-b border-slate-50"> {/* Added border-b */}
+            <div className="p-6 flex items-center justify-between border-b border-slate-50">
               <h3 className="text-lg font-semibold text-slate-700">
                 {filterTitle || "Filters"}
               </h3>
@@ -60,7 +63,7 @@ export default function Base({
           {/* Backdrop on small screens */}
           <button
             onClick={() => setFiltersOpen(false)}
-            className="fixed inset-0 bg-black/20 z-40 md:hidden"
+            className="fixed inset-0 bg-black/20 z-[9998] md:hidden"
             aria-hidden="true"
           />
         </>
@@ -75,6 +78,7 @@ export default function Base({
           </div>
 
           <div className="flex items-center gap-3">
+            {headerActions}
             {/* show filter trigger only if filtersConfig provided */}
             {filtersConfig && (
               <button

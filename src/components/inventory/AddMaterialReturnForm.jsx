@@ -51,7 +51,7 @@ export default function AddMaterialReturnForm({
 
   const fetchMaterialIssues = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/inventory/material-issue/`, {
+      const response = await axios.get(`${BASE_API}/inventory/material-issue/?all=true`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

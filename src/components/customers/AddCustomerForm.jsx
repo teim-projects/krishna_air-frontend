@@ -16,6 +16,9 @@ export default function AddCustomerForm({
   const BASE_API = baseApi;
 
   const [name, setName] = useState(customer?.name ?? "");
+  const [salutation, setSalutation] = useState(customer?.salutation ?? "");
+  const [designation, setDesignation] = useState(customer?.designation ?? "");
+  const [remark, setRemark] = useState(customer?.remark ?? "");
   const [contactNumber, setContactNumber] = useState(customer?.contact_number ?? "");
   const [landLineNumber, setLandLineNumber] = useState(customer?.land_line_no ?? "");
   const [email, setEmail] = useState(customer?.email ?? "");
@@ -54,9 +57,41 @@ export default function AddCustomerForm({
 
 
   useEffect(() => {
-    if (!customer || !open) return;
+    if (!open) return;
+
+    if (!customer) {
+      setName("");
+      setSalutation("");
+      setDesignation("");
+      setRemark("");
+      setContactNumber("");
+      setLandLineNumber("");
+      setEmail("");
+      setSecondary_email("");
+      setPocName("");
+      setPocContactNumber("");
+      setAddress("");
+      setCity("");
+      setStateVal("");
+      setPinCode("");
+      setBothAddressSame(false);
+      setSiteAddress("");
+      setSiteCity("");
+      setSiteState("");
+      setSitePinCode("");
+      setGst("");
+      setPan("");
+      setstateid(0);
+      setcityid(null);
+      setSiteStateid(0);
+      setSiteCityid(0);
+      return;
+    }
 
     setName(customer.name || "");
+    setSalutation(customer.salutation || "");
+    setDesignation(customer.designation || "");
+    setRemark(customer.remark || "");
     setContactNumber(customer.contact_number || "");
     setLandLineNumber(customer.land_line_no || "");
     setEmail(customer.email || "");
@@ -240,7 +275,10 @@ export default function AddCustomerForm({
     setLoading(true);
     try {
       const payload = {
+        salutation: salutation || null,
         name: name.trim(),
+        designation: designation.trim() || null,
+        remark: remark.trim() || null,
         contact_number: contactNumber.toString(),
         land_line_no: landLineNumber.toString(),
         email: email ? String(email).trim() : "",
@@ -346,13 +384,39 @@ export default function AddCustomerForm({
           <div className="px-4 py-3 overflow-y-auto flex-1">
             <form className="space-y-4" onSubmit={handleSubmit}>
 
-              {/* Basic Information - 2 Column Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Name */}
+              {/* Basic Information - Responsive Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Salutation + Name */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">Name <span className="text-red-500">*</span></label>
-                  <input className="w-full px-3 py-2 rounded-md border border-slate-200"
-                    value={name} onChange={e => setName(e.target.value)} />
+                  <div className="flex gap-2">
+                    <select
+                      className="w-28 px-2 py-2 rounded-md border border-slate-200 bg-white"
+                      value={salutation}
+                      onChange={(e) => setSalutation(e.target.value)}
+                    >
+                      <option value="">Title</option>
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                    </select>
+                    <input
+                      className="flex-1 px-3 py-2 rounded-md border border-slate-200"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Customer name"
+                    />
+                  </div>
+                </div>
+
+                {/* Designation */}
+                <div>
+                  <label className="text-sm text-slate-700 mb-1 block">Designation</label>
+                  <input
+                    className="w-full px-3 py-2 rounded-md border border-slate-200"
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    placeholder="Optional"
+                  />
                 </div>
 
                 {/* Contact Number */}
@@ -450,7 +514,7 @@ export default function AddCustomerForm({
               </div>
 
               {/* City / State / Pin */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* Billing State */}
                 <div>
                   <label className="text-sm text-slate-700 mb-1 block">State</label>
@@ -523,7 +587,7 @@ export default function AddCustomerForm({
                       value={siteAddress} onChange={e => setSiteAddress(e.target.value)} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {/* Site State */}
                     <div>
                       <label className="text-sm text-slate-700 mb-1 block">Site State</label>
@@ -577,13 +641,25 @@ export default function AddCustomerForm({
                 </>
               )}
 
+              {/* Remark */}
+              <div>
+                <label className="text-sm text-slate-700 mb-1 block">Remark</label>
+                <textarea
+                  className="w-full px-3 py-2 rounded-md border border-slate-200"
+                  rows={3}
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  placeholder="Optional remark"
+                />
+              </div>
+
               {/* Buttons */}
-              <div className="flex justify-end gap-2 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+                <button type="button" onClick={onClose} className="w-full sm:w-auto px-4 py-2 bg-gray-200 rounded text-center">
                   Cancel
                 </button>
                 <button type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded"
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded text-center"
                   disabled={loading}>
                   {loading ? (customer ? "Updating..." : "Saving...") : (customer ? "Update" : "Save")}
                 </button>

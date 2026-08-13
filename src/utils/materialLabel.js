@@ -21,3 +21,24 @@ export const materialSelectionPayload = (mat) => ({
   thickness: mat.thickness,
   thickness_unit: mat.thickness_unit,
 });
+
+/** Tooltip / full label for low-side rows (quotation, invoice, PO) */
+export const formatLowSideTooltip = (row) => {
+  if (!row) return "";
+  if (row.material_display_name) return row.material_display_name;
+  if (row.complete_item_name) return row.complete_item_name;
+  const built = formatMaterialLabel(row);
+  if (built) return built;
+  return row.item_code || "";
+};
+
+/** Tooltip for high-side variant rows (type, subtype, variant SKU — not brand/model no.) */
+export const formatHighSideTooltip = (row) => {
+  if (!row) return "";
+  const parts = [
+    row.ac_type_name,
+    row.ac_sub_type_name,
+    row.variant_sku,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" | ") : String(row.variant_sku || row.product_variant || "");
+};

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { MdDelete } from "react-icons/md";
 import AcMaterialList from "../AcMaterialList";
+import { formatLowSideTooltip, formatHighSideTooltip, formatMaterialLabel } from "../../utils/materialLabel";
 export default function PurchaseOrderItems({
   baseApi,
   token,
@@ -44,7 +45,8 @@ export default function PurchaseOrderItems({
     quantity: "",
     rate: "",
     uom: "Nos",
-    description: ""
+    description: "",
+    hsn_sac: ""
   });
 
   // ===================== LOW SIDE STATES =====================
@@ -81,7 +83,8 @@ export default function PurchaseOrderItems({
     quantity: "",
     rate: "",
     uom: "Nos",
-    description: ""
+    description: "",
+    hsn_sac: ""
   };
 
   const DEFAULT_LOW_FORM = {
@@ -94,7 +97,8 @@ export default function PurchaseOrderItems({
     quantity: "",
     rate: "",
     uom: LENGTH_UNITS[0],
-    description: ""
+    description: "",
+    hsn_sac: ""
   };
 
   // ===================== SECTION STATES =====================
@@ -111,11 +115,13 @@ export default function PurchaseOrderItems({
   const loadInitialData = async () => {
     try {
       const [acRes, materialRes] = await Promise.all([
-        api.get("/product/actype/"),
+        api.get("/product/actype/?all=true"),
         api.get("/product/material-type/")
       ]);
-      setAcTypes(acRes.data?.results || []);
-      setMaterialTypes(materialRes.data?.results || []);
+      const acData = Array.isArray(acRes.data) ? acRes.data : acRes.data?.results || [];
+      const materialData = Array.isArray(materialRes.data) ? materialRes.data : materialRes.data?.results || [];
+      setAcTypes(acData);
+      setMaterialTypes(materialData);
     } catch (err) {
       console.error("Error loading initial data", err);
     }
@@ -126,13 +132,16 @@ export default function PurchaseOrderItems({
   // Subtypes depend on AC Type
   useEffect(() => {
     if (!highForm.acType) return;
-    api.get(`/product/ac-subtypes/?ac_type_id=${highForm.acType}`)
-      .then(res => setSubTypes(res.data?.results || []));
+    api.get(`/product/ac-subtypes/?ac_type_id=${highForm.acType}&all=true`)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setSubTypes(data);
+      });
   }, [highForm.acType]);
 
   // Brands 
   useEffect(() => {
-    api.get("/product/ac-brand/")
+    api.get("/product/ac-brand/?all=true")
       .then(res => {
         const data = res.data?.results || res.data || [];
         setBrands(Array.isArray(data) ? data : []);
@@ -162,14 +171,20 @@ export default function PurchaseOrderItems({
   // Models depend on subtype and brand
   useEffect(() => {
     if (!highForm.brand || !highForm.subType) return;
-    api.get(`/product/product-model/?brand_id=${highForm.brand}&ac_sub_type_id=${highForm.subType}`)
-      .then(res => setModels(res.data?.results || []));
+    api.get(`/product/product-model/?brand_id=${highForm.brand}&ac_sub_type_id=${highForm.subType}&all=true`)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setModels(data);
+      });
   }, [highForm.brand, highForm.subType]);
 
   useEffect(() => {
     if (!highForm.model) return;
-    api.get(`/product/product-variant/?product_model=${highForm.model}`)
-      .then(res => setVariants(res.data?.results || []));
+    api.get(`/product/product-variant/?product_model=${highForm.model}&all=true`)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setVariants(data);
+      });
   }, [highForm.model]);
 
   // ===================== LOW SIDE CASCADE =====================
@@ -177,25 +192,37 @@ export default function PurchaseOrderItems({
   useEffect(() => {
     if (!lowForm.materialType) return;
     api.get(`/product/item-type/`)
-      .then(res => setItemTypes(res.data?.results || []));
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setItemTypes(data);
+      });
   }, [lowForm.materialType]);
 
   useEffect(() => {
     if (!lowForm.itemType) return;
     api.get(`/product/feature-type/`)
-      .then(res => setFeatures(res.data?.results || []));
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setFeatures(data);
+      });
   }, [lowForm.itemType]);
 
   useEffect(() => {
     if (!lowForm.itemType) return;
     api.get(`/product/item-class/`)
-      .then(res => setItemClasses(res.data?.results || []));
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setItemClasses(data);
+      });
   }, [lowForm.itemType]);
 
   useEffect(() => {
     if (!lowForm.itemType) return;
-    api.get(`/product/item/?material_type_id=${lowForm.materialType}&item_type_id=${lowForm.itemType}&item_class_id=${lowForm.itemClass}&feature_type_id=${lowForm.feature}`)
-      .then(res => setItems(res.data?.results || []));
+    api.get(`/product/item/?material_type_id=${lowForm.materialType}&item_type_id=${lowForm.itemType}&item_class_id=${lowForm.itemClass}&feature_type_id=${lowForm.feature}&all=true`)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setItems(data);
+      });
   }, [lowForm.itemType]);
 
 
@@ -234,16 +261,79 @@ export default function PurchaseOrderItems({
 
   // ===================== HELPERS =====================
 
-  const generateItemSerial = () => {
-    if (!activeSection) return null;
+  const generateItemSerial = (currentList) => {
+    const listToUse = currentList || products;
+    const hasAnySection = listToUse.some((p) => p.is_section);
 
-    const childCount = products.filter(
-      p =>
+    if (!activeSection || !hasAnySection) {
+      const count = listToUse.filter((p) => !p.is_section).length;
+      return String(count + 1);
+    }
+
+    const childCount = listToUse.filter(
+      (p) =>
         !p.is_section &&
+        p.serial_no &&
         p.serial_no.startsWith(activeSection + ".")
     ).length;
 
     return `${activeSection}.${childCount + 1}`;
+  };
+
+  const getItemInsertIndex = (list) => {
+    const listToUse = list || products;
+    const hasAnySection = listToUse.some((p) => p.is_section);
+
+    if (!activeSection || !hasAnySection) {
+      return listToUse.length;
+    }
+
+    return listToUse.reduce((lastIndex, p, i) => {
+      if (p.serial_no?.startsWith(activeSection + ".")) return i + 1;
+      if (p.serial_no === activeSection) return i + 1;
+      return lastIndex;
+    }, listToUse.length);
+  };
+
+  const renumberProducts = (list) => {
+    const hasAnySection = list.some((p) => p.is_section);
+    if (!hasAnySection) {
+      let n = 0;
+      return list.map((p) => {
+        if (p.is_section) return p;
+        n += 1;
+        return { ...p, serial_no: String(n) };
+      });
+    }
+
+    let sectionCounter = 0;
+    const finalList = [];
+    list.forEach((p) => {
+      if (p.is_section) {
+        sectionCounter++;
+        p.serial_no = sectionCounter.toString();
+        finalList.push(p);
+      } else {
+        const parent = finalList
+          .slice()
+          .reverse()
+          .find((s) => s.is_section);
+
+        if (parent) {
+          const childCount = finalList.filter(
+            (x) =>
+              !x.is_section &&
+              x.serial_no?.startsWith(parent.serial_no + ".")
+          ).length;
+          p.serial_no = `${parent.serial_no}.${childCount + 1}`;
+        } else {
+          const flatCount = finalList.filter((x) => !x.is_section).length;
+          p.serial_no = String(flatCount + 1);
+        }
+        finalList.push(p);
+      }
+    });
+    return finalList;
   };
 
   const updateProducts = (updated) => {
@@ -255,12 +345,14 @@ export default function PurchaseOrderItems({
 
   const addHighProduct = () => {
     if (!highForm.variant) return;
-    if (!activeSection) {
-      alert("Please create or select a section first.");
-      return;
-    }
 
     const selected = variants.find(v => v.id == highForm.variant);
+    if (!selected) return;
+
+    const acTypeName = acTypes.find((a) => String(a.id) === String(highForm.acType))?.name;
+    const subTypeName = subTypes.find((s) => String(s.id) === String(highForm.subType))?.name;
+    const brandName = brands.find((b) => String(b.id) === String(highForm.brand))?.name;
+    const modelName = models.find((m) => String(m.id) === String(highForm.model))?.name;
 
     const newProduct = {
       serial_no: generateItemSerial(),
@@ -268,28 +360,23 @@ export default function PurchaseOrderItems({
       is_section: false,
       section_title: null,
       product_variant: selected.id,
-      variant_sku: selected.variant_sku,
+      variant_sku: selected.variant_sku || selected.sku,
+      ac_type_name: acTypeName,
+      ac_sub_type_name: subTypeName,
+      brand_name: brandName,
+      model_no: modelName,
       item: null,
       description: highForm.description,
       quantity: parseFloat(highForm.quantity),
       uom: highForm.uom,
-      rate: parseFloat(highForm.rate)
+      rate: parseFloat(highForm.rate),
+      hsn_sac: highForm.hsn_sac || "",
     };
 
-    const insertIndex = products.reduce((lastIndex, p, i) => {
-      if (p.serial_no.startsWith(activeSection + ".")) {
-        return i + 1;
-      }
-      if (p.serial_no === activeSection) {
-        return i + 1;
-      }
-      return lastIndex;
-    }, products.length);
-
+    const insertIndex = getItemInsertIndex();
     const updated = [...products];
     updated.splice(insertIndex, 0, newProduct);
-
-    updateProducts(updated);
+    updateProducts(renumberProducts(updated));
 
 
     // ✅ RESET FORM
@@ -359,17 +446,7 @@ export default function PurchaseOrderItems({
   const addLowItem = () => {
     if (selectedMaterials.length === 0) return;
 
-    if (!activeSection) {
-      alert("Please create or select a section first.");
-      return;
-    }
-
-    const insertIndex = products.reduce((lastIndex, p, i) => {
-      if (p.serial_no.startsWith(activeSection + ".")) return i + 1;
-      if (p.serial_no === activeSection) return i + 1;
-      return lastIndex;
-    }, products.length);
-
+    const insertIndex = getItemInsertIndex();
     const updated = [...products];
 
     selectedMaterials.forEach((mat, idx) => {
@@ -386,28 +463,30 @@ export default function PurchaseOrderItems({
       }
 
       const newProduct = {
-        serial_no: generateItemSerial(),
+        serial_no: generateItemSerial(updated),
         sort_order: updated.length + 1,
         is_section: false,
         section_title: null,
         product_variant: null,
         item: mat.id,
 
-        // ✅ USE NAME FROM CHILD
-        item_code: mat.material_name || `Material ${mat.id}`,
+        item_code: mat.item_code || mat.material_name || `Material ${mat.id}`,
+        material_display_name: mat.material_display_name || formatMaterialLabel(mat),
+        complete_item_name: mat.material_display_name || formatMaterialLabel(mat) || mat.material_name,
 
         brand: brandToUse,
         brand_name: brandNameToUse,
         description: lowForm.description,
         quantity: parseFloat(lowForm.quantity || 1),
         uom: lowForm.uom,
-        rate: parseFloat(lowForm.rate || 0)
+        rate: parseFloat(lowForm.rate || 0),
+        hsn_sac: lowForm.hsn_sac || "",
       };
 
       updated.splice(insertIndex + idx, 0, newProduct);
     });
 
-    updateProducts(updated);
+    updateProducts(renumberProducts(updated));
 
     // ✅ RESET AFTER ADD
     setSelectedMaterials([]);
@@ -425,37 +504,7 @@ export default function PurchaseOrderItems({
 
   const removeRow = (index) => {
     const updated = products.filter((_, i) => i !== index);
-
-    // Recalculate numbering per section
-    let sectionCounter = 0;
-
-    const finalList = [];
-    updated.forEach(p => {
-      if (p.is_section) {
-        sectionCounter++;
-        p.serial_no = sectionCounter.toString();
-        finalList.push(p);
-      } else {
-        const parent = finalList
-          .slice()
-          .reverse()
-          .find(s => s.is_section);
-
-        if (parent) {
-          const childCount = finalList.filter(
-            x =>
-              !x.is_section &&
-              x.serial_no.startsWith(parent.serial_no + ".")
-          ).length;
-
-          p.serial_no = `${parent.serial_no}.${childCount + 1}`;
-        }
-
-        finalList.push(p);
-      }
-    });
-
-    updateProducts(finalList);
+    updateProducts(renumberProducts(updated));
   };
   // ===================== UI =====================
 
@@ -477,7 +526,7 @@ export default function PurchaseOrderItems({
       </style>
       {/* ================= ADD SECTION ================= */}
       <div className="border rounded-xl p-4 bg-gray-50 shadow-sm">
-        <h4 className="font-semibold mb-2">Add Section</h4>
+        <h4 className="font-semibold mb-2">Add Section <span className="text-sm font-normal text-gray-500">(optional)</span></h4>
 
         <div className="flex gap-3">
           <input
@@ -636,16 +685,24 @@ export default function PurchaseOrderItems({
           </div>
 
           {/* Row 2 - remaining inputs except description */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <select
               className="border rounded-md px-2 py-1"
               onChange={e => setHighForm({ ...highForm, variant: e.target.value })}
             >
               <option value="">Variant</option>
               {variants.map(v => (
-                <option key={v.id} value={v.id}>{v.variant_sku}</option>
+                <option key={v.id} value={v.id}>{v.variant_sku || v.sku}</option>
               ))}
             </select>
+
+            <input
+              type="text"
+              placeholder="HSN"
+              className="border rounded-md px-2 py-1"
+              value={highForm.hsn_sac}
+              onChange={e => setHighForm({ ...highForm, hsn_sac: e.target.value })}
+            />
 
             <input
               type="number"
@@ -723,17 +780,13 @@ export default function PurchaseOrderItems({
 
           {/* Row 2 - Remaining inputs except description */}
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            {/* <select
+            <input
+              type="text"
+              placeholder="HSN"
               className="border rounded-md px-2 py-1"
-              onChange={e => setLowForm({ ...lowForm, item: e.target.value })}
-            >
-              <option value="">Select Item</option>
-              {items.map(i => (
-                <option key={i.id} value={i.id}>{i.item_code}</option>
-              ))}
-            </select> */}
-
-
+              value={lowForm.hsn_sac}
+              onChange={e => setLowForm({ ...lowForm, hsn_sac: e.target.value })}
+            />
 
             <input
               type="number"
@@ -839,6 +892,7 @@ export default function PurchaseOrderItems({
             <tr>
               <th className="border px-3 py-2 text-left">S.No</th>
               <th className="border px-3 py-2 text-left">Description</th>
+              <th className="border px-3 py-2 text-left">HSN</th>
               <th className="border px-3 py-2 text-left">Qty</th>
               <th className="border px-3 py-2 text-left">UOM</th>
               <th className="border px-3 py-2 text-left">Rate</th>
@@ -864,7 +918,7 @@ export default function PurchaseOrderItems({
 
                 {p.is_section ? (
                   <>
-                    <td colSpan="5" className="border px-3 py-2">
+                    <td colSpan="6" className="border px-3 py-2">
                       {p.section_title}
                     </td>
                     <td className="border px-3 py-2 text-center">
@@ -879,10 +933,27 @@ export default function PurchaseOrderItems({
                   </>
                 ) : (
                   <>
-                    <td className="border px-3 py-2">
-                      {p.variant_sku || p.item_code || ""}
+                    <td
+                      className="border px-3 py-2"
+                      title={
+                        p.product_variant
+                          ? formatHighSideTooltip(p)
+                          : formatLowSideTooltip(p)
+                      }
+                    >
+                      {p.product_variant
+                        ? (p.variant_sku || "")
+                        : (p.item_code || p.variant_sku || "")}
                       <br />
                       {p.description}
+                    </td>
+                    <td className="border px-3 py-2">
+                      <input
+                        type="text"
+                        className="border rounded px-2 py-1 w-24"
+                        value={p.hsn_sac || ""}
+                        onChange={e => handleEdit(index, "hsn_sac", e.target.value)}
+                      />
                     </td>
                     <td className="border px-3 py-2">
                       <input

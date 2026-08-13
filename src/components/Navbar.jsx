@@ -13,12 +13,22 @@ const Navbar = ({ onMenuClick }) => {
     setIsAuthenticated(false);
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
+    localStorage.removeItem("cached_user_role");
+    localStorage.removeItem("cached_permissions");
+    localStorage.removeItem("cached_is_admin");
+    localStorage.removeItem("permissions_version");
     navigate("/login", { replace: true });
   }, [navigate]);
 
   const checkAuth = useCallback(async () => {
     const token = localStorage.getItem("access");
-    if (!token) return setIsAuthenticated(false);
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    // Show authenticated UI immediately when a token exists (avoids sidebar/login flicker).
+    setIsAuthenticated(true);
 
     try {
       const res = await fetch(
@@ -29,11 +39,23 @@ const Navbar = ({ onMenuClick }) => {
           },
         }
       );
-      res.ok ? setIsAuthenticated(true) : handleLogout();
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+      }
     } catch {
-      handleLogout();
+      // Network hiccup (e.g. ERR_EMPTY_RESPONSE) — keep session; do not clear token.
     }
   }, [handleLogout]);
+
+  useEffect(() => {
+    const onAuthChange = () => {
+      const token = localStorage.getItem("access");
+      setIsAuthenticated(!!token);
+      if (token) checkAuth();
+    };
+    window.addEventListener("authChange", onAuthChange);
+    return () => window.removeEventListener("authChange", onAuthChange);
+  }, [checkAuth]);
 
   useEffect(() => {
     const publicPaths = ["/login", "/register"];

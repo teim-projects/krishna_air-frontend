@@ -23,11 +23,11 @@ const FollowUpProductModal = ({ open, onClose, followUp, baseApi, token }) => {
 
         // Fetch all required data in parallel using axios
         const [acTypesRes, acSubTypesRes, brandsRes, modelsRes, variantsRes] = await Promise.all([
-          axios.get(`${baseApi}/product/actype/`, authHeaders),
-          axios.get(`${baseApi}/product/ac-subtypes/`, authHeaders),
-          axios.get(`${baseApi}/product/ac-brand/`, authHeaders),
-          axios.get(`${baseApi}/product/product-model/`, authHeaders),
-          axios.get(`${baseApi}/product/product-variant/`, authHeaders),
+          axios.get(`${baseApi}/product/actype/?all=true`, authHeaders),
+          axios.get(`${baseApi}/product/ac-subtypes/?all=true`, authHeaders),
+          axios.get(`${baseApi}/product/ac-brand/?all=true`, authHeaders),
+          axios.get(`${baseApi}/product/product-model/?all=true`, authHeaders),
+          axios.get(`${baseApi}/product/product-variant/?all=true`, authHeaders),
         ]);
 
         const acTypes = acTypesRes.data;

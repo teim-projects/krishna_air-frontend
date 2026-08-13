@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Swal from "sweetalert2";
 import ReusableForm from "../Form";
 
@@ -12,7 +12,26 @@ const VISIT_FREQUENCY_OPTIONS = [
   { value: "QUARTERLY", label: "Quarterly" },
   { value: "HALF_YEARLY", label: "Half Yearly" },
   { value: "YEARLY", label: "Yearly" },
+  { value: "CUSTOM", label: "Custom" },
 ];
+
+const VISITS_PER_YEAR = {
+  MONTHLY: 12,
+  QUARTERLY: 4,
+  HALF_YEARLY: 2,
+  YEARLY: 1,
+};
+
+/** Expected visits for standard frequency over AMC start–end dates. */
+function computeStandardExpectedVisits(frequency, amcStart, amcEnd) {
+  if (!frequency || frequency === "CUSTOM" || !amcStart || !amcEnd) return null;
+  const perYear = VISITS_PER_YEAR[frequency];
+  if (!perYear) return null;
+  const start = new Date(amcStart);
+  const end = new Date(amcEnd);
+  const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
+  return Math.max(1, Math.round((days / 365.25) * perYear));
+}
 
 const formatAmcTypeLabel = (type) =>
   AMC_TYPE_OPTIONS.find((o) => o.value === type)?.label || type;
@@ -67,6 +86,8 @@ const emptyFormData = {
   customer: "",
   amc_type: "",
   visit_frequency: "QUARTERLY",
+  total_visit_count: "",
+  schedule_note: "",
   product_variant: "",
   sale_date: "",
   warranty_end_date: "",
@@ -89,6 +110,8 @@ export default function AddAmcForm({
   const [loading, setLoading] = useState(false);
   const [variants, setVariants] = useState([]);
   const [amcCustomerMap, setAmcCustomerMap] = useState(new Map());
+  const [customerVariants, setCustomerVariants] = useState([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const headers = {
     "Content-Type": "application/json",
@@ -103,7 +126,7 @@ export default function AddAmcForm({
         const [recordsRes, customersRes, variantsRes] = await Promise.all([
           fetch(`${baseApi}/amc/service-records/?contract_type=amc`, { headers }),
           fetch(`${baseApi}/quotation/customer/`, { headers }),
-          fetch(`${baseApi}/product/product-variant/`, { headers }),
+          fetch(`${baseApi}/product/product-variant/?all=true`, { headers }),
         ]);
 
         let records = [];
@@ -134,6 +157,56 @@ export default function AddAmcForm({
   }, [open, baseApi, token]);
 
   useEffect(() => {
+    if (!formData.customer) {
+      setCustomerVariants([]);
+      return;
+    }
+
+    const fetchCustomerQuotations = async () => {
+      setLoadingVariants(true);
+      try {
+        const res = await fetch(`${baseApi}/quotation/quotation/?customer=${formData.customer}`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          const quotes = data.results || data || [];
+          
+          const extractedVariants = [];
+          const seenVariantIds = new Set();
+
+          quotes.forEach(q => {
+            if (q.versions) {
+              q.versions.forEach(v => {
+                if (v.high_side_items) {
+                  v.high_side_items.forEach(hItem => {
+                    if (hItem.product_variant && !seenVariantIds.has(hItem.product_variant)) {
+                      seenVariantIds.add(hItem.product_variant);
+                      extractedVariants.push({
+                        id: hItem.product_variant,
+                        sku: hItem.variant_sku || `SKU #${hItem.product_variant}`,
+                        product_model_name: hItem.product_model_name || "",
+                        ac_type_name: hItem.ac_type_name || "",
+                        ac_sub_type_name: hItem.ac_sub_type_name || ""
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+          setCustomerVariants(extractedVariants);
+        }
+      } catch (err) {
+        console.error("Error fetching customer quotations:", err);
+      } finally {
+        setLoadingVariants(false);
+      }
+    };
+
+    fetchCustomerQuotations();
+  }, [formData.customer, baseApi, token]);
+
+  useEffect(() => {
     if (!amc || !open) {
       setFormData(emptyFormData);
       return;
@@ -143,6 +216,8 @@ export default function AddAmcForm({
       customer: amc.customer || "",
       amc_type: amc.amc_type || "",
       visit_frequency: amc.visit_frequency || "QUARTERLY",
+      total_visit_count: amc.total_visit_count ?? "",
+      schedule_note: amc.schedule_note || "",
       product_variant: amc.product_variant || "",
       sale_date: amc.sale_date || "",
       warranty_end_date: amc.warranty_end_date || "",
@@ -225,6 +300,17 @@ export default function AddAmcForm({
       Swal.fire({ icon: "error", title: "Validation", text: "Please enter a valid AMC cost" });
       return false;
     }
+    if (formData.visit_frequency === "CUSTOM") {
+      const n = parseInt(formData.total_visit_count, 10);
+      if (!n || n < 1) {
+        Swal.fire({
+          icon: "error",
+          title: "Validation",
+          text: "For custom frequency, enter total number of visits (minimum 1).",
+        });
+        return false;
+      }
+    }
     return true;
   };
 
@@ -255,6 +341,12 @@ export default function AddAmcForm({
         product_variant: parseInt(data.product_variant, 10),
         amc_cost: parseFloat(data.amc_cost),
       };
+      if (payload.visit_frequency === "CUSTOM") {
+        payload.total_visit_count = parseInt(payload.total_visit_count, 10);
+      } else {
+        payload.total_visit_count = null;
+        payload.schedule_note = null;
+      }
 
       const url = amc ? `${baseApi}/amc/contracts/${amc.id}/` : `${baseApi}/amc/contracts/`;
       const method = amc ? "PUT" : "POST";
@@ -286,12 +378,15 @@ export default function AddAmcForm({
     }
   };
 
-  const variantOptions = variants.map((v) => ({
+  const displayVariants = customerVariants.length > 0 ? customerVariants : variants;
+
+  const variantOptions = displayVariants.map((v) => ({
     value: v.id,
-    label: `${v.sku} - ${v.product_model_name || ""}`,
+    label: v.product_model_name ? `${v.sku} - ${v.product_model_name}` : v.sku,
   }));
 
-  const fields = [
+  const fields = useMemo(() => {
+    const base = [
     {
       name: "customer",
       label: "Customer (AMC Service Records only)",
@@ -319,12 +414,32 @@ export default function AddAmcForm({
       options: VISIT_FREQUENCY_OPTIONS,
       gridCols: 1,
     },
+    ...(formData.visit_frequency === "CUSTOM"
+      ? [
+          {
+            name: "total_visit_count",
+            label: "Total visits in this AMC period",
+            type: "number",
+            required: true,
+            placeholder: "e.g. 4",
+            gridCols: 1,
+          },
+          {
+            name: "schedule_note",
+            label: "Custom schedule note",
+            type: "textarea",
+            required: false,
+            placeholder: "e.g. 4 visits to be done within first 6 months",
+            gridCols: 1,
+          },
+        ]
+      : []),
     {
       name: "product_variant",
       label: "AC Variant / Model",
       type: "searchable_select",
       required: true,
-      placeholder: "Type to search AC model...",
+      placeholder: loadingVariants ? "Loading quotation items..." : "Type to search AC model...",
       options: variantOptions,
       gridCols: 1,
     },
@@ -379,6 +494,19 @@ export default function AddAmcForm({
       gridCols: 1,
     },
   ];
+    return base;
+  }, [formData.visit_frequency, customerOptions, variantOptions]);
+
+  const autoVisitHint =
+    formData.visit_frequency && formData.visit_frequency !== "CUSTOM"
+      ? computeStandardExpectedVisits(
+          formData.visit_frequency,
+          formData.amc_start_date,
+          formData.amc_end_date
+        )
+      : formData.visit_frequency === "CUSTOM" && formData.total_visit_count
+        ? parseInt(formData.total_visit_count, 10)
+        : null;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 p-4">
@@ -391,6 +519,15 @@ export default function AddAmcForm({
           {customerOptions.length === 0 && !amc && (
             <p className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
               Add a Service Management record with Contract Type &quot;AMC&quot; first. Only those customers appear here.
+            </p>
+          )}
+          {autoVisitHint != null && !Number.isNaN(autoVisitHint) && (
+            <p className="mb-4 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded px-3 py-2">
+              Expected service visits for this AMC period:{" "}
+              <span className="font-semibold text-slate-800">{autoVisitHint}</span>
+              {formData.visit_frequency === "CUSTOM" && formData.schedule_note && (
+                <span className="block mt-1 text-xs text-slate-500">{formData.schedule_note}</span>
+              )}
             </p>
           )}
           <ReusableForm

@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Base from "../components/Base";
 import TableView from "../components/TableView";
-import { MdEdit, MdDelete } from "react-icons/md";
+import { MdEdit, MdDelete, MdFileUpload, MdFileDownload } from "react-icons/md";
 import Swal from "sweetalert2";
-import AddCustomerForm from "../components/customers/AddCustomerForm"; // <-- import the form
+import AddCustomerForm from "../components/customers/AddCustomerForm";
+import * as XLSX from "xlsx";
+import { useDocPermissions } from "../hooks/useAuth";
 
 export default function Customer() {
-  const BASE_API = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
+  const BASE_API = import.meta.env.VITE_BASE_API_URL;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Customer');
   const API_URL = `${BASE_API}/lead/customer/`;
   const initialFilters = useMemo(() => ({ search: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
@@ -24,6 +27,233 @@ export default function Customer() {
   // modal / edit state
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+
+  /* Revert99 - START: Customer Import & Export References & Handlers */
+  // Revert99: Delete from here to Revert99 - END if not needed
+  const fileInputRef = useRef(null);
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleExportExcel = () => {
+    try {
+      if (!rows || rows.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No customer contact data available to export." });
+        return;
+      }
+
+      const exportData = rows.map((r, idx) => ({
+        "Sr.No": (currentPage - 1) * PAGE_SIZE_FALLBACK + (idx + 1),
+        "Company Name": r.name || "-",
+        "Contact": r.contact_number || "-",
+        "Email": r.email || "-",
+        "Landline No": r.land_line_no || "-",
+        "POC Name": r.poc_name || "-",
+        "POC Contact": r.poc_contact_number || "-",
+        "City": r.city || "-",
+        "State": r.state || "-",
+        "PIN Code": r.pin_code || "-",
+        "Address": r.address || "-",
+        "GST": r.gst || "-",
+        "PAN": r.pan || "-"
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Customers_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Customer contacts excel file downloaded successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export customer excel file." });
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validExtensions = [".xlsx", ".xls", ".csv"];
+    const fileName = file.name.toLowerCase();
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!isValid) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Please upload Excel files only (.xlsx, .xls, .csv).",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        Swal.fire({
+          title: "Saving to Database...",
+          text: "Importing and persisting customer records to database...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+
+        const bstr = evt.target.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        if (!parsedData || parsedData.length === 0) {
+          Swal.close();
+          Swal.fire({ icon: "warning", title: "Empty Sheet", text: "The uploaded excel sheet contains no data." });
+          return;
+        }
+
+        const processedReportRows = [];
+
+        for (let i = 0; i < parsedData.length; i++) {
+          const item = parsedData[i];
+          const incomingName = String(item["Company Name"] || item["Name"] || item["Company"] || item["name"] || "").trim();
+          const incomingContact = String(item["Contact"] || item["Contact Number"] || item["Phone"] || item["contact_number"] || "").trim();
+          const incomingEmail = String(item["Email"] || item["email"] || "").trim();
+          const incomingLandline = String(item["Landline No"] || item["Landline"] || item["land_line_no"] || "").trim();
+          const incomingPocName = String(item["POC Name"] || item["POC"] || item["poc_name"] || "").trim();
+          const incomingPocContact = String(item["POC Contact"] || item["POC Phone"] || item["poc_contact_number"] || "").trim();
+          const incomingCity = String(item["City"] || item["city"] || "").trim();
+          const incomingState = String(item["State"] || item["state"] || "").trim();
+          const incomingPin = String(item["PIN Code"] || item["Pin"] || item["pin_code"] || "").trim();
+          const incomingAddress = String(item["Address"] || item["address"] || "").trim();
+          const incomingGst = String(item["GST"] || item["gst"] || "").trim();
+          const incomingPan = String(item["PAN"] || item["pan"] || "").trim();
+
+          const cleanPhone = incomingContact.replace(/\D/g, "");
+          const cleanEmail = incomingEmail.toLowerCase();
+          const cleanName = incomingName.toLowerCase();
+
+          // Check if matching record exists in DB rows
+          const existing = rows.find(r => {
+            const rPhone = String(r.contact_number || "").replace(/\D/g, "");
+            const rEmail = String(r.email || "").toLowerCase();
+            const rName = String(r.name || "").toLowerCase();
+
+            if (cleanPhone && rPhone && cleanPhone === rPhone) return true;
+            if (cleanEmail && rEmail && cleanEmail === rEmail) return true;
+            if (cleanName && rName && cleanName === rName) return true;
+            return false;
+          });
+
+          if (existing && existing.id && !String(existing.id).startsWith("cust_")) {
+            // Update existing customer record in DB
+            const payload = {
+              name: incomingName || existing.name,
+              contact_number: incomingContact || existing.contact_number,
+              email: incomingEmail || existing.email,
+              land_line_no: incomingLandline || existing.land_line_no,
+              poc_name: incomingPocName || existing.poc_name,
+              poc_contact_number: incomingPocContact || existing.poc_contact_number,
+              city: incomingCity || existing.city,
+              state: incomingState || existing.state,
+              pin_code: incomingPin || existing.pin_code,
+              address: incomingAddress || existing.address,
+              gst: incomingGst || existing.gst,
+              pan: incomingPan || existing.pan
+            };
+
+            await fetch(`${API_URL}${existing.id}/`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(payload)
+            }).catch(err => console.error("Patch customer error:", err));
+
+            processedReportRows.push({
+              "Sr.No": processedReportRows.length + 1,
+              "Status Action": "Updated Record in DB",
+              "Company Name": payload.name,
+              "Contact": payload.contact_number,
+              "Email": payload.email,
+              "City": payload.city,
+              "State": payload.state
+            });
+
+          } else {
+            // Create new customer record in DB
+            const payload = {
+              name: incomingName || "Imported Customer",
+              contact_number: incomingContact || "-",
+              email: incomingEmail || "-",
+              land_line_no: incomingLandline || "-",
+              poc_name: incomingPocName || "-",
+              poc_contact_number: incomingPocContact || "-",
+              city: incomingCity || "-",
+              state: incomingState || "-",
+              pin_code: incomingPin,
+              address: incomingAddress,
+              gst: incomingGst,
+              pan: incomingPan
+            };
+
+            await fetch(API_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(payload)
+            }).catch(err => console.error("Post customer error:", err));
+
+            processedReportRows.push({
+              "Sr.No": processedReportRows.length + 1,
+              "Status Action": "Created New in DB",
+              "Company Name": payload.name,
+              "Contact": payload.contact_number,
+              "Email": payload.email,
+              "City": payload.city,
+              "State": payload.state
+            });
+          }
+        }
+
+        // Refetch updated list from DB
+        await fetchData(1);
+
+        const exportSheet = XLSX.utils.json_to_sheet(processedReportRows);
+        const exportBook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(exportBook, exportSheet, "Imported Customers");
+        const timestamp = new Date().getTime();
+        XLSX.writeFile(exportBook, `Customers_Imported_Report_${timestamp}.xlsx`);
+
+        Swal.fire({
+          icon: "success",
+          title: "Import Successful!",
+          text: `Excel data saved to database successfully from "${file.name}".`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+      } catch (err) {
+        console.error("Import Error:", err);
+        Swal.fire({ icon: "error", title: "Import Failed", text: "Failed to save imported data to database." });
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
+  /* Revert99 - END */
 
   const token = useMemo(() => (
     localStorage.getItem("access") ||
@@ -154,9 +384,9 @@ export default function Customer() {
     // { key: "site_addr", label: "Site Address", render: (r) => r.site_address },
   ];
 
-  // actions renderer (centered by TableView)
-    const actionsRenderer = useCallback((row) => (
-      <>
+  const actionsRenderer = useCallback((row) => (
+    <>
+      {canEdit && (
         <button
           onClick={() => { setEditingCustomer(row); setShowCustomerForm(true); }}
           className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded"
@@ -164,7 +394,8 @@ export default function Customer() {
         >
           <MdEdit />
         </button>
-  
+      )}
+      {canDelete && (
         <button
           onClick={() => handleDelete(row.id)}
           className="px-2 py-1 bg-red-200 text-red-800 rounded"
@@ -172,8 +403,9 @@ export default function Customer() {
         >
           <MdDelete />
         </button>
-      </>
-    ), [handleDelete]);
+      )}
+    </>
+  ), [handleDelete, canEdit, canDelete]);
 
   return (
     <Base
@@ -181,6 +413,36 @@ export default function Customer() {
       filtersConfig={customerFilters}
       initialFilterValues={initialFilters}
       onFiltersChange={handleFilterChange}
+      headerActions={
+        /* Revert99 - START: Import & Export Buttons near Filters */
+        /* Revert99: Delete from here to Revert99 - END if not needed */
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".xlsx, .xls, .csv"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-white hover:shadow-sm"
+            title="Import Excel Sheet (.xlsx, .xls, .csv)"
+          >
+            <MdFileUpload className="text-sky-600 text-base" />
+            <span className="hidden sm:inline text-sm text-slate-700">Import</span>
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-white hover:shadow-sm"
+            title="Export Customers to Excel"
+          >
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span className="hidden sm:inline text-sm text-slate-700">Export</span>
+          </button>
+        </>
+        /* Revert99 - END */
+      }
     >
       <div className="space-y-6 ">
         <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
@@ -191,13 +453,14 @@ export default function Customer() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            
-            <button
-              onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
-              className="px-4 py-2 rounded-md bg-sky-600 text-white"
-            >
-              + Add
-            </button>
+            {canCreate && (
+              <button
+                onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
+                className="px-4 py-2 rounded-md bg-sky-600 text-white"
+              >
+                + Add
+              </button>
+            )}
           </div>
         </div>
 

@@ -64,7 +64,7 @@ export default function AddMaterialIssueForm({
 
   const fetchBranches = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/auth/branch/`, {
+      const response = await axios.get(`${BASE_API}/auth/branch/?all=true`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -78,7 +78,7 @@ export default function AddMaterialIssueForm({
 
   const fetchSites = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/auth/site/`, {
+      const response = await axios.get(`${BASE_API}/auth/site/?all=true`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -124,7 +124,7 @@ export default function AddMaterialIssueForm({
 
   const fetchInventory = async () => {
     try {
-      const response = await axios.get(`${BASE_API}/inventory/inventory/`, {
+      const response = await axios.get(`${BASE_API}/inventory/inventory/?all=true`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

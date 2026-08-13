@@ -7,50 +7,70 @@ import { useUserRole } from "../hooks/useAuth";
    1. Define items (moved inside component setup scope for clarity/safety)
    ---------------------- */
 const allItems = [
-  { key: "home", label: "Home", icon: HomeIcon, path: "/dashboard" },
-  { key: "leads", label: "Enquiries", icon: TargetIcon, path: "/leads" },
-  { key: "contacts", label: "Contacts", icon: UserIcon, path: "/customer" },
-  { key: "accounts", label: "Accounts", icon: BuildingIcon, path: "/accounts" }, // <-- Item to hide
- 
-  { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotation" },
-  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice" },
-  { key: "item_master", label: "Item Master", icon: BoxIcon, path: "/item_master" },
-  { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory"},
-  { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc" },
+  { key: "home", label: "Home", icon: HomeIcon, path: "/dashboard", docType: null },
+  { key: "leads", label: "Enquiries", icon: TargetIcon, path: "/leads", docType: "Lead" },
+  { key: "contacts", label: "Contacts", icon: UserIcon, path: "/customer", docType: "Customer" },
+  { key: "accounts", label: "Accounts", icon: BuildingIcon, path: "/accounts", docType: "Accounts" },
+  { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotation", docType: "Quotation" },
+  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice", docType: "Invoice" },
+  { key: "item_master", label: "Item Master", icon: BoxIcon, path: "/item_master", docType: "Item Master" },
+  { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory", docType: "Inventory" },
+  { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc", docType: "AMC" },
+  { key: "role_permissions", label: "Role Permissions", icon: ShieldIcon, path: "/role-permissions", docType: "Role Permissions" },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // NOTE: baseApi must be defined, assuming it's imported from environment or props
-  // We'll define it here based on common patterns:
   const baseApi = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
 
-  // 2. ✅ Get the user role
-  // Assuming useUserRole returns { userRole: { name: 'sales' }, ... }
-  const { userRole, isLoading: loadingRole } = useUserRole(baseApi);
+  const { userRole, isAdmin, hasPermission, hasAnyPermission, isLoading: loadingRole } = useUserRole(baseApi);
 
-  // 3. ✅ Filter the sidebar items based on the user role
+  // Listen for permission updates and force re-render
+  const [, setPermissionUpdateCounter] = React.useState(0);
+  React.useEffect(() => {
+    const handlePermissionsUpdated = () => {
+      setPermissionUpdateCounter(prev => prev + 1);
+    };
+    
+    window.addEventListener("permissionsUpdated", handlePermissionsUpdated);
+    return () => {
+      window.removeEventListener("permissionsUpdated", handlePermissionsUpdated);
+    };
+  }, []);
+
   const filteredItems = React.useMemo(() => {
-    // Wait until role is loaded to ensure correct filtering
-    if (loadingRole) {
-      return [];
+    const roleName = userRole?.name?.toLowerCase();
+    if (roleName === 'technician') {
+      return [
+        { key: "home", label: "Dashboard", icon: HomeIcon, path: "/dashboard", docType: null },
+        { key: "work_list", label: "Work List", icon: ListIcon, path: "/accounts?tab=work_history", docType: "Work History" },
+        { key: "completed_work_list", label: "Completed Work List", icon: CheckIcon, path: "/accounts?tab=completed_work", docType: "Completed Work" },
+      ].filter(item => !item.docType || hasAnyPermission(item.docType));
     }
 
+    // While refreshing auth, keep showing cached permissions (already in state from localStorage).
     return allItems.filter(item => {
-      // Check for the role object and the name property safely
-      const roleName = userRole?.name?.toLowerCase();
-
-      // Rule: Hide 'accounts' if the user role is 'sales'
-      if (item.key === 'accounts' && roleName === 'sales') {
-        return false; // Exclude this item
+      // 1. Home (no docType) is always visible
+      if (!item.docType) {
+        return true;
       }
 
-      // Include all other items
-      return true;
+      // 2. Role Permissions is admin only
+      if (item.key === "role_permissions") {
+        return isAdmin;
+      }
+
+      // 3. Admin has 100% full access to all sidebar items
+      if (isAdmin) {
+        return true;
+      }
+
+      // 4. Non-admin staff: check if they have ANY permission (read, create, write, or delete)
+      return hasAnyPermission(item.docType);
     });
-  }, [userRole, loadingRole, baseApi]);
+  }, [userRole, isAdmin, hasAnyPermission]);
 
 
   return (
@@ -177,3 +197,25 @@ function AmcIcon(props) {
     </svg>
   );
 }
+function ShieldIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ListIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CheckIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+

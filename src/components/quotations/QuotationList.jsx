@@ -11,8 +11,12 @@ import {
   MdDelete,
   MdEmail,
   MdHistory,
+  MdFileDownload,
 } from "react-icons/md";
 import { FaWhatsapp } from "react-icons/fa";
+import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -38,6 +42,7 @@ const normalize = (d) => (Array.isArray(d) ? d : d?.results || []);
  *   filters  – applied filter object from FiltersPanel (parent passes via Quotation.jsx)
  */
 export default function QuotationList({ onAdd, onEdit, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Quotation');
   const [list, setList] = useState([]);
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
@@ -156,29 +161,79 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     return isNaN(num) ? "0.00" : num.toFixed(2);
   };
 
+  const handleExportExcel = () => {
+    try {
+      if (!list || list.length === 0) {
+        Swal.fire({ icon: "info", title: "No Data", text: "No quotation data available to export." });
+        return;
+      }
+
+      const exportData = list.map((q, idx) => {
+        const activeVersion = getActiveVersion(q);
+        return {
+          "Sr.No": idx + 1,
+          "Customer Name": q.customer_name || "-",
+          "Customer Contact": q.customer_contact || "-",
+          "Site Name": q.site_name_detail || q.site_name || "-",
+          "Products": getProductCount(activeVersion),
+          "Total Amount": `₹${formatAmount(activeVersion?.total_amount)}`
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Quotations");
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Quotations_Export_${dateStr}.xlsx`);
+
+      Swal.fire({
+        icon: "success",
+        title: "Exported!",
+        text: "Quotation list exported successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      console.error("Export Error:", err);
+      Swal.fire({ icon: "error", title: "Export Failed", text: err.message || "Could not export quotation excel file." });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Section — matches PurchaseOrder.jsx */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Quotation Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${list.length} quotation(s) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto flex items-center gap-2">
           <button
-            onClick={onAdd}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            type="button"
+            onClick={handleExportExcel}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 hover:shadow-sm flex items-center gap-1.5"
+            title="Export Quotations Excel Sheet"
           >
-            + Add Quotation
+            <MdFileDownload className="text-sky-600 text-base" />
+            <span>Export</span>
           </button>
+          {canCreate && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center"
+            >
+              + Add Quotation
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table — matches PurchaseOrder.jsx */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -237,9 +292,11 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdRemoveRedEye />
                         </button>
 
-                        <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
-                          <MdEdit />
-                        </button>
+                        {canEdit && (
+                          <button onClick={() => onEdit(q.id)} className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300" title="Edit">
+                            <MdEdit />
+                          </button>
+                        )}
 
                         <button onClick={() => handleDownloadPDF(q.id)} className="px-2 py-1 bg-green-200 text-green-800 rounded hover:bg-green-300" title="Download">
                           <MdDownload />
@@ -253,9 +310,11 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <MdEmail />
                         </button>
 
-                        <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                          <MdDelete />
-                        </button>
+                        {canDelete && (
+                          <button onClick={() => handleDeleteVersion(q.id, activeVersion.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                            <MdDelete />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -266,13 +325,14 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                       <td colSpan="6" className="bg-slate-50 px-8 py-4">
                         <div className="font-semibold text-sm mb-2">Version History</div>
 
-                        <table className="w-full bg-white rounded-md overflow-hidden">
-                          <thead className="bg-slate-50 border-b">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Version</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Date</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Products</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Total</th>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[600px] bg-white rounded-md overflow-hidden">
+                            <thead className="bg-slate-50 border-b">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Version</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Date</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Products</th>
+                                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-700">Total</th>
                               <th className="px-3 py-2 text-center text-xs font-semibold text-slate-700">Actions</th>
                             </tr>
                           </thead>
@@ -309,15 +369,18 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                         <MdEmail />
                                       </button>
 
-                                      <button onClick={() => handleDeleteVersion(q.id, v.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
-                                        <MdDelete />
-                                      </button>
+                                      {canDelete && (
+                                        <button onClick={() => handleDeleteVersion(q.id, v.id)} className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300" title="Delete">
+                                          <MdDelete />
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
                               ))}
-                          </tbody>
-                        </table>
+                            </tbody>
+                          </table>
+                        </div>
                       </td>
                     </tr>
                   )}

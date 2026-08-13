@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { RxCross2 } from "react-icons/rx";
 import axios from "axios";
 import Select from "react-select";
+import Swal from "sweetalert2";
 
 const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd }) => {
   const [items, setItems] = useState([]);
@@ -88,7 +89,7 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
   const handleSave = async () => {
     try {
       if (!formData.service_name || !formData.service_name.trim() || !formData.service_type) {
-        alert("Service Name and Service Type are required");
+        Swal.fire({ icon: "error", title: "Validation", text: "Service Name and Service Type are required" });
         return;
       }
 
@@ -117,7 +118,12 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
           authHeaders()
         );
         console.log("Service updated successfully:", response.data);
-        alert("Service updated successfully!");
+        Swal.fire({
+          icon: "success",
+          text: "Service updated successfully!",
+          timer: 1500,
+          showConfirmButton: false
+        });
       } else {
         response = await axios.post(
           `${baseApi}/quotation/service-masters-create/`,
@@ -125,7 +131,12 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
           authHeaders()
         );
         console.log("Service created successfully:", response.data);
-        alert("Service created successfully!");
+        Swal.fire({
+          icon: "success",
+          text: "Service created successfully!",
+          timer: 1500,
+          showConfirmButton: false
+        });
       }
 
       handleReset();
@@ -137,7 +148,11 @@ const AddServiceModal = ({ isOpen, onClose, baseApi, serviceToEdit, onServiceAdd
     } catch (err) {
       console.error("Error saving service:", err);
       console.error("Error response:", err.response?.data);
-      alert(`Error: ${err.response?.data?.detail || err.response?.data || err.message}`);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.detail || err.response?.data || err.message
+      });
     } finally {
       setLoading(false);
     }

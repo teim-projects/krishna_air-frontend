@@ -3,9 +3,11 @@ import { MdEdit, MdDelete } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddSiteForm from "./AddSiteForm";
 import Pagination from "../Pagination";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function Site({ base_api, filters }) {
   const BASE_API = base_api;
+  const { canCreate, canEdit, canDelete } = useDocPermissions('Site');
 
   // State for sites list
   const [sites, setSites] = useState([]);
@@ -242,26 +244,28 @@ export default function Site({ base_api, filters }) {
     <div className="space-y-6">
 
       {/* Header Section */}
-      <div className="bg-white p-4 rounded-md shadow flex items-center justify-between">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Site Management</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${totalCount} site(s) found`}
           </div>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
+          {canCreate && (
           <button
             onClick={handleAddSite}
-            className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700"
+            className="w-full sm:w-auto px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 text-center font-medium"
           >
             + Add Site
           </button>
+          )}
         </div>
       </div>
 
       {/* Sites Table */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -285,7 +289,7 @@ export default function Site({ base_api, filters }) {
             ) : (
               sites.map((site, index) => (
                 <tr key={site.id} className="border-b hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{site.name}</td>
                   <td className="px-4 py-3 text-sm">{site.site_shortcut || "-"}</td>
                   <td className="px-4 py-3 text-sm">{site.city}</td>
@@ -295,6 +299,7 @@ export default function Site({ base_api, filters }) {
                   <td className="px-4 py-3 text-sm">{site.owner_contact}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      {canEdit && (
                       <button
                         onClick={() => handleEdit(site)}
                         className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
@@ -302,6 +307,8 @@ export default function Site({ base_api, filters }) {
                       >
                         <MdEdit />
                       </button>
+                      )}
+                      {canDelete && (
                       <button
                         onClick={() => handleDelete(site.id)}
                         className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
@@ -309,6 +316,7 @@ export default function Site({ base_api, filters }) {
                       >
                         <MdDelete />
                       </button>
+                      )}
                     </div>
                   </td>
                 </tr>

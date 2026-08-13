@@ -4,8 +4,10 @@ import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
 import ContractDetailModal from "./ContractDetailModal";
 import AmcSparePartsModal from "./AmcSparePartsModal";
+import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function AmcList({ baseApi, token, filters = {} }) {
+  const { canCreate, canEdit, canDelete } = useDocPermissions('AMC');
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -143,18 +145,18 @@ export default function AmcList({ baseApi, token, filters = {} }) {
   return (
     <div className="space-y-6">
       {/* Header card matching PurchaseOrder */}
-      <div className="bg-white p-4 rounded-md shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-md shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">AMC Contracts</h2>
           <div className="text-sm text-slate-600">
             {loading ? "Loading..." : `${contracts.length} AMC contract(s) found`}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex gap-2 w-full sm:w-auto justify-between sm:justify-start">
             <button
               onClick={() => setFilterType("all")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium rounded-md ${
                 filterType === "all" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
@@ -162,7 +164,7 @@ export default function AmcList({ baseApi, token, filters = {} }) {
             </button>
             <button
               onClick={() => setFilterType("active")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium rounded-md ${
                 filterType === "active" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
@@ -170,28 +172,30 @@ export default function AmcList({ baseApi, token, filters = {} }) {
             </button>
             <button
               onClick={() => setFilterType("expiring_soon")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+              className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium rounded-md ${
                 filterType === "expiring_soon" ? "bg-amber-600 text-white" : "bg-amber-100 text-amber-800 hover:bg-amber-200"
               }`}
             >
               Expiring Soon
             </button>
           </div>
-          <button
-            onClick={() => {
-              setSelectedAmc(null);
-              setShowAddForm(true);
-            }}
-            className="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 text-sm font-medium"
-          >
-            + Add AMC
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setSelectedAmc(null);
+                setShowAddForm(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 text-sm font-medium text-center"
+            >
+              + Add AMC
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table Card matching PurchaseOrder */}
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-md shadow overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Sr.No</th>
@@ -239,7 +243,11 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                       QUARTERLY: "Quarterly",
                       HALF_YEARLY: "Half Yearly",
                       YEARLY: "Yearly",
+                      CUSTOM: "Custom",
                     }[item.visit_frequency] || "—"}
+                    {item.expected_visit_count != null && (
+                      <span className="text-slate-500"> ({item.expected_visit_count} visits)</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm">{item.product_name || `Variant ID: ${item.product_variant}`}</td>
                   <td className="px-4 py-3 text-sm">{item.amc_start_date}</td>
@@ -268,17 +276,19 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                           <MdBuild />
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          setSelectedAmc(item);
-                          setShowAddForm(true);
-                        }}
-                        className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
-                        title="Edit"
-                      >
-                        <MdEdit />
-                      </button>
-                      {item.status === "ACTIVE" && (
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setSelectedAmc(item);
+                            setShowAddForm(true);
+                          }}
+                          className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                          title="Edit"
+                        >
+                          <MdEdit />
+                        </button>
+                      )}
+                      {item.status === "ACTIVE" && canEdit && (
                         <button
                           onClick={() => handleRenew(item.id)}
                           className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300"
@@ -287,13 +297,15 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                           <MdAutorenew />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
-                        title="Delete"
-                      >
-                        <MdDelete />
-                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="px-2 py-1 bg-red-200 text-red-800 rounded hover:bg-red-300"
+                          title="Delete"
+                        >
+                          <MdDelete />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
