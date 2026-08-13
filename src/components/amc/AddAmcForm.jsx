@@ -110,6 +110,8 @@ export default function AddAmcForm({
   const [loading, setLoading] = useState(false);
   const [variants, setVariants] = useState([]);
   const [amcCustomerMap, setAmcCustomerMap] = useState(new Map());
+  const [customerVariants, setCustomerVariants] = useState([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const headers = {
     "Content-Type": "application/json",
@@ -153,6 +155,56 @@ export default function AddAmcForm({
 
     fetchData();
   }, [open, baseApi, token]);
+
+  useEffect(() => {
+    if (!formData.customer) {
+      setCustomerVariants([]);
+      return;
+    }
+
+    const fetchCustomerQuotations = async () => {
+      setLoadingVariants(true);
+      try {
+        const res = await fetch(`${baseApi}/quotation/quotation/?customer=${formData.customer}`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          const quotes = data.results || data || [];
+          
+          const extractedVariants = [];
+          const seenVariantIds = new Set();
+
+          quotes.forEach(q => {
+            if (q.versions) {
+              q.versions.forEach(v => {
+                if (v.high_side_items) {
+                  v.high_side_items.forEach(hItem => {
+                    if (hItem.product_variant && !seenVariantIds.has(hItem.product_variant)) {
+                      seenVariantIds.add(hItem.product_variant);
+                      extractedVariants.push({
+                        id: hItem.product_variant,
+                        sku: hItem.variant_sku || `SKU #${hItem.product_variant}`,
+                        product_model_name: hItem.product_model_name || "",
+                        ac_type_name: hItem.ac_type_name || "",
+                        ac_sub_type_name: hItem.ac_sub_type_name || ""
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+          setCustomerVariants(extractedVariants);
+        }
+      } catch (err) {
+        console.error("Error fetching customer quotations:", err);
+      } finally {
+        setLoadingVariants(false);
+      }
+    };
+
+    fetchCustomerQuotations();
+  }, [formData.customer, baseApi, token]);
 
   useEffect(() => {
     if (!amc || !open) {
@@ -326,9 +378,11 @@ export default function AddAmcForm({
     }
   };
 
-  const variantOptions = variants.map((v) => ({
+  const displayVariants = customerVariants.length > 0 ? customerVariants : variants;
+
+  const variantOptions = displayVariants.map((v) => ({
     value: v.id,
-    label: `${v.sku} - ${v.product_model_name || ""}`,
+    label: v.product_model_name ? `${v.sku} - ${v.product_model_name}` : v.sku,
   }));
 
   const fields = useMemo(() => {
@@ -385,7 +439,7 @@ export default function AddAmcForm({
       label: "AC Variant / Model",
       type: "searchable_select",
       required: true,
-      placeholder: "Type to search AC model...",
+      placeholder: loadingVariants ? "Loading quotation items..." : "Type to search AC model...",
       options: variantOptions,
       gridCols: 1,
     },

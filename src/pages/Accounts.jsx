@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Base from "../components/Base";
 import AddStaffForm from "../components/accounts/AddStaffForm";
 import EditWorkRecordForm from "../components/accounts/EditWorkRecordForm";
@@ -14,7 +15,10 @@ export default function Accounts() {
   const { canCreate, canEdit, canDelete } = useDocPermissions('Accounts');
   const { canView: canViewWork, canEdit: canEditWork, canDelete: canDeleteWork } = useDocPermissions('Work History');
   const { canView: canViewCompletedWork } = useDocPermissions('Completed Work');
-  const { isAdmin } = useUserRole(BASE_API);
+  const { isAdmin, userRole } = useUserRole(BASE_API);
+  const isTechnician = userRole?.name?.toLowerCase() === 'technician';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const initialFilters = useMemo(() => ({ search: "", role: "" }), []);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
@@ -33,15 +37,33 @@ export default function Accounts() {
   const [showAddRole, setShowAddRole] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-  const [activeTab, setActiveTab] = useState("all");
+  
+  const [activeTab, setActiveTab] = useState(() => {
+    if (tabParam === "work_history") return "low";
+    if (tabParam === "completed_work") return "installation";
+    return "all";
+  });
 
   useEffect(() => {
-    if (activeTab === "low" && !canViewWork) {
+    if (tabParam === "work_history") {
+      setActiveTab("low");
+    } else if (tabParam === "completed_work") {
+      setActiveTab("installation");
+    } else if (tabParam === "staff") {
+      setActiveTab("all");
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
+    const isTech = userRole?.name?.toLowerCase() === 'technician';
+    if (isTech && (activeTab === "all" || activeTab === "technician")) {
+      setActiveTab("low");
+    } else if (activeTab === "low" && !canViewWork) {
       setActiveTab("all");
     } else if (activeTab === "installation" && !canViewCompletedWork) {
       setActiveTab("all");
     }
-  }, [activeTab, canViewWork, canViewCompletedWork]);
+  }, [activeTab, canViewWork, canViewCompletedWork, userRole]);
   const [workRecords, setWorkRecords] = useState([]);
   const [completedWorkRows, setCompletedWorkRows] = useState([]);
   const [loadingWork, setLoadingWork] = useState(false);
@@ -444,26 +466,30 @@ export default function Accounts() {
       <div className="space-y-6">
         {/* Category Selection Tabs */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
-              activeTab === "all"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            All Accounts
-          </button>
-          <button
-            onClick={() => setActiveTab("technician")}
-            className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
-              activeTab === "technician"
-                ? "bg-blue-800 text-blue-100"
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            }`}
-          >
-            Technician List
-          </button>
+          {!isTechnician && (
+            <>
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                  activeTab === "all"
+                    ? "bg-blue-800 text-blue-100"
+                    : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                }`}
+              >
+                All Accounts
+              </button>
+              <button
+                onClick={() => setActiveTab("technician")}
+                className={`px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base rounded font-medium transition w-full sm:w-auto text-center ${
+                  activeTab === "technician"
+                    ? "bg-blue-800 text-blue-100"
+                    : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                }`}
+              >
+                Technician List
+              </button>
+            </>
+          )}
           {canViewWork && (
             <button
               onClick={() => setActiveTab("low")}
@@ -473,7 +499,7 @@ export default function Accounts() {
                   : "bg-blue-100 text-blue-800 hover:bg-blue-200"
               }`}
             >
-              Work history
+              Work List
             </button>
           )}
           {canViewCompletedWork && (

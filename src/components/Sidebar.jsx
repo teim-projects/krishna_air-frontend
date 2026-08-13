@@ -41,6 +41,15 @@ export default function Sidebar() {
   }, []);
 
   const filteredItems = React.useMemo(() => {
+    const roleName = userRole?.name?.toLowerCase();
+    if (roleName === 'technician') {
+      return [
+        { key: "home", label: "Dashboard", icon: HomeIcon, path: "/dashboard", docType: null },
+        { key: "work_list", label: "Work List", icon: ListIcon, path: "/accounts?tab=work_history", docType: "Work History" },
+        { key: "completed_work_list", label: "Completed Work List", icon: CheckIcon, path: "/accounts?tab=completed_work", docType: "Completed Work" },
+      ].filter(item => !item.docType || hasAnyPermission(item.docType));
+    }
+
     // While refreshing auth, keep showing cached permissions (already in state from localStorage).
     return allItems.filter(item => {
       // 1. Home (no docType) is always visible
@@ -192,6 +201,20 @@ function ShieldIcon(props) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ListIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CheckIcon(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none">
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
