@@ -54,7 +54,7 @@ export default function CompletedWorkDetailModal({ open, onClose, baseApi, itemI
   const valueClass = "text-sm text-slate-900 mt-0.5";
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 mt-15">
       <div className="bg-white rounded-md shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
         <button
           type="button"

@@ -216,7 +216,7 @@ export default function AmcSparePartsModal({ contract, baseApi, token, onClose, 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto mt-15">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl my-6">
         <div className="flex items-start justify-between px-6 py-5 border-b bg-slate-50 rounded-t-xl">
           <div>

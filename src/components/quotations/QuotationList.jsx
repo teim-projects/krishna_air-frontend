@@ -17,6 +17,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import EmailModal from "../common/EmailModal";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -47,6 +48,15 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({
+    endpoint: "",
+    defaultRecipient: "",
+    defaultSubject: "",
+    defaultBody: "",
+    attachmentName: "",
+    additionalData: {},
+  });
 
   // CLOSE PANEL ON OUTSIDE CLICK
   useEffect(() => {
@@ -153,6 +163,19 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
       console.error(err);
       alert("Failed to delete version");
     }
+  };
+
+  const handleOpenEmailModal = (quotation, version = null) => {
+    const targetVersion = version || getActiveVersion(quotation);
+    setEmailConfig({
+      endpoint: `quotation/quotation/${quotation.id}/send-email/`,
+      defaultRecipient: quotation.customer_email || quotation.customer?.email || "",
+      defaultSubject: `Quotation ${quotation.quotation_no} - Krishna Air`,
+      defaultBody: `Dear Customer,\n\nPlease find attached Quotation ${quotation.quotation_no} version ${targetVersion?.version_no} for your review.\n\nBest regards,\nKrishna Air Team`,
+      attachmentName: `Quotation_${quotation.quotation_no}_v${targetVersion?.version_no}.pdf`,
+      additionalData: targetVersion ? { version_id: targetVersion.id } : {},
+    });
+    setEmailModalOpen(true);
   };
 
   const formatAmount = (amount) => {
@@ -306,7 +329,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <FaWhatsapp />
                         </button>
 
-                        <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                        <button onClick={() => handleOpenEmailModal(q)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                           <MdEmail />
                         </button>
 
@@ -365,7 +388,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                         <FaWhatsapp />
                                       </button>
 
-                                      <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                                      <button onClick={() => handleOpenEmailModal(q, v)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                                         <MdEmail />
                                       </button>
 
@@ -398,6 +421,17 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
           </tbody>
         </table>
       </div>
+
+      <EmailModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        endpoint={emailConfig.endpoint}
+        defaultRecipient={emailConfig.defaultRecipient}
+        defaultSubject={emailConfig.defaultSubject}
+        defaultBody={emailConfig.defaultBody}
+        attachmentName={emailConfig.attachmentName}
+        additionalData={emailConfig.additionalData}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import EmailModal from "../common/EmailModal";
 
 export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
@@ -24,6 +25,14 @@ export default function PurchaseOrder({ base_api, filters }) {
   // Modal state
   const [showPoForm, setShowPoForm] = useState(false);
   const [editingPo, setEditingPo] = useState(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({
+    endpoint: "",
+    defaultRecipient: "",
+    defaultSubject: "",
+    defaultBody: "",
+    attachmentName: "",
+  });
 
   // Version history state
   const [expandedPO, setExpandedPO] = useState(null); // stores purchase_order_no of expanded PO
@@ -383,9 +392,15 @@ export default function PurchaseOrder({ base_api, filters }) {
   };
 
   // Handle email
-  const handleEmail = (id) => {
-    console.log("Send email:", id);
-    // TODO: Implement email functionality
+  const handleEmail = (poObj) => {
+    setEmailConfig({
+      endpoint: `inventory/purchase-order/${poObj.id}/send-email/`,
+      defaultRecipient: poObj.vendor_email || poObj.vendor?.email || "",
+      defaultSubject: `Purchase Order ${poObj.purchase_order_no} - Krishna Air`,
+      defaultBody: `Dear Partner,\n\nPlease find attached Purchase Order ${poObj.purchase_order_no} for your reference.\n\nBest regards,\nKrishna Air Team`,
+      attachmentName: `PurchaseOrder_${poObj.purchase_order_no}.pdf`,
+    });
+    setEmailModalOpen(true);
   };
 
 
@@ -502,7 +517,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                           <FaWhatsapp />
                         </button>
                         <button
-                          onClick={() => handleEmail(order.id)}
+                          onClick={() => handleEmail(order)}
                           className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300"
                           title="Email"
                         >
@@ -571,7 +586,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                                   <FaWhatsapp />
                                 </button>
                                 <button
-                                  onClick={() => handleEmail(version.id)}
+                                  onClick={() => handleEmail(version)}
                                   className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300"
                                   title="Email"
                                 >
@@ -640,6 +655,16 @@ export default function PurchaseOrder({ base_api, filters }) {
         po={editingPo}
         onSuccess={handleFormSuccess}
         token={token}
+      />
+
+      <EmailModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        endpoint={emailConfig.endpoint}
+        defaultRecipient={emailConfig.defaultRecipient}
+        defaultSubject={emailConfig.defaultSubject}
+        defaultBody={emailConfig.defaultBody}
+        attachmentName={emailConfig.attachmentName}
       />
     </div>
   );

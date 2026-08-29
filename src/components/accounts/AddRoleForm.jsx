@@ -75,7 +75,7 @@ export default function AddRoleForm({ open, onClose, onSuccess, baseApi, initial
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 mt-15">
       <div className="bg-white rounded-md shadow-lg w-full max-w-md p-6 relative">
         <button
           onClick={onClose}

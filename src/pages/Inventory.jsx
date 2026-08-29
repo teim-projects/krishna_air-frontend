@@ -181,7 +181,7 @@ const Inventory = () => {
               </button>
               {canAccessDelChallan && (
                 <button
-                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'deliveryChallan' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                  className={`flex-shrink-0 px-4 py-2 rounded transition-colors ${activeTab === 'deliveryChallan' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
                   onClick={() => setActiveTab('deliveryChallan')}
                 >
                   Delivery Challan

@@ -5,6 +5,7 @@ import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFil
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import EmailModal from "../common/EmailModal";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -33,6 +34,14 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const { canCreate, canEdit, canDelete } = useDocPermissions('Invoice');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({
+    endpoint: "",
+    defaultRecipient: "",
+    defaultSubject: "",
+    defaultBody: "",
+    attachmentName: "",
+  });
 
   // ─── Build query string from filters ───────────────────────────────────────
   const buildParams = useCallback((f = {}) => {
@@ -167,6 +176,17 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
     }
   };
 
+  const handleOpenEmailModal = (invoice) => {
+    setEmailConfig({
+      endpoint: `invoice/invoice/${invoice.id}/send-email/`,
+      defaultRecipient: invoice.customer_email || invoice.customer?.email || "",
+      defaultSubject: `Invoice ${invoice.invoice_no} - Krishna Air`,
+      defaultBody: `Dear Customer,\n\nPlease find attached Invoice ${invoice.invoice_no} for your review.\n\nBest regards,\nKrishna Air Team`,
+      attachmentName: `Invoice_${invoice.invoice_no}.pdf`,
+    });
+    setEmailModalOpen(true);
+  };
+
   /* ================= DELETE ================= */
 
   const handleDeleteInvoice = async (invoiceId) => {
@@ -277,7 +297,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <FaWhatsapp />
                     </button>
 
-                    <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                    <button onClick={() => handleOpenEmailModal(inv)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                       <MdEmail />
                     </button>
 
@@ -301,6 +321,16 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
           </tbody>
         </table>
       </div>
+
+      <EmailModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        endpoint={emailConfig.endpoint}
+        defaultRecipient={emailConfig.defaultRecipient}
+        defaultSubject={emailConfig.defaultSubject}
+        defaultBody={emailConfig.defaultBody}
+        attachmentName={emailConfig.attachmentName}
+      />
     </div>
   );
 });

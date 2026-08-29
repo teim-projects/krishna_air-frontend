@@ -294,7 +294,7 @@ export default function AddBranchForm({
 
   return (
     <>
-      <div className="fixed inset-0 mt-8 bg-black/40 flex items-start sm:items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 mt-15">
         <div className="bg-white rounded-md shadow-lg w-full max-w-2xl relative max-h-[85vh] flex flex-col">
 
           {/* FIXED HEADER */}

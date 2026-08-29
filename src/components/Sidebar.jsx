@@ -50,74 +50,106 @@ export default function Sidebar() {
       ].filter(item => !item.docType || hasAnyPermission(item.docType));
     }
 
-    // While refreshing auth, keep showing cached permissions (already in state from localStorage).
     return allItems.filter(item => {
-      // 1. Home (no docType) is always visible
       if (!item.docType) {
         return true;
       }
-
-      // 2. Role Permissions is admin only
       if (item.key === "role_permissions") {
         return isAdmin;
       }
-
-      // 3. Admin has 100% full access to all sidebar items
       if (isAdmin) {
         return true;
       }
-
-      // 4. Non-admin staff: check if they have ANY permission (read, create, write, or delete)
       return hasAnyPermission(item.docType);
     });
   }, [userRole, isAdmin, hasAnyPermission]);
 
+  const sections = React.useMemo(() => {
+    const mainSection = [];
+    const salesSection = [];
+    const opsSection = [];
+    const adminSection = [];
+    
+    filteredItems.forEach(item => {
+      if (item.key === "home" || item.key === "leads" || item.key === "contacts" || item.key === "work_list" || item.key === "completed_work_list") {
+        mainSection.push(item);
+      } else if (item.key === "quotes" || item.key === "invoices" || item.key === "amc") {
+        salesSection.push(item);
+      } else if (item.key === "accounts" || item.key === "item_master" || item.key === "inventory") {
+        opsSection.push(item);
+      } else if (item.key === "role_permissions") {
+        adminSection.push(item);
+      } else {
+        mainSection.push(item);
+      }
+    });
+
+    return [
+      { title: "Core CRM", items: mainSection },
+      { title: "Sales & Billing", items: salesSection },
+      { title: "Operations", items: opsSection },
+      { title: "Administration", items: adminSection }
+    ].filter(sec => sec.items.length > 0);
+  }, [filteredItems]);
 
   return (
-    <aside className="w-55 bg-white border-r border-slate-100 min-h-screen px-3 py-4">
-      <nav className="space-y-1">
-        {/* 4. ✅ Render the filtered items */}
-        {filteredItems.map((it) => (
-          <SidebarItem key={it.key} item={it} active={isActive(it.path, currentPath)} />
+    <aside className="w-full bg-gradient-to-b from-white to-slate-50/50 border-r border-slate-100 min-h-screen py-6 px-4 flex flex-col justify-between overflow-y-auto">
+      <nav className="flex flex-col gap-6">
+        {sections.map((section) => (
+          <div key={section.title} className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1 block">
+              {section.title}
+            </span>
+            <div className="flex flex-col">
+              {section.items.map((it) => (
+                <SidebarItem key={it.key} item={it} active={isActive(it.path, currentPath)} />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
+      
+      <div className="pt-4 border-t border-slate-100 mt-6 px-3 flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          System Status
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-slate-500 font-medium">Online</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        </div>
+      </div>
     </aside>
   );
 }
 
 function isActive(itemPath, currentPath) {
   if (!itemPath) return false;
-  // exact match or startsWith (for nested routes)
   return currentPath === itemPath || currentPath.startsWith(itemPath + "/");
 }
 
 function SidebarItem({ item, active }) {
   const base =
-    "flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-150 select-none";
-  const textClass = active ? "text-sky-700 font-bold " : "text-sm text-slate-700 font-medium";
-  const iconColor = active ? "text-sky-700" : "text-slate-400";
+    "group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 select-none relative mb-1 text-sm font-medium";
+  const activeClass = "text-sky-600 bg-sky-50/70 font-semibold";
+  const inactiveClass = "text-slate-500 hover:bg-slate-100/50 hover:text-slate-900 hover:translate-x-1";
+  const iconColor = active ? "text-sky-500" : "text-slate-400 group-hover:text-slate-600";
 
   return (
     <Link
       to={item.path || "#"}
-      className={`${active ? "bg-sky-100" : "hover:bg-sky-50"} ${base}`}
+      className={`${base} ${active ? activeClass : inactiveClass}`}
       aria-current={active ? "page" : undefined}
     >
-      <span className={`flex-shrink-0 ${iconColor}`}>
+      {/* Active Indicator Line */}
+      {active && (
+        <span className="absolute left-0 w-1 h-5 bg-sky-500 rounded-r-full" />
+      )}
+
+      <span className={`flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${iconColor}`}>
         <item.icon className="w-5 h-5" />
       </span>
 
-      <span className={`${textClass} flex-1`}>{item.label}</span>
-
-      {active && (
-        <span className="w-6 h-6 flex items-center justify-center rounded-full">
-          <svg className="w-4 h-4 text-slate-800" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-          </svg>
-        </span>
-      )}
+      <span className="flex-1">{item.label}</span>
     </Link>
   );
 }
