@@ -6,7 +6,8 @@ import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
-import EmailModal from "../common/EmailModal";
+import SendTemplateModal from "../common/SendTemplateModal";
+import CreateTemplateModal from "../common/CreateTemplateModal";
 
 export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
@@ -26,13 +27,8 @@ export default function PurchaseOrder({ base_api, filters }) {
   const [showPoForm, setShowPoForm] = useState(false);
   const [editingPo, setEditingPo] = useState(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailConfig, setEmailConfig] = useState({
-    endpoint: "",
-    defaultRecipient: "",
-    defaultSubject: "",
-    defaultBody: "",
-    attachmentName: "",
-  });
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   // Version history state
   const [expandedPO, setExpandedPO] = useState(null); // stores purchase_order_no of expanded PO
@@ -393,13 +389,7 @@ export default function PurchaseOrder({ base_api, filters }) {
 
   // Handle email
   const handleEmail = (poObj) => {
-    setEmailConfig({
-      endpoint: `inventory/purchase-order/${poObj.id}/send-email/`,
-      defaultRecipient: poObj.vendor_email || poObj.vendor?.email || "",
-      defaultSubject: `Purchase Order ${poObj.purchase_order_no} - Krishna Air`,
-      defaultBody: `Dear Partner,\n\nPlease find attached Purchase Order ${poObj.purchase_order_no} for your reference.\n\nBest regards,\nKrishna Air Team`,
-      attachmentName: `PurchaseOrder_${poObj.purchase_order_no}.pdf`,
-    });
+    setSelectedDoc(poObj);
     setEmailModalOpen(true);
   };
 
@@ -425,6 +415,7 @@ export default function PurchaseOrder({ base_api, filters }) {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+
           {canCreate && (
           <button
             onClick={handleAddPo}
@@ -657,15 +648,15 @@ export default function PurchaseOrder({ base_api, filters }) {
         token={token}
       />
 
-      <EmailModal
+      <SendTemplateModal
         isOpen={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
-        endpoint={emailConfig.endpoint}
-        defaultRecipient={emailConfig.defaultRecipient}
-        defaultSubject={emailConfig.defaultSubject}
-        defaultBody={emailConfig.defaultBody}
-        attachmentName={emailConfig.attachmentName}
+        category="PURCHASE_ORDERS"
+        documentId={selectedDoc?.id}
+        documentData={selectedDoc || {}}
       />
+
+
     </div>
   );
 }

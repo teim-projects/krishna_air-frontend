@@ -5,7 +5,8 @@ import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFil
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
-import EmailModal from "../common/EmailModal";
+import SendTemplateModal from "../common/SendTemplateModal";
+import CreateTemplateModal from "../common/CreateTemplateModal";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -35,13 +36,8 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [emailConfig, setEmailConfig] = useState({
-    endpoint: "",
-    defaultRecipient: "",
-    defaultSubject: "",
-    defaultBody: "",
-    attachmentName: "",
-  });
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   // ─── Build query string from filters ───────────────────────────────────────
   const buildParams = useCallback((f = {}) => {
@@ -177,13 +173,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   };
 
   const handleOpenEmailModal = (invoice) => {
-    setEmailConfig({
-      endpoint: `invoice/invoice/${invoice.id}/send-email/`,
-      defaultRecipient: invoice.customer_email || invoice.customer?.email || "",
-      defaultSubject: `Invoice ${invoice.invoice_no} - Krishna Air`,
-      defaultBody: `Dear Customer,\n\nPlease find attached Invoice ${invoice.invoice_no} for your review.\n\nBest regards,\nKrishna Air Team`,
-      attachmentName: `Invoice_${invoice.invoice_no}.pdf`,
-    });
+    setSelectedDoc(invoice);
     setEmailModalOpen(true);
   };
 
@@ -222,6 +212,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+
           {canCreate && (
             <button
               onClick={onAdd}
@@ -322,15 +313,15 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
         </table>
       </div>
 
-      <EmailModal
+      <SendTemplateModal
         isOpen={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
-        endpoint={emailConfig.endpoint}
-        defaultRecipient={emailConfig.defaultRecipient}
-        defaultSubject={emailConfig.defaultSubject}
-        defaultBody={emailConfig.defaultBody}
-        attachmentName={emailConfig.attachmentName}
+        category="INVOICES"
+        documentId={selectedDoc?.id}
+        documentData={selectedDoc || {}}
       />
+
+
     </div>
   );
 });

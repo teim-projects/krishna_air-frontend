@@ -27,6 +27,7 @@ import ItemMaster from "./pages/ItemMaster";
 import Inventory from "./pages/Inventory";
 import AmcPage from "./pages/Amc";
 import RolePermissionsManager from "./pages/RolePermissionsManager";
+import MessageTemplates from "./pages/MessageTemplates";
 
 function AppRoutes() {
   const location = useLocation();
@@ -150,6 +151,10 @@ function AppRoutes() {
               <Route
                 path="/role-permissions"
                 element={<RolePermissionsManager />}
+              />
+              <Route
+                path="/message-templates"
+                element={<MessageTemplates />}
               />
             </Routes>
             

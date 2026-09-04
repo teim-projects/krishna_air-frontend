@@ -17,6 +17,7 @@ const allItems = [
   { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory", docType: "Inventory" },
   { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc", docType: "AMC" },
   { key: "role_permissions", label: "Role Permissions", icon: ShieldIcon, path: "/role-permissions", docType: "Role Permissions" },
+  { key: "message_templates", label: "Message Templates", icon: TemplateIcon, path: "/message-templates", docType: null },
 ];
 
 export default function Sidebar() {
@@ -69,6 +70,7 @@ export default function Sidebar() {
     const salesSection = [];
     const opsSection = [];
     const adminSection = [];
+    const systemSection = [];
     
     filteredItems.forEach(item => {
       if (item.key === "home" || item.key === "leads" || item.key === "contacts" || item.key === "work_list" || item.key === "completed_work_list") {
@@ -79,6 +81,8 @@ export default function Sidebar() {
         opsSection.push(item);
       } else if (item.key === "role_permissions") {
         adminSection.push(item);
+      } else if (item.key === "message_templates") {
+        systemSection.push(item);
       } else {
         mainSection.push(item);
       }
@@ -88,7 +92,8 @@ export default function Sidebar() {
       { title: "Core CRM", items: mainSection },
       { title: "Sales & Billing", items: salesSection },
       { title: "Operations", items: opsSection },
-      { title: "Administration", items: adminSection }
+      { title: "Administration", items: adminSection },
+      { title: "System", items: systemSection }
     ].filter(sec => sec.items.length > 0);
   }, [filteredItems]);
 
@@ -247,6 +252,13 @@ function CheckIcon(props) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none">
       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function TemplateIcon(props) {
+  return (
+    <svg {...props} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-3.75-12v.75m0 3v.75m0 3v.75m0 3V18M3 6.75A.75.75 0 013.75 6h6.5a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75h-6.5a.75.75 0 01-.75-.75V6.75z" />
     </svg>
   );
 }
