@@ -4,20 +4,37 @@ import { Link, useLocation } from "react-router-dom";
 import { useUserRole } from "../hooks/useAuth";
 
 /* ----------------------
-   1. Define items (moved inside component setup scope for clarity/safety)
+   1. Define items grouped into sections as instructed
    ---------------------- */
 const allItems = [
-  { key: "home", label: "Home", icon: HomeIcon, path: "/dashboard", docType: null },
-  { key: "leads", label: "Enquiries", icon: TargetIcon, path: "/leads", docType: "Lead" },
-  { key: "contacts", label: "Contacts", icon: UserIcon, path: "/customer", docType: "Customer" },
-  { key: "accounts", label: "Accounts", icon: BuildingIcon, path: "/accounts", docType: "Accounts" },
-  { key: "quotes", label: "Quotes", icon: QuoteIcon, path: "/quotation", docType: "Quotation" },
-  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice", docType: "Invoice" },
-  { key: "item_master", label: "Item Master", icon: BoxIcon, path: "/item_master", docType: "Item Master" },
-  { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory", docType: "Inventory" },
-  { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc", docType: "AMC" },
-  { key: "role_permissions", label: "Role Permissions", icon: ShieldIcon, path: "/role-permissions", docType: "Role Permissions" },
-  { key: "message_templates", label: "Message Templates", icon: TemplateIcon, path: "/message-templates", docType: null },
+  // OVERVIEW -> Home
+  { key: "home", label: "Dashboard", icon: HomeIcon, path: "/dashboard", docType: null, section: "overview" },
+
+  // SALES -> Enquiries, Quotation, Contact, Item Master
+  { key: "leads", label: "Lead Management", icon: TargetIcon, path: "/leads", docType: "Lead", section: "sales" },
+  { key: "quotes", label: "Quotation", icon: QuoteIcon, path: "/quotation", docType: "Quotation", section: "sales" },
+  { key: "contacts", label: "Customer", icon: UserIcon, path: "/customer", docType: "Customer", section: "sales" },
+  { key: "item_master", label: "Product Master", icon: BoxIcon, path: "/item_master", docType: "Item Master", section: "sales" },
+
+  // OPERATION -> Invoices, Inventory, AMC
+  { key: "invoices", label: "Invoices", icon: InvoiceIcon, path: "/invoice", docType: "Invoice", section: "operation" },
+  { key: "inventory", label: "Inventory", icon: InventoryIcon, path: "/inventory", docType: "Inventory", section: "operation" },
+  { key: "amc", label: "AMC", icon: AmcIcon, path: "/amc", docType: "AMC", section: "operation" },
+
+  // USER MANAGEMENT -> Account
+  { key: "accounts", label: "Account", icon: BuildingIcon, path: "/accounts", docType: "Accounts", section: "user_management" },
+
+  // ADMINISTRATION -> Role Permissions
+  { key: "role_permissions", label: "Role Permissions", icon: ShieldIcon, path: "/role-permissions", docType: "Role Permissions", section: "administration" },
+  { key: "message_templates", label: "Message Templates", icon: TemplateIcon, path: "/message-templates", docType: null, section: "administration" },
+];
+
+const SECTION_CONFIG = [
+  { key: "overview", title: "Overview" },
+  { key: "sales", title: "Sales" },
+  { key: "operation", title: "Operation" },
+  { key: "user_management", title: "User Management" },
+  { key: "administration", title: "Administration" },
 ];
 
 export default function Sidebar() {
@@ -26,7 +43,7 @@ export default function Sidebar() {
 
   const baseApi = import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
 
-  const { userRole, isAdmin, hasPermission, hasAnyPermission, isLoading: loadingRole } = useUserRole(baseApi);
+  const { userRole, isAdmin, hasAnyPermission } = useUserRole(baseApi);
 
   // Listen for permission updates and force re-render
   const [, setPermissionUpdateCounter] = React.useState(0);
@@ -45,9 +62,9 @@ export default function Sidebar() {
     const roleName = userRole?.name?.toLowerCase();
     if (roleName === 'technician') {
       return [
-        { key: "home", label: "Dashboard", icon: HomeIcon, path: "/dashboard", docType: null },
-        { key: "work_list", label: "Work List", icon: ListIcon, path: "/accounts?tab=work_history", docType: "Work History" },
-        { key: "completed_work_list", label: "Completed Work List", icon: CheckIcon, path: "/accounts?tab=completed_work", docType: "Completed Work" },
+        { key: "home", label: "Home", icon: HomeIcon, path: "/dashboard", docType: null, section: "overview" },
+        { key: "work_list", label: "Work List", icon: ListIcon, path: "/accounts?tab=work_history", docType: "Work History", section: "operation" },
+        { key: "completed_work_list", label: "Completed Work List", icon: CheckIcon, path: "/accounts?tab=completed_work", docType: "Completed Work", section: "operation" },
       ].filter(item => !item.docType || hasAnyPermission(item.docType));
     }
 
@@ -66,46 +83,21 @@ export default function Sidebar() {
   }, [userRole, isAdmin, hasAnyPermission]);
 
   const sections = React.useMemo(() => {
-    const mainSection = [];
-    const salesSection = [];
-    const opsSection = [];
-    const adminSection = [];
-    const systemSection = [];
-    
-    filteredItems.forEach(item => {
-      if (item.key === "home" || item.key === "leads" || item.key === "contacts" || item.key === "work_list" || item.key === "completed_work_list") {
-        mainSection.push(item);
-      } else if (item.key === "quotes" || item.key === "invoices" || item.key === "amc") {
-        salesSection.push(item);
-      } else if (item.key === "accounts" || item.key === "item_master" || item.key === "inventory") {
-        opsSection.push(item);
-      } else if (item.key === "role_permissions") {
-        adminSection.push(item);
-      } else if (item.key === "message_templates") {
-        systemSection.push(item);
-      } else {
-        mainSection.push(item);
-      }
-    });
-
-    return [
-      { title: "Core CRM", items: mainSection },
-      { title: "Sales & Billing", items: salesSection },
-      { title: "Operations", items: opsSection },
-      { title: "Administration", items: adminSection },
-      { title: "System", items: systemSection }
-    ].filter(sec => sec.items.length > 0);
+    return SECTION_CONFIG.map(sec => {
+      const items = filteredItems.filter(item => item.section === sec.key);
+      return { title: sec.title, items };
+    }).filter(sec => sec.items.length > 0);
   }, [filteredItems]);
 
   return (
-    <aside className="w-full bg-gradient-to-b from-white to-slate-50/50 border-r border-slate-100 min-h-screen py-6 px-4 flex flex-col justify-between overflow-y-auto">
-      <nav className="flex flex-col gap-6">
+    <aside className="w-full h-full bg-white border-r border-slate-200/80 pt-4 pb-2 px-3 flex flex-col overflow-hidden select-none">
+      <nav className="flex flex-col gap-3.5 overflow-hidden flex-1">
         {sections.map((section) => (
-          <div key={section.title} className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1 block">
+          <div key={section.title} className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-extrabold text-[#8e9ab0] uppercase tracking-wider px-3 mb-1 block">
               {section.title}
             </span>
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-0.5">
               {section.items.map((it) => (
                 <SidebarItem key={it.key} item={it} active={isActive(it.path, currentPath)} />
               ))}
@@ -113,16 +105,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-      
-      <div className="pt-4 border-t border-slate-100 mt-6 px-3 flex items-center justify-between">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          System Status
-        </span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-slate-500 font-medium">Online</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        </div>
-      </div>
     </aside>
   );
 }
@@ -134,10 +116,10 @@ function isActive(itemPath, currentPath) {
 
 function SidebarItem({ item, active }) {
   const base =
-    "group flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 select-none relative mb-1 text-sm font-medium";
-  const activeClass = "text-sky-600 bg-sky-50/70 font-semibold";
-  const inactiveClass = "text-slate-500 hover:bg-slate-100/50 hover:text-slate-900 hover:translate-x-1";
-  const iconColor = active ? "text-sky-500" : "text-slate-400 group-hover:text-slate-600";
+    "group flex items-center gap-3 px-3.5 py-2 rounded-2xl transition-all duration-150 select-none relative text-xs font-semibold";
+  const activeClass = "text-[#0088ff] bg-[#f0f7ff] font-bold";
+  const inactiveClass = "text-[#334155] hover:bg-slate-50 hover:text-slate-900";
+  const iconColor = active ? "text-[#0088ff]" : "text-[#8e9ab0] group-hover:text-slate-700";
 
   return (
     <Link
@@ -147,14 +129,14 @@ function SidebarItem({ item, active }) {
     >
       {/* Active Indicator Line */}
       {active && (
-        <span className="absolute left-0 w-1 h-5 bg-sky-500 rounded-r-full" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[5px] h-5 bg-[#0088ff] rounded-r-full" />
       )}
 
-      <span className={`flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${iconColor}`}>
-        <item.icon className="w-5 h-5" />
+      <span className={`flex-shrink-0 transition-transform duration-150 group-hover:scale-105 ${iconColor}`}>
+        <item.icon className="w-4.5 h-4.5" />
       </span>
 
-      <span className="flex-1">{item.label}</span>
+      <span className="flex-1 truncate">{item.label}</span>
     </Link>
   );
 }
