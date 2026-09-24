@@ -6,6 +6,8 @@ import AddPoFrom from "./AddPoFrom";
 import Pagination from "../Pagination";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import SendTemplateModal from "../common/SendTemplateModal";
+import CreateTemplateModal from "../common/CreateTemplateModal";
 
 export default function PurchaseOrder({ base_api, filters }) {
   const BASE_API = base_api;
@@ -24,6 +26,9 @@ export default function PurchaseOrder({ base_api, filters }) {
   // Modal state
   const [showPoForm, setShowPoForm] = useState(false);
   const [editingPo, setEditingPo] = useState(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   // Version history state
   const [expandedPO, setExpandedPO] = useState(null); // stores purchase_order_no of expanded PO
@@ -383,9 +388,9 @@ export default function PurchaseOrder({ base_api, filters }) {
   };
 
   // Handle email
-  const handleEmail = (id) => {
-    console.log("Send email:", id);
-    // TODO: Implement email functionality
+  const handleEmail = (poObj) => {
+    setSelectedDoc(poObj);
+    setEmailModalOpen(true);
   };
 
 
@@ -410,6 +415,7 @@ export default function PurchaseOrder({ base_api, filters }) {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+
           {canCreate && (
           <button
             onClick={handleAddPo}
@@ -502,7 +508,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                           <FaWhatsapp />
                         </button>
                         <button
-                          onClick={() => handleEmail(order.id)}
+                          onClick={() => handleEmail(order)}
                           className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300"
                           title="Email"
                         >
@@ -571,7 +577,7 @@ export default function PurchaseOrder({ base_api, filters }) {
                                   <FaWhatsapp />
                                 </button>
                                 <button
-                                  onClick={() => handleEmail(version.id)}
+                                  onClick={() => handleEmail(version)}
                                   className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300"
                                   title="Email"
                                 >
@@ -641,6 +647,16 @@ export default function PurchaseOrder({ base_api, filters }) {
         onSuccess={handleFormSuccess}
         token={token}
       />
+
+      <SendTemplateModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        category="PURCHASE_ORDERS"
+        documentId={selectedDoc?.id}
+        documentData={selectedDoc || {}}
+      />
+
+
     </div>
   );
 }

@@ -340,7 +340,7 @@ export default function DeliveryChallanForm({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 mt-15">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 border-b px-6 py-4 rounded-t-lg">
@@ -414,6 +414,22 @@ export default function DeliveryChallanForm({
                     ))}
                   </select>
                 </div>
+
+                {(() => {
+                  const selectedIssue = materialIssues.find(i => String(i.id) === String(formData.material_issue));
+                  return selectedIssue ? (
+                    <div>
+                      <label className={labelClass}>Issuing Branch</label>
+                      <input
+                        type="text"
+                        className={`${inputClass} bg-gray-50`}
+                        value={selectedIssue.branch_name || "No Branch"}
+                        readOnly
+                        disabled
+                      />
+                    </div>
+                  ) : null;
+                })()}
 
                 <div>
                   <label className={labelClass}>

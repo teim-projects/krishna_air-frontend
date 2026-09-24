@@ -741,7 +741,7 @@ export default function AddLeadFollowUpForm({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 mt-15">
         <div className={`flex gap-4 transition-all duration-300 ${showHistory ? "max-w-6xl" : "max-w-3xl"} w-full`}>
           <div className={`bg-white rounded-md shadow-lg w-full relative max-h-[85vh] flex flex-col transition-all duration-300 ${showHistory ? "max-w-3xl" : "max-w-3xl mx-auto"}`}>
             {/* ---- FIXED HEADER ---- */}

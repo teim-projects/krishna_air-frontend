@@ -5,6 +5,8 @@ import { MdRemoveRedEye, MdDownload, MdEdit, MdDelete, MdEmail, MdHistory, MdFil
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import SendTemplateModal from "../common/SendTemplateModal";
+import CreateTemplateModal from "../common/CreateTemplateModal";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL;
@@ -33,6 +35,9 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
   const { canCreate, canEdit, canDelete } = useDocPermissions('Invoice');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   // ─── Build query string from filters ───────────────────────────────────────
   const buildParams = useCallback((f = {}) => {
@@ -167,6 +172,11 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
     }
   };
 
+  const handleOpenEmailModal = (invoice) => {
+    setSelectedDoc(invoice);
+    setEmailModalOpen(true);
+  };
+
   /* ================= DELETE ================= */
 
   const handleDeleteInvoice = async (invoiceId) => {
@@ -202,6 +212,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+
           {canCreate && (
             <button
               onClick={onAdd}
@@ -277,7 +288,7 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
                       <FaWhatsapp />
                     </button>
 
-                    <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                    <button onClick={() => handleOpenEmailModal(inv)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                       <MdEmail />
                     </button>
 
@@ -301,6 +312,16 @@ const InvoiceList = forwardRef(({ onAdd, onEdit, filters = {} }, ref) => {
           </tbody>
         </table>
       </div>
+
+      <SendTemplateModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        category="INVOICES"
+        documentId={selectedDoc?.id}
+        documentData={selectedDoc || {}}
+      />
+
+
     </div>
   );
 });

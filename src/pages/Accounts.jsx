@@ -598,7 +598,7 @@ export default function Accounts() {
 
       {/* Manage Roles modal */}
       {showAddRole && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 mt-15">
           <div className="w-full max-w-3xl p-4">
             <RolePage baseApi={BASE_API} onClose={() => {setShowAddRole(false); 
                       fetchRoles();}} />

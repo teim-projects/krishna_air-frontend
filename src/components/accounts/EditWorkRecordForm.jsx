@@ -142,7 +142,7 @@ export default function EditWorkRecordForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 mt-15">
       <div className="bg-white rounded-md shadow-lg w-full max-w-md p-6 relative">
         <button
           onClick={onClose}

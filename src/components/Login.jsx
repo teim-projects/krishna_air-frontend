@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { MdClose } from "react-icons/md";
+import loginBg from "../assets/login image.png";
+import { Snowflake, Wrench, Star, Lock } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -128,14 +130,12 @@ const Login = () => {
 
     setForgotLoading(true);
     try {
-      // Primary endpoint used in ForgotPassword.jsx
       let res = await fetch(`${BASE_API}/auth/password-reset/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: cleanEmail }),
       });
 
-      // Fallback endpoint if /auth/password-reset/ returns 404
       if (res.status === 404) {
         res = await fetch(`${BASE_API}/auth/dj-rest-auth/password/reset/`, {
           method: "POST",
@@ -173,7 +173,6 @@ const Login = () => {
         return;
       }
 
-      // Email successfully verified & reset link sent
       setShowForgotModal(false);
       setForgotEmail("");
 
@@ -196,44 +195,37 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-slate-50 relative">
+    <div className="min-h-screen w-full grid grid-cols-1 md:grid-cols-3 bg-white relative font-sans overflow-hidden">
   
-      {/* LEFT WELCOME SECTION */}
-      <div className="hidden md:flex flex-col justify-center px-16 bg-gradient-to-br from-sky-100 to-sky-200 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-sky-300 opacity-20 rounded-full blur-xl"></div>
-        <div className="absolute bottom-10 right-10 w-52 h-52 bg-sky-400 opacity-20 rounded-full blur-xl"></div>
-  
-        <h1 className="text-5xl font-extrabold text-sky-700 leading-tight drop-shadow-sm z-10">
-          Welcome to <br /> Krisna Air Conditioning
-        </h1>
-  
-        <p className="mt-6 text-lg text-sky-700 max-w-md z-10">
-          Premium Cooling, Trusted Service — providing modern AC solutions for your comfort. 
-        </p>
-  
-        <p className="mt-4 text-sm text-sky-600 opacity-80 z-10">
-          Creating healthier, cooler environments since 2005.
-        </p>
+      {/* LEFT 2/3 PORTION: NEW AC WORKFLOW & BUILDING IMAGE */}
+      <div className="hidden md:flex md:col-span-2 relative h-full w-full overflow-hidden select-none bg-[#d9effc]">
+        <img 
+          src={loginBg} 
+          alt="Krisna Air Conditioning" 
+          className="w-full h-full object-cover object-center pointer-events-none select-none"
+        />
       </div>
   
-      {/* RIGHT LOGIN FORM */}
-      <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-lg border border-slate-100">
+      {/* RIGHT 1/3 PORTION: SOLID WHITE & ICE BLUE SIGN IN SECTION */}
+      <div className="flex items-center justify-center p-6 lg:p-8 md:col-span-1 bg-gradient-to-b from-[#edf7fe] via-[#f5faff] to-[#e2f2fc] min-h-screen border-l border-sky-100/90 h-full">
+        <div className="w-full max-w-[390px] bg-white rounded-3xl p-7 sm:p-8 shadow-[0_15px_40px_rgba(2,132,199,0.08)] border border-sky-100">
   
-          <h2 className="text-3xl font-bold text-slate-800 text-center mb-2">
-            Sign in
-          </h2>
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-extrabold text-[#0a3861] tracking-tight">
+              Sign in
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Krisna Air Conditioning Portal
+            </p>
+          </div>
   
-          <p className="text-sm text-slate-500 text-center mb-8">
-            Login using your registered mobile number or email.
-          </p>
+          {/* Form (100% pure code, no images) */}
+          <form onSubmit={handleSubmit} className="space-y-4">
   
-          <form onSubmit={handleSubmit} className="space-y-5">
-  
-            {/* Email/Mobile */}
+            {/* Email/Mobile Input */}
             <div>
-              <label className="text-sm text-slate-600 font-medium">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 pl-0.5">
                 Email or Mobile
               </label>
               <input
@@ -242,87 +234,136 @@ const Login = () => {
                 value={form.email_or_mobile}
                 onChange={handleChange}
                 placeholder="you@example.com or 9876543210"
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 
-                           focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-sky-300 bg-white text-slate-800 placeholder-slate-400 text-sm outline-none transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)] focus:border-sky-500 focus:ring-2 focus:ring-sky-100 focus:shadow-[0_0_15px_rgba(56,189,248,0.4)]"
               />
             </div>
   
-            {/* Password */}
+            {/* Password Input */}
             <div>
-              <label className="text-sm text-slate-600 font-medium">Password</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 pl-0.5">
+                Password
+              </label>
               <input
                 type="password"
                 name="password"
                 value={form.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 
-                           focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-sky-300 bg-white text-slate-800 placeholder-slate-400 text-sm outline-none transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)] focus:border-sky-500 focus:ring-2 focus:ring-sky-100 focus:shadow-[0_0_15px_rgba(56,189,248,0.4)]"
               />
             </div>
   
-            <div className="flex items-center justify-between text-sm">
-              {/* Remember */}
-              <label className="inline-flex items-center gap-2">
-                <input type="checkbox" className="rounded text-sky-500 focus:ring-sky-300" />
-                <span className="text-slate-600">Remember me</span>
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between text-sm pt-0.5">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-400 focus:ring-offset-0 focus:ring-2 cursor-pointer" 
+                />
+                <span className="text-slate-600 text-xs font-medium">Remember me</span>
               </label>
   
-              {/* Forgot Password Link */}
               <button
                 type="button"
                 onClick={() => setShowForgotModal(true)}
-                className="text-sky-600 hover:text-sky-700 font-medium hover:underline focus:outline-none"
+                className="text-[#0284c7] hover:text-[#0369a1] font-semibold text-xs hover:underline focus:outline-none transition-colors cursor-pointer"
               >
                 Forgot Password?
               </button>
             </div>
   
-            {/* Submit */}
-            <button
-              className="w-full py-3 rounded-md text-white font-semibold 
-                         bg-sky-500 hover:bg-sky-600 transition-all duration-200 shadow-sm"
-            >
-              Login
-            </button>
+            {/* Submit Button & SSL Badge Row */}
+            <div className="flex gap-2.5 items-center pt-1.5">
+              {/* Login Button with pure SVG wave */}
+              <button
+                type="submit"
+                className="flex-1 h-11 px-5 rounded-xl text-white font-bold text-base bg-gradient-to-r from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] hover:from-[#0369a1] hover:to-[#0284c7] transition-all shadow-[0_4px_14px_rgba(56,189,248,0.35)] hover:shadow-[0_6px_20px_rgba(56,189,248,0.5)] active:scale-[0.98] cursor-pointer flex items-center justify-center relative overflow-hidden group"
+              >
+                <span className="relative z-10 font-bold tracking-wide">Login</span>
+                {/* Wind/Breeze Splash Vector effect on the right */}
+                <svg className="absolute right-[-4px] top-1/2 -translate-y-1/2 h-10 w-16 pointer-events-none opacity-85 group-hover:scale-105 transition-transform duration-300" viewBox="0 0 70 40" fill="none">
+                  <path d="M5,22 C18,10 38,34 58,16 C64,11 69,20 62,26 C52,34 32,15 12,24" fill="rgba(255,255,255,0.7)" />
+                  <path d="M16,24 C28,15 44,31 59,20 C65,16 69,23 64,28 C55,34 39,17 22,25" fill="rgba(224,242,254,0.9)" />
+                </svg>
+              </button>
+  
+              {/* SSL badge */}
+              <div className="h-11 px-2.5 bg-slate-50 border border-slate-200/90 rounded-xl flex items-center gap-2 flex-shrink-0 shadow-xs">
+                <div className="w-6 h-6 rounded-md bg-[#0a3861] flex items-center justify-center text-white">
+                  <Lock className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex flex-col leading-tight select-none">
+                  <span className="text-[10px] font-bold text-slate-800 tracking-tight">Secured</span>
+                  <span className="text-[9px] text-slate-500 font-medium">256-bit SSL</span>
+                </div>
+              </div>
+            </div>
           </form>
   
-          {/* Message */}
+          {/* Message banner */}
           {message && (
             <div
-              className={`mt-6 p-3 rounded-md text-sm text-center font-medium transition-all ${
+              className={`mt-4 p-3 rounded-xl text-sm text-center font-medium transition-all ${
                 message.startsWith("Logging in") || message.includes("Logging in")
-                  ? "bg-sky-50 text-sky-700"
+                  ? "bg-sky-50 text-sky-700 border border-sky-200"
                   : message.startsWith("✅")
-                  ? "bg-emerald-50 text-emerald-700"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                   : message.startsWith("⚠️")
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-rose-50 text-rose-600"
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-rose-50 text-rose-600 border border-rose-200"
               }`}
             >
               {message}
             </div>
           )}
+  
+          {/* Bottom Trust Badges */}
+          <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between gap-1 select-none">
+            <div className="flex items-center gap-1.5">
+              <Snowflake className="w-4 h-4 text-[#0284c7] flex-shrink-0" />
+              <div className="text-[10px] font-semibold text-slate-600 leading-tight">
+                <div>24/7 Emergency</div>
+                <div>Support</div>
+              </div>
+            </div>
+  
+            <div className="flex items-center gap-1.5">
+              <Wrench className="w-4 h-4 text-[#0284c7] flex-shrink-0" />
+              <div className="text-[10px] font-semibold text-slate-600 leading-tight">
+                <div>Certified</div>
+                <div>Technicians</div>
+              </div>
+            </div>
+  
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-[#0284c7] flex-shrink-0" />
+              <div className="text-[10px] font-semibold text-slate-600 leading-tight">
+                <div>A+ Rated</div>
+                <div>Service</div>
+              </div>
+            </div>
+          </div>
+  
         </div>
       </div>
-
+  
       {/* FORGOT PASSWORD MODAL BOX */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-sm bg-white rounded-xl shadow-2xl border border-slate-100 p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-sky-100 p-6 relative text-slate-800">
             <button
               type="button"
               onClick={() => setShowForgotModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <MdClose className="text-xl" />
             </button>
-
-            <h3 className="text-xl font-bold text-slate-800 mb-1">Forgot Password?</h3>
-            <p className="text-sm text-slate-500 mb-5">
+  
+            <h3 className="text-xl font-bold text-[#0a3861] mb-1">Forgot Password?</h3>
+            <p className="text-sm text-slate-500 mb-5 leading-relaxed">
               Enter your registered email address below and we'll send you a password reset link.
             </p>
-
+  
             <form onSubmit={handleSendForgotEmail} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
@@ -333,23 +374,23 @@ const Login = () => {
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-400 focus:border-sky-400 outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-sky-300 outline-none text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all"
                   required
                 />
               </div>
-
+  
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-md shadow-sm transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-md shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {forgotLoading ? "Sending..." : "Send Reset Link"}
                 </button>

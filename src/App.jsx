@@ -27,10 +27,12 @@ import ItemMaster from "./pages/ItemMaster";
 import Inventory from "./pages/Inventory";
 import AmcPage from "./pages/Amc";
 import RolePermissionsManager from "./pages/RolePermissionsManager";
+import MessageTemplates from "./pages/MessageTemplates";
 
 function AppRoutes() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
 
   const noNavPaths = ["/login", "/register", "/forgot-password"];
   const isLoggedIn = !!localStorage.getItem("access");
@@ -49,15 +51,29 @@ function AppRoutes() {
       {/* Navbar */}
       {!hideNavbar && (
         <header className="w-full flex-shrink-0">
-          <Navbar onMenuClick={() => setSidebarOpen(true)} />
+          <Navbar
+            onMenuClick={() => {
+              if (window.innerWidth < 768) {
+                setSidebarOpen(!sidebarOpen);
+              } else {
+                setDesktopSidebarOpen(!desktopSidebarOpen);
+              }
+            }}
+          />
         </header>
       )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         {!hideNavbar && (
-          <aside className="hidden md:block w-55 flex-shrink-0 pt-15">
-            <Sidebar />
+          <aside
+            className={`hidden md:block flex-shrink-0 pt-15 transition-all duration-300 ease-in-out overflow-hidden ${
+              desktopSidebarOpen ? "w-60" : "w-0"
+            }`}
+          >
+            <div className="w-60 h-full">
+              <Sidebar />
+            </div>
           </aside>
         )}
 
@@ -135,6 +151,10 @@ function AppRoutes() {
               <Route
                 path="/role-permissions"
                 element={<RolePermissionsManager />}
+              />
+              <Route
+                path="/message-templates"
+                element={<MessageTemplates />}
               />
             </Routes>
             

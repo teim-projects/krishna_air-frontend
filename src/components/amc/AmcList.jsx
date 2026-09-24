@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { MdEdit, MdDelete, MdAutorenew, MdVisibility, MdBuild } from "react-icons/md";
+import { useState, useEffect, Fragment } from "react";
+import { MdEdit, MdDelete, MdAutorenew, MdVisibility, MdBuild, MdHistory } from "react-icons/md";
 import Swal from "sweetalert2";
 import AddAmcForm from "./AddAmcForm";
 import ContractDetailModal from "./ContractDetailModal";
 import AmcSparePartsModal from "./AmcSparePartsModal";
+import RenewAmcModal from "./RenewAmcModal";
 import { useDocPermissions } from "../../hooks/useAuth";
 
 export default function AmcList({ baseApi, token, filters = {} }) {
@@ -15,6 +16,10 @@ export default function AmcList({ baseApi, token, filters = {} }) {
   const [filterType, setFilterType] = useState("all"); // all, active, expiring_soon
   const [detailContract, setDetailContract] = useState(null);
   const [sparePartsContract, setSparePartsContract] = useState(null);
+  const [renewingContract, setRenewingContract] = useState(null);
+  const [expandedContractNo, setExpandedContractNo] = useState(null);
+  const [versionHistory, setVersionHistory] = useState({});
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   const fetchContracts = async () => {
     setLoading(true);
@@ -87,41 +92,40 @@ export default function AmcList({ baseApi, token, filters = {} }) {
     }
   };
 
-  const handleRenew = async (id) => {
-    const { value: cost } = await Swal.fire({
-      title: "Renew AMC Contract",
-      input: "number",
-      inputLabel: "Enter AMC Cost for renewal",
-      inputPlaceholder: "Cost in INR",
-      showCancelButton: true,
-      inputValidator: (value) => {
-        if (!value || isNaN(parseFloat(value))) {
-          return "Please enter a valid cost";
-        }
-      }
-    });
+  const handleToggleVersionHistory = async (contractNo) => {
+    if (expandedContractNo === contractNo) {
+      setExpandedContractNo(null);
+      return;
+    }
 
-    if (!cost) return;
+    setExpandedContractNo(contractNo);
+    if (versionHistory[contractNo]) {
+      return;
+    }
 
+    setLoadingVersions(true);
     try {
-      const res = await fetch(`${baseApi}/amc/contracts/${id}/create_renewal/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ amc_cost: parseFloat(cost) })
-      });
-
+      const res = await fetch(
+        `${baseApi}/amc/contracts/version-history/?contract_number=${encodeURIComponent(contractNo)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
       if (res.ok) {
-        Swal.fire({ icon: "success", text: "Contract renewed successfully", timer: 1200 });
-        fetchContracts();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.detail || "Failed to renew contract");
+        const data = await res.json();
+        const versions = data.results || data || [];
+        setVersionHistory((prev) => ({
+          ...prev,
+          [contractNo]: versions,
+        }));
       }
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err.message });
+      console.error("Failed to load version history:", err);
+    } finally {
+      setLoadingVersions(false);
     }
   };
 
@@ -226,9 +230,12 @@ export default function AmcList({ baseApi, token, filters = {} }) {
               </tr>
             ) : (
               contracts.map((item, index) => (
-                <tr key={item.id} className="border-b hover:bg-slate-50">
+                <Fragment key={item.id}>
+                  <tr className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-blue-600">{item.contract_number}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-blue-600">
+                    {item.contract_number}
+                  </td>
                   <td className="px-4 py-3 text-sm">{item.customer_name || `Customer ID: ${item.customer}`}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.amc_type === "COMPREHENSIVE"
@@ -261,6 +268,17 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => handleToggleVersionHistory(item.contract_number)}
+                        className={`px-2 py-1 rounded hover:bg-purple-300 transition-colors ${
+                          expandedContractNo === item.contract_number
+                            ? "bg-purple-400 text-purple-900 shadow-xs"
+                            : "bg-purple-200 text-purple-800"
+                        }`}
+                        title="Version History"
+                      >
+                        <MdHistory />
+                      </button>
+                      <button
                         onClick={() => setDetailContract(item)}
                         className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                         title="View Details"
@@ -290,7 +308,7 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                       )}
                       {item.status === "ACTIVE" && canEdit && (
                         <button
-                          onClick={() => handleRenew(item.id)}
+                          onClick={() => setRenewingContract(item)}
                           className="px-2 py-1 bg-purple-200 text-purple-800 rounded hover:bg-purple-300"
                           title="Renew AMC"
                         >
@@ -309,6 +327,83 @@ export default function AmcList({ baseApi, token, filters = {} }) {
                     </div>
                   </td>
                 </tr>
+
+                {/* Version History Sub-rows */}
+                {expandedContractNo === item.contract_number && (
+                  <>
+                    {loadingVersions && !versionHistory[item.contract_number] ? (
+                      <tr>
+                        <td colSpan="11" className="px-4 py-3 text-center text-sm text-slate-500 bg-slate-50">
+                          Loading version history...
+                        </td>
+                      </tr>
+                    ) : versionHistory[item.contract_number]?.filter((v) => v.id !== item.id).length > 0 ? (
+                      versionHistory[item.contract_number]
+                        .filter((v) => v.id !== item.id)
+                        .map((ver, vIndex) => (
+                          <tr
+                            key={ver.id}
+                            className="bg-slate-50/95 border-b border-slate-200 hover:bg-slate-100/90 transition-colors"
+                          >
+                            <td className="px-4 py-2.5 text-xs text-slate-500 pl-8 font-medium">
+                              {index + 1}.{vIndex + 1}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs font-semibold text-slate-700">
+                              {ver.contract_number}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {ver.customer_name || `Customer #${ver.customer}`}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {ver.amc_type === "COMPREHENSIVE" ? "Comprehensive" : "Non-Comprehensive"}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {{
+                                MONTHLY: "Monthly",
+                                QUARTERLY: "Quarterly",
+                                HALF_YEARLY: "Half Yearly",
+                                YEARLY: "Yearly",
+                                CUSTOM: "Custom",
+                              }[ver.visit_frequency] || ver.visit_frequency || "—"}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {ver.product_name || `Variant #${ver.product_variant}`}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {ver.amc_start_date}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              {ver.amc_end_date}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs font-medium text-slate-700">
+                              ₹{ver.amc_cost}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeClass(ver.status)}`}>
+                                {ver.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <button
+                                onClick={() => setDetailContract(ver)}
+                                className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs"
+                                title="View Version Details"
+                              >
+                                <MdVisibility />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan="11" className="px-4 py-3 text-center text-xs text-slate-500 bg-slate-50">
+                          No prior / expired versions found for this contract.
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )}
+                </Fragment>
               ))
             )}
           </tbody>
@@ -328,6 +423,23 @@ export default function AmcList({ baseApi, token, filters = {} }) {
           baseApi={baseApi}
           amc={selectedAmc}
           token={token}
+        />
+      )}
+
+      {renewingContract && (
+        <RenewAmcModal
+          contract={renewingContract}
+          baseApi={baseApi}
+          token={token}
+          onClose={() => setRenewingContract(null)}
+          onSuccess={() => {
+            setVersionHistory((prev) => {
+              const next = { ...prev };
+              delete next[renewingContract.contract_number];
+              return next;
+            });
+            fetchContracts();
+          }}
         />
       )}
 

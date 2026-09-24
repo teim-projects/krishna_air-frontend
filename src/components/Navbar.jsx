@@ -1,12 +1,45 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleUser, faBars } from "@fortawesome/free-solid-svg-icons";
+import { faCircleUser, faBars, faBell } from "@fortawesome/free-solid-svg-icons";
+import NotificationPanel from "./common/NotificationPanel";
 
 const Navbar = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    const token = localStorage.getItem("access");
+    if (!token) return;
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BASE_API_URL}/auth/notifications/?type=ALL`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const unread = data.filter(n => !n.is_read).length;
+        setUnreadCount(unread);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, fetchUnreadCount]);
 
   const handleLogout = useCallback(() => {
     window.dispatchEvent(new Event("authChange"));
@@ -68,31 +101,47 @@ const Navbar = ({ onMenuClick }) => {
 
   return (
     <nav style={styles.navbar}>
-      {/* LEFT: Menu Icon */}
+      {/* LEFT: Menu Icon & Branding */}
       <div style={styles.left}>
-        {/* Mobile / Tablet → Menu Icon */}
         <button
           onClick={onMenuClick}
+          className="hover:scale-105 hover:bg-blue-700 active:scale-95 transition-all duration-200"
           style={styles.menuBtn}
-          className="md:hidden"
-          title="Menu"
+          title="Toggle Sidebar"
         >
-          <FontAwesomeIcon icon={faBars} size="lg" />
+          <FontAwesomeIcon icon={faBars} style={styles.menuIcon} />
         </button>
 
-        {/* Desktop → App Name */}
         <Link
           to="/dashboard"
+          className="hover:text-blue-100 transition-colors duration-200"
           style={styles.logo}
-          className="hidden md:block text-2xl font-bold"
         >
-          Krisna AC
+          KRISNA CRM
         </Link>
       </div>
       {/* RIGHT: Profile / Login */}
       <div style={styles.links}>
+        {isAuthenticated && (
+          <div style={styles.bellContainer}>
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={styles.bellBtn}
+              title="Notifications"
+            >
+              <FontAwesomeIcon icon={faBell} size="lg" />
+              {unreadCount > 0 && <span style={styles.bellBadge}>{unreadCount}</span>}
+            </button>
+            {showNotifications && (
+              <NotificationPanel
+                onClose={() => setShowNotifications(false)}
+                onUnreadCountChange={setUnreadCount}
+              />
+            )}
+          </div>
+        )}
         {isAuthenticated ? (
-          <Link to="/profile">
+          <Link to="/profile" style={styles.profileLink}>
             <FontAwesomeIcon icon={faCircleUser} size="lg" title="Profile" />
           </Link>
         ) : (
@@ -118,15 +167,41 @@ const styles = {
     width: "100%",
     zIndex: 1000,
   },
+  left: {
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
+  },
   menuBtn: {
-    background: "none",
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    backgroundColor: "#2563EB",
     border: "none",
     color: "white",
     cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 10px rgba(37, 99, 235, 0.25)",
+    outline: "none",
+  },
+  menuIcon: {
+    fontSize: "1.1rem",
+  },
+  logo: {
+    color: "white",
+    fontSize: "1.3rem",
+    fontWeight: "800",
+    textDecoration: "none",
+    letterSpacing: "0.5px",
+    fontFamily: "'Inter', sans-serif",
+    display: "block",
   },
   links: {
     display: "flex",
-    gap: "12px",
+    gap: "20px",
+    alignItems: "center",
   },
   link: {
     color: "white",
@@ -135,6 +210,44 @@ const styles = {
     padding: "8px 14px",
     borderRadius: "6px",
     backgroundColor: "#388E3C",
+  },
+  bellContainer: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+  bellBtn: {
+    background: "none",
+    border: "none",
+    color: "white",
+    cursor: "pointer",
+    position: "relative",
+    padding: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    outline: "none",
+  },
+  bellBadge: {
+    position: "absolute",
+    top: "-4px",
+    right: "-4px",
+    backgroundColor: "#ef4444",
+    color: "white",
+    fontSize: "0.65rem",
+    fontWeight: "bold",
+    borderRadius: "50%",
+    width: "16px",
+    height: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 0 6px rgba(239, 68, 68, 0.6)",
+  },
+  profileLink: {
+    color: "white",
+    display: "flex",
+    alignItems: "center",
   },
 };
 

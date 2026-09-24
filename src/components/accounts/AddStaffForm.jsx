@@ -148,7 +148,7 @@ export default function AddStaffForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 mt-15">
       <div className="bg-white rounded-md shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
 
         <button onClick={onClose} className="absolute right-3 top-3 text-xl" aria-label="Close">✕</button>

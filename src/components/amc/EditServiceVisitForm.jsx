@@ -156,7 +156,7 @@ export default function EditServiceVisitForm({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] mt-15">
       <div className="bg-white w-full max-w-lg rounded-md shadow-lg max-h-[90vh] flex flex-col">
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800">

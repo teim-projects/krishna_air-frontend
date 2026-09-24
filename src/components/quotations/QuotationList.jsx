@@ -17,6 +17,8 @@ import { FaWhatsapp } from "react-icons/fa";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import { useDocPermissions } from "../../hooks/useAuth";
+import SendTemplateModal from "../common/SendTemplateModal";
+import CreateTemplateModal from "../common/CreateTemplateModal";
 
 const BASE_API =
   import.meta.env.VITE_BASE_API_URL ?? "http://127.0.0.1:8000";
@@ -47,6 +49,9 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
   const [selectedVersion, setSelectedVersion] = useState({});
   const [openRow, setOpenRow] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
 
   // CLOSE PANEL ON OUTSIDE CLICK
   useEffect(() => {
@@ -155,6 +160,21 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
     }
   };
 
+  const handleOpenEmailModal = (quotation, version = null) => {
+    const targetVersion = version || getActiveVersion(quotation);
+    const docData = {
+      ...quotation,
+      versions: quotation.versions,
+    };
+    if (version) {
+      docData.versions = quotation.versions.map((v) =>
+        v.id === version.id ? { ...v, is_active: true } : { ...v, is_active: false }
+      );
+    }
+    setSelectedDoc(docData);
+    setEmailModalOpen(true);
+  };
+
   const formatAmount = (amount) => {
     if (!amount && amount !== 0) return "0.00";
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -220,6 +240,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
             <MdFileDownload className="text-sky-600 text-base" />
             <span>Export</span>
           </button>
+
           {canCreate && (
             <button
               onClick={onAdd}
@@ -306,7 +327,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                           <FaWhatsapp />
                         </button>
 
-                        <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                        <button onClick={() => handleOpenEmailModal(q)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                           <MdEmail />
                         </button>
 
@@ -365,7 +386,7 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
                                         <FaWhatsapp />
                                       </button>
 
-                                      <button className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
+                                      <button onClick={() => handleOpenEmailModal(q, v)} className="px-2 py-1 bg-sky-200 text-sky-800 rounded hover:bg-sky-300" title="Email">
                                         <MdEmail />
                                       </button>
 
@@ -398,6 +419,16 @@ export default function QuotationList({ onAdd, onEdit, filters = {} }) {
           </tbody>
         </table>
       </div>
+
+      <SendTemplateModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        category="QUOTATIONS"
+        documentId={selectedDoc?.id}
+        documentData={selectedDoc || {}}
+      />
+
+
     </div>
   );
 }
