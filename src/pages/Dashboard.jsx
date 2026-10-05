@@ -29,6 +29,7 @@ const TABS = [
   { key: "sales",      label: "Sales Overview" },
   { key: "leads",      label: "Lead Management" },
   { key: "customers",  label: "Customer Managemnet" }, // Matches screenshot spelling
+  { key: "customerIntelligence", label: "Customer Intelligence" },
   { key: "followups",  label: "Follow-up Management" },
   { key: "products",   label: "Product & Service Manag..." },
   { key: "quotations", label: "Quotation Management" },
@@ -36,13 +37,14 @@ const TABS = [
 ];
 
 const TAB_ENDPOINT = {
-  sales:      "sales-overview",
-  leads:      "leads",
-  customers:  "customers",
-  followups:  "followups",
-  products:   "products",
-  quotations: "quotations",
-  invoices:   "invoices",
+  sales:              "sales-overview",
+  leads:              "leads",
+  customers:          "customers",
+  customerIntelligence: "customer-intelligence",
+  followups:          "followups",
+  products:           "products",
+  quotations:         "quotations",
+  invoices:           "invoices",
 };
 
 const TAB_PARAMS = {
@@ -1643,6 +1645,231 @@ function CustomersTab({ data }) {
   );
 }
 
+function CustomerIntelligenceTab({ data }) {
+  if (!data) return <Loading />;
+
+  const kpi = data.kpi || {};
+  const segments = data.segments || {};
+  const customers = data.customers || [];
+
+  const segmentNames = [
+    "High Value",
+    "Active",
+    "Prospect/New",
+    "At Risk",
+    "Unengaged",
+  ];
+
+  const segmentOptions = {
+    chart: {
+      ...BASE_CHART,
+      type: "bar",
+      animations: { enabled: true, speed: 400 },
+    },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 4,
+        barHeight: "55%",
+        distributed: true,
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (value) => value,
+    },
+    xaxis: {
+      categories: segmentNames,
+      title: {
+        text: "Customer Count",
+        style: { fontSize: "11px", fontWeight: 500, color: "#64748b" },
+      },
+      labels: {
+        style: { fontSize: "10px", colors: "#64748b" },
+      },
+    },
+    yaxis: {
+      labels: {
+        style: { fontSize: "11px", colors: "#475569" },
+      },
+    },
+    grid: {
+      strokeDashArray: 3,
+      borderColor: "#f1f5f9",
+    },
+    legend: { show: false },
+    tooltip: { theme: "light" },
+  };
+
+  return (
+    <div className="space-y-5">
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-3.5">
+        <KpiCard
+          title="Total Customers"
+          value={kpi.total_customers}
+          borderColor="border-[#38bdf8]"
+        />
+
+        <KpiCard
+          title="Customers with Leads"
+          value={kpi.customers_with_leads}
+          borderColor="border-[#5b8df6]"
+        />
+
+        <KpiCard
+          title="Active Lead Customers"
+          value={kpi.active_lead_customers}
+          borderColor="border-[#22c55e]"
+        />
+
+        <KpiCard
+          title="Customers with Follow-ups"
+          value={kpi.customers_with_followups}
+          borderColor="border-[#f59e0b]"
+        />
+
+        <KpiCard
+          title="Customers with Transactions"
+          value={kpi.customers_with_transactions}
+          borderColor="border-[#a855f7]"
+        />
+      </div>
+
+      {/* Segmentation */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <ChartCard
+          title="Customer Segmentation"
+          color="#2196f3"
+        >
+          {({ isExpanded }) => (
+            <Chart
+              type="bar"
+              height={isExpanded ? 430 : 300}
+              options={segmentOptions}
+              series={[
+                {
+                  name: "Customers",
+                  data: segmentNames.map(
+                    (segment) => segments[segment] || 0
+                  ),
+                },
+              ]}
+            />
+          )}
+        </ChartCard>
+
+        {/* RFM Summary */}
+        <ChartCard
+          title="RFM Customer Value"
+          color="#f59e0b"
+        >
+          <div className="p-4 space-y-3">
+            {customers
+              .filter((customer) => customer.rfm)
+              .map((customer) => (
+                <div
+                  key={customer.customer_id}
+                  className="flex items-center justify-between border-b border-slate-100 pb-2"
+                >
+                  <div>
+                    <div className="font-medium text-sm text-slate-700">
+                      {customer.customer}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      RFM: {customer.rfm.rfm_score}
+                    </div>
+                  </div>
+
+                  <div className="text-sm font-semibold text-slate-700">
+                    {customer.customer_value}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </ChartCard>
+
+      </div>
+
+      {/* Customer Intelligence Table */}
+      <ChartCard
+        title="Customer Intelligence"
+        color="#8b5cf6"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left">
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Customer
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Leads
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Active Leads
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Follow-ups
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Transactions
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Customer Value
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-600">
+                  Segment
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {customers.map((customer) => (
+                <tr
+                  key={customer.customer_id}
+                  className="border-b border-slate-100 hover:bg-slate-50"
+                >
+                  <td className="px-4 py-3 font-medium text-slate-700">
+                    {customer.customer}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {customer.lead_count}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {customer.active_leads}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {customer.followup_count}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {customer.transaction_count}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {customer.customer_value || "—"}
+                  </td>
+
+                  <td className="px-4 py-3 font-medium">
+                    {customer.segment}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ChartCard>
+
+    </div>
+  );
+}
+
 // 4. Follow-up Management (Matches media_1788957503996.jpg)
 function FollowupsTab({ data }) {
   if (!data) return <Loading />;
@@ -2531,6 +2758,7 @@ export default function Dashboard() {
       case "sales":      return <SalesTab      data={d} />;
       case "leads":      return <LeadsTab      data={d} />;
       case "customers":  return <CustomersTab  data={d} />;
+      case "customerIntelligence": return <CustomerIntelligenceTab data={d} />;
       case "followups":  return <FollowupsTab  data={d} />;
       case "products":   return <ProductsTab   data={d} />;
       case "quotations": return <QuotationsTab data={d} />;
