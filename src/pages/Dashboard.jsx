@@ -1652,6 +1652,10 @@ function CustomerIntelligenceTab({ data }) {
   const segments = data.segments || {};
   const customers = data.customers || [];
 
+  const mlSegmentation = data.ml_segmentation || {};
+  const clusterProfiles = mlSegmentation.cluster_profiles || [];
+  const ruleMlComparison = mlSegmentation.rule_ml_comparison || [];
+
   const segmentNames = [
     "High Value",
     "Active",
@@ -1792,6 +1796,175 @@ function CustomerIntelligenceTab({ data }) {
         </ChartCard>
 
       </div>
+
+      {/* Week 3 — ML Customer Segmentation */}
+      <ChartCard
+        title="ML Customer Segmentation"
+        color="#0ea5e9"
+      >
+        <div className="p-4 space-y-5">
+
+          {/* ML Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">
+                Selected Clusters
+              </div>
+              <div className="text-xl font-semibold text-slate-700">
+                {mlSegmentation.selected_k || "—"}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">
+                Customers Analyzed
+              </div>
+              <div className="text-xl font-semibold text-slate-700">
+                {mlSegmentation.customer_count || customers.length}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">
+                Features Used
+              </div>
+              <div className="text-xl font-semibold text-slate-700">
+                {mlSegmentation.feature_names?.length || "—"}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Cluster Profiles */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3">
+              Cluster Profiles
+            </h4>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left">
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Cluster
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Customers
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Avg Leads
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Avg Active Leads
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Avg Follow-ups
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Avg Transactions
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Avg Revenue
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {clusterProfiles.map((cluster) => (
+                    <tr
+                      key={cluster.cluster}
+                      className="border-b border-slate-100"
+                    >
+                      <td className="px-3 py-2 font-medium text-slate-700">
+                        Cluster {cluster.cluster}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {cluster.customer_count}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {cluster.avg_lead_count}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {cluster.avg_active_leads}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {cluster.avg_followup_count}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {cluster.avg_transaction_count}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        ₹{Number(cluster.avg_revenue || 0).toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Rule-Based vs ML Comparison */}
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 mb-3">
+              Rule-Based vs ML Segmentation
+            </h4>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left">
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Cluster
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Customers
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Dominant Rule Segment
+                    </th>
+                    <th className="px-3 py-2 font-semibold text-slate-600">
+                      Alignment
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {ruleMlComparison.map((item) => (
+                    <tr
+                      key={item.cluster}
+                      className="border-b border-slate-100"
+                    >
+                      <td className="px-3 py-2 font-medium text-slate-700">
+                        Cluster {item.cluster}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {item.customer_count}
+                      </td>
+
+                      <td className="px-3 py-2">
+                        {item.dominant_rule_segment}
+                      </td>
+
+                      <td className="px-3 py-2 font-medium">
+                        {item.alignment_percentage}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </ChartCard>
 
       {/* Customer Intelligence Table */}
       <ChartCard
