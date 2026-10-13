@@ -28,6 +28,7 @@ import Inventory from "./pages/Inventory";
 import AmcPage from "./pages/Amc";
 import RolePermissionsManager from "./pages/RolePermissionsManager";
 import MessageTemplates from "./pages/MessageTemplates";
+import SalesIntelligence from "./pages/SalesIntelligence";
 
 function AppRoutes() {
   const location = useLocation();
@@ -156,6 +157,10 @@ function AppRoutes() {
                 path="/message-templates"
                 element={<MessageTemplates />}
               />
+              <Route
+                path="/sales-intelligence"
+                element={<SalesIntelligence />}
+              />
             </Routes>
             
           </div>
@@ -185,3 +190,7 @@ export default function App() {
     </Router>
   );
 }
+
+
+
+

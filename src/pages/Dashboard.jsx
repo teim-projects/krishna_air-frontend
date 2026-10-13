@@ -10,6 +10,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import Chart from "react-apexcharts";
 import { useUserRole } from "../hooks/useAuth";
 import FunnelChart from "../components/dashboard/FunnelChart";
+import SalesIntelligence from "./SalesIntelligence";
 import {
   RotateCw,
   Maximize2,
@@ -33,6 +34,7 @@ const TABS = [
   { key: "products",   label: "Product & Service Manag..." },
   { key: "quotations", label: "Quotation Management" },
   { key: "invoices",   label: "Invoice Management" },
+  { key: "sales_intelligence", label: "Sales Intelligence" },
 ];
 
 const TAB_ENDPOINT = {
@@ -43,6 +45,7 @@ const TAB_ENDPOINT = {
   products:   "products",
   quotations: "quotations",
   invoices:   "invoices",
+  sales_intelligence: "sales-intelligence/lead-scoring",
 };
 
 const TAB_PARAMS = {
@@ -53,6 +56,7 @@ const TAB_PARAMS = {
   products:   ["product_names"],
   quotations: ["date_from", "date_to", "product_names"],
   invoices:   ["date_from", "date_to", "product_names"],
+  sales_intelligence: [],
 };
 
 // ─── small helpers ─────────────────────────────────────────────────────────────
@@ -2460,6 +2464,7 @@ export default function Dashboard() {
   }, []);
 
   const fetchTab = useCallback(async (tab, currentFilters) => {
+    if (tab === "sales_intelligence") return;
     const token    = localStorage.getItem("access") || localStorage.getItem("token") || "";
     const endpoint = TAB_ENDPOINT[tab];
     if (!endpoint) return;
@@ -2535,6 +2540,7 @@ export default function Dashboard() {
       case "products":   return <ProductsTab   data={d} />;
       case "quotations": return <QuotationsTab data={d} />;
       case "invoices":   return <InvoicesTab   data={d} />;
+      case "sales_intelligence": return <SalesIntelligence />;
       default:           return null;
     }
   };
